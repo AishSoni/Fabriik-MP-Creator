@@ -45,32 +45,43 @@ export function LayersPanel() {
       </div>
       <ul className="flex-1 p-1 text-sm">
         {root.childIds.map((sectionId) => (
-          <li key={sectionId}>
-            <LayerRow
-              id={sectionId}
-              depth={0}
-              selectedIds={selectedIds}
-              onSelect={selectOnly}
-              onToggle={toggleSelect}
-              onMove={move}
-              onRemove={removeElement}
-            />
-            {doc.elements[sectionId]?.childIds.map((childId) => (
-              <LayerRow
-                key={childId}
-                id={childId}
-                depth={1}
-                selectedIds={selectedIds}
-                onSelect={selectOnly}
-                onToggle={toggleSelect}
-                onMove={move}
-                onRemove={removeElement}
-              />
-            ))}
-          </li>
+          <LayerBranch key={sectionId} id={sectionId} depth={0} selectedIds={selectedIds} onSelect={selectOnly} onToggle={toggleSelect} onMove={move} onRemove={removeElement} />
         ))}
       </ul>
     </aside>
+  );
+}
+
+interface BranchProps {
+  id: string;
+  depth: number;
+  selectedIds: string[];
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
+  onRemove: (id: string) => void;
+}
+
+function LayerBranch(props: BranchProps) {
+  const doc = useTemplateStore((s) => s.doc);
+  const element = doc.elements[props.id];
+  if (!element || props.depth > 4) return null;
+  return (
+    <li>
+      <LayerRow {...props} />
+      {element.childIds.map((childId) => (
+        <LayerBranch
+          key={childId}
+          id={childId}
+          depth={props.depth + 1}
+          selectedIds={props.selectedIds}
+          onSelect={props.onSelect}
+          onToggle={props.onToggle}
+          onMove={props.onMove}
+          onRemove={props.onRemove}
+        />
+      ))}
+    </li>
   );
 }
 
@@ -84,8 +95,7 @@ interface RowProps {
   onRemove: (id: string) => void;
 }
 
-function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove }: RowProps) {
-  const doc = useTemplateStore((s) => s.doc);
+function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove }: RowProps) {  const doc = useTemplateStore((s) => s.doc);
   const element = doc.elements[id];
   if (!element) return null;
   const isSelected = selectedIds.includes(id);
