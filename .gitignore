@@ -1,4 +1,7 @@
 *.md
+!README.md
+!AI_USAGE.md
+!PRODUCT_NOTES.md
 !app/README.md
 node_modules/
 dist/

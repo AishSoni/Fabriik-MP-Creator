@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTemplateStore } from '../../store/templateStore';
 
 export function ErrorToasts() {
   const lastErrors = useTemplateStore((s) => s.lastErrors);
   const [dismissed, setDismissed] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (lastErrors.length > 0) setDismissed(null);
-  }, [lastErrors]);
-
-  if (lastErrors.length === 0 || dismissed !== null) return null;
+  if (lastErrors.length === 0) return null;
   const signature = lastErrors.map((e) => e.message).join('|');
   if (signature === dismissed) return null;
 

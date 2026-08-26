@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useTemplateStore } from '../../store/templateStore';
@@ -27,15 +27,13 @@ export function CodePanel() {
     return JSON.stringify(doc, null, 2);
   }, [doc, effectiveMode, selectedIds]);
 
-  useEffect(() => {
-    if (!dirty) setText(currentJson);
-  }, [currentJson, dirty]);
+  const displayed = dirty ? text : currentJson;
 
   const apply = () => {
     setLocalError(null);
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(displayed);
     } catch (e) {
       setLocalError(`Invalid JSON: ${(e as Error).message}`);
       return;
@@ -115,7 +113,7 @@ export function CodePanel() {
         }}
       >
         <CodeMirror
-          value={text}
+          value={displayed}
           height="100%"
           extensions={[json()]}
           onChange={(value) => {
@@ -132,3 +130,4 @@ export function CodePanel() {
     </div>
   );
 }
+

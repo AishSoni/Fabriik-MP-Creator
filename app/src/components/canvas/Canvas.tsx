@@ -19,7 +19,10 @@ export function Canvas() {
   const origin = useRef<{ x: number; y: number } | null>(null);
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    if (e.target !== e.currentTarget && !(e.target as HTMLElement).dataset.canvasSurface) return;
+    const target = e.target as HTMLElement;
+    const onSurface =
+      target.dataset.canvasSurface === 'true' || target === frameRef.current;
+    if (!onSurface) return;
     clearSelection();
     const rect = frameRef.current?.getBoundingClientRect();
     if (!rect) return;
