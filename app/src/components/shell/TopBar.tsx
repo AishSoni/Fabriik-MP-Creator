@@ -1,5 +1,6 @@
 import { useEditorStore } from '../../store/editorStore';
 import { useTemplateStore } from '../../store/templateStore';
+import { TEMPLATES } from '../../template';
 import type { Scope, Viewport } from '../../types/viewport';
 
 const VIEWPORT_LABELS: { id: Viewport; label: string; width: number }[] = [
@@ -14,6 +15,19 @@ export function TopBar() {
   const editScope = useEditorStore((s) => s.editScope);
   const setEditScope = useEditorStore((s) => s.setEditScope);
   const resetDoc = useTemplateStore((s) => s.resetDoc);
+  const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
+  const loadTemplate = useTemplateStore((s) => s.loadTemplate);
+
+  const handleTemplateSwitch = (nextId: string) => {
+    if (nextId === activeTemplateId) return;
+    const definition = TEMPLATES.find((t) => t.id === nextId);
+    if (!definition) return;
+    const confirmed = window.confirm(
+      `Switch to “${definition.name}”? Your current edits and revision history will be discarded.`,
+    );
+    if (!confirmed) return;
+    loadTemplate(nextId);
+  };
 
   const scopeOptions: { id: Scope; label: string }[] = [
     { id: 'all', label: 'All views' },
@@ -25,6 +39,22 @@ export function TopBar() {
   return (
     <header className="flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-2">
       <span className="text-sm font-bold text-slate-800">Scoped Template Editor</span>
+
+      <label className="flex items-center gap-2 text-sm">
+        <span className="font-medium text-slate-600">Template</span>
+        <select
+          aria-label="Active template"
+          value={activeTemplateId}
+          onChange={(e) => handleTemplateSwitch(e.target.value)}
+          className="max-w-52 rounded border border-slate-300 bg-white px-2 py-1 focus:border-blue-500 focus:outline-none"
+        >
+          {TEMPLATES.map((definition) => (
+            <option key={definition.id} value={definition.id} title={definition.description}>
+              {definition.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div role="radiogroup" aria-label="Preview viewport" className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
         {VIEWPORT_LABELS.map(({ id, label, width }) => (
