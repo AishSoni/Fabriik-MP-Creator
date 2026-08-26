@@ -20,7 +20,7 @@ describe('AiDemoPanel', () => {
     useEditorStore.getState().setSelection(['feature-1-title', 'feature-2-title']);
     render(<AiDemoPanel />);
 
-    await user.click(screen.getByRole('button', { name: /Make all selected elements bolder/i }));
+    await user.click(screen.getByRole('button', { name: 'Autofill Bold everything selected' }));
     await user.click(screen.getByRole('button', { name: /Run deterministic demo/i }));
     const cards = screen.getAllByText(/Accept/);
     expect(cards.length).toBeGreaterThanOrEqual(2);
