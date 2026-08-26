@@ -5,6 +5,8 @@ import { LayersPanel } from '../panels/LayersPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { useEditorStore, type RightPanelTab } from '../../store/editorStore';
 import { CodePanel } from '../code/CodePanel';
+import { HistoryPanel } from '../panels/HistoryPanel';
+import { AiDemoPanel } from '../panels/AiDemoPanel';
 import { ErrorToasts } from './ErrorToasts';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
@@ -59,12 +61,8 @@ export function EditorShell() {
           </div>
           <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
             {rightPanelTab === 'properties' && <PropertiesPanel />}
-            {rightPanelTab === 'ai' && (
-              <p className="p-4 text-sm text-slate-500">AI demo panel arrives in a later phase.</p>
-            )}
-            {rightPanelTab === 'history' && (
-              <p className="p-4 text-sm text-slate-500">History panel arrives in a later phase.</p>
-            )}
+            {rightPanelTab === 'ai' && <AiDemoPanel />}
+            {rightPanelTab === 'history' && <HistoryPanel />}
             {rightPanelTab === 'code' && (
               <p className="p-4 text-sm text-slate-500">
                 The code surface is open below the canvas. Select one element to scope the editor to it.

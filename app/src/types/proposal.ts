@@ -12,6 +12,7 @@ export interface Proposal {
   before: { content?: ElementContent; style?: StyleProps };
   after: { content?: ElementContent; style?: StyleProps };
   invalidReason?: string;
+  generatedAt?: number;
   command: EditCommand & { source: Extract<EditSource, 'ai'> };
 }
 
