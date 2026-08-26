@@ -10,7 +10,7 @@ Built with React 19 + TypeScript + Vite, Tailwind CSS v4, Zustand (+persist) & I
 cd app
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 40 focused unit/integration tests
+npm test           # 59 focused unit/integration tests
 npm run build      # production build
 ```
 
@@ -18,19 +18,27 @@ Requires Node.js >= 20. No API keys, no network calls (the AI demo is fully dete
 
 ## Demo script (2 minutes)
 
-1. **Load / Preview** – the app opens with the “Landing Page” template. Switch viewport: *Desktop 1440 → Tablet 768 → Mobile 375*. Note `hero-heading` renders at 48/40/32 px via built-in overrides.
-2. **Select** – click any element on the canvas; Shift/Ctrl-click adds more; drag on empty canvas for a marquee group selection. Everything is keyboard-operable: Tab into the canvas, Enter selects, Shift+Enter toggles additive selection, Enter again starts inline editing, Esc clears.
-3. **Edit on canvas** – double-click `hero-heading`, retype, press Enter. Or use **Properties** to change colors/sizes/alignment.
-4. **Choose responsive scope** – set **Edit scope** to *Mobile*, then change the heading font size in Properties. Switch back to Desktop/Tablet: unchanged. Set scope *All*: shared values update everywhere except where a viewport override exists.
-5. **Edit in code** – open the **Code** tab (drawer below canvas). Edit the whole-template JSON (or scope it to one selected element), press Apply. Try invalid JSON first: you get an error and the last valid state is untouched.
-6. **AI demo** – select `feature-1-title` + `feature-2-title` (Shift-click), open **AI Demo** tab, click an example chip such as *“Make all selected elements bolder”* → Run. Each element returns its own proposal with before→after diff. **Accept** one, **Reject** the other — only the accepted one changes.
-7. **Failure demos** – try *“Now change the footer section too”* while it is not selected (rejected: unselected target), *“Change the templateId…”* (forbidden field), *“Simulate a stale revision conflict”* (proposal blocked by stale-revision validation), or *“Tell me a joke about pixels”* (unsupported).
-8. **Recover** – History tab lists every revision per element × scope with its source badge (canvas/code/AI/restore). Hit **Restore** on an old entry of one element: nothing else moves, and the restore itself appears as a new revision.
-9. **Persist / Reset** – refresh the page: template + full history survive (localStorage). **Reset template** restores the original template and clears history.
+1. **Pick a template** – use the **Template** dropdown in the top bar: *Landing Page*, *Creative Portfolio*, *SaaS Launch* or *Neighborhood Bistro*. Switching asks for confirmation (edits + history are per template).
+2. **Load / Preview** – switch viewport: *Desktop 1440 → Tablet 768 → Mobile 375*. Every fixture ships responsive overrides (e.g. the landing `hero-heading` renders at 48/40/32 px).
+3. **Select** – click any element on the canvas; Shift/Ctrl-click adds more; drag on empty canvas for a marquee group selection. Everything is keyboard-operable: Tab into the canvas, Enter selects, Shift+Enter toggles additive selection, Enter again starts inline editing, Esc clears.
+4. **Edit on canvas** – double-click a heading or text, retype, press Enter. Or use **Properties** to change colors/sizes/alignment.
+5. **Choose responsive scope** – set **Edit scope** to *Mobile*, then change something in Properties. Switch back to Desktop/Tablet: unchanged. Set scope *All*: shared values update everywhere except where a viewport override exists.
+6. **Edit in code** – open the **Code** tab (drawer below canvas). Edit the whole-template JSON (or scope it to one selected element), press Apply. Try invalid JSON first: you get an error and the last valid state is untouched.
+7. **AI demo with one-click autofill** – select elements, open the **AI Demo** tab and click any chip in the always-visible example gallery (grouped Content / Style / Layout / Responsive / Multi-element / Safe failures) to autofill the prompt — with two elements selected, multi-element examples sort first — then **Run**. Each element returns its own proposal with before→after diff; **Accept** one, **Reject** the other.
+8. **Failure demos** – the *Safe failures* chips autofill prompts that are rejected with an explicit reason: unselected target, forbidden field (`templateId`), stale revision, unsupported instruction.
+9. **Recover** – History tab lists every revision per element × scope with its source badge (canvas/code/AI/restore). Hit **Restore** on an old entry of one element: nothing else moves, and the restore itself appears as a new revision.
+10. **Persist / Reset** – refresh the page: template + full history survive (localStorage). **Reset template** restores the currently active template to pristine state and clears history.
 
 ## Template source
 
-The template is adapted from the Tailwind Toolbox **“Landing Page” starter template** ([github.com/tailwindtoolbox/Landing-Page](https://github.com/tailwindtoolbox/Landing-Page), MIT License). The layout structure (nav → hero → features → testimonial → CTA → footer) was converted into this editor’s typed JSON template model; visual styling is driven entirely by the model’s style properties.
+Four built-in templates ship in `src/template/`, all expressed through the same typed model:
+
+| Template | Origin |
+|---|---|
+| **Landing Page** | Adapted from the Tailwind Toolbox **“Landing Page” starter** ([github.com/tailwindtoolbox/Landing-Page](https://github.com/tailwindtoolbox/Landing-Page), MIT License): nav → hero → features → testimonial → CTA → footer, converted into typed JSON elements. |
+| **Creative Portfolio**, **SaaS Launch**, **Neighborhood Bistro** | Original fixtures authored for this exercise, following the same structural conventions (stable IDs, base + viewport overrides). |
+
+Visual styling in all of them is driven entirely by the model’s style properties — no hardcoded CSS per template. A cross-fixture integrity suite (`src/template/templates.test.ts`) validates schema conformance, parent/child symmetry, reachability from root, resolution at all viewports and the presence of responsive overrides for every registered template.
 
 ## Architecture
 
@@ -45,10 +53,10 @@ src/
 │   ├── diffCommands.ts   # Whole-document diffs → granular command streams
 │   └── ai/               # Deterministic scenario engine (no network, no model)
 ├── store/
-│   ├── templateStore.ts  # Canonical state: Zustand + persist(doc, history)
+│   ├── templateStore.ts  # Canonical state: Zustand + persist(doc, history, activeTemplateId)
 │   ├── editorStore.ts    # Ephemeral UI: selection, viewport, scope
 │   └── reviewStore.ts    # Pending AI proposals + accept/reject status machine
-├── template/defaultTemplate.ts  # The typed fixture (see Template source)
+├── template/             # Built-in fixtures + registry (index.ts) + integrity tests
 └── components/
     ├── canvas/       # ElementNode renderer/wrapper, marquee Canvas
     ├── renderer/     # Leaf views per ElementType (registry pattern)
@@ -92,7 +100,7 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 
 | Requirement | Where |
 |---|---|
-| Responsive template, stable IDs | `template/defaultTemplate.ts` |
+| Responsive template(s), stable IDs | `template/` fixtures + `template/index.ts` registry; integrity suite in `templates.test.ts` |
 | Desktop/tablet/mobile previews | `TopBar` radiogroup + `Canvas` device frame widths |
 | Click/additive/marquee selection, keyboard operable | `canvas/ElementNode.tsx` (click/Shift/Ctrl, Tab/Enter/Esc), `canvas/Canvas.tsx` (marquee) |
 | Manual editing: content/style/order/structure | Inline editor + `PropertiesPanel` + `LayersPanel` reorder/delete |
@@ -100,9 +108,10 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 | Invalid code cannot damage state | `replaceDoc` validates first; failures leave last valid doc intact |
 | Scope: All vs single view | Scoped writes in `commit.ts`; isolation tests |
 | Deterministic AI inside selection/scope | `engine/ai/scenarioEngine.ts`; containment + determinism tests |
+| One-click prompt autofill | `engine/ai/exampleCatalog.ts` (categorized, selection-aware ordering) + gallery in `AiDemoPanel` |
 | Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-based safely against current revision, genuinely stale proposals stay blocked |
 | Per-element × scope recovery | `HistoryPanel` + `engine/restore.ts`; independence tested |
-| Persistence + reset | `templateStore` persist middleware (localStorage, versioned); Reset button |
-| Tests (AI scope, canvas-code consistency, view isolation, independent recovery) | `src/engine/ai/scenarioEngine.test.ts`, `src/engine/diffCommands.test.ts`, `src/engine/commit.test.ts`, `src/engine/restore.test.ts`, `src/journey.test.tsx` |
+| Persistence + reset | `templateStore` persist middleware (localStorage, versioned, per-template reset); Reset button |
+| Tests (AI scope, canvas-code consistency, view isolation, independent recovery) | `src/engine/ai/*.test.ts`, `src/engine/diffCommands.test.ts`, `src/engine/commit.test.ts`, `src/engine/restore.test.ts`, `src/journey.test.tsx`, `src/templates.journey.test.tsx` |
 
 See also: [`../PRODUCT_NOTES.md`](../PRODUCT_NOTES.md) for product decisions and [`../AI_USAGE.md`](../AI_USAGE.md) for how AI tools were used.
