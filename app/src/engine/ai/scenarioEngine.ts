@@ -3,23 +3,12 @@ import type { ElementContent, ElementId, StylePatch, TemplateDoc } from '../../t
 import type { Scope } from '../../types/viewport';
 import { buildProposals, darkenHex, lightenHex, resolvedForScope, type EngineContext, type RawProposal } from './buildProposals';
 
+export { EXAMPLE_INSTRUCTIONS } from './exampleCatalog';
+
 const CONTENT_RE = /\b(rewrite|reword|rephrase|headline|title|text|wording|shorten|shorter|exciting|punchier|friendlier)\b/i;
 const STYLE_RE = /\b(color|colour|darker|lighter|bold(?:er)?|bigger|larger|smaller|background)\b/i;
 const RESIZE_RE = /\b(move up|move down|wider|narrower|resize)\b/i;
 const MULTI_RE = /\b(all|every|both)\b/i;
-
-export const EXAMPLE_INSTRUCTIONS: { instruction: string; description: string }[] = [
-  { instruction: 'Rewrite the text to be more exciting', description: 'Content rewrite' },
-  { instruction: 'Make the background darker and the font bigger', description: 'Style change' },
-  { instruction: 'Move this element up', description: 'Reorder' },
-  { instruction: 'Make this wider', description: 'Resize' },
-  { instruction: 'On mobile make the font smaller', description: 'One-viewport responsive adjustment' },
-  { instruction: 'Make all selected elements bolder', description: 'Multi-element edit' },
-  { instruction: 'Change the templateId to something else', description: 'Safe failure: forbidden field' },
-  { instruction: 'Now change the footer section too', description: 'Safe failure: unselected target' },
-  { instruction: 'Simulate a stale revision conflict', description: 'Safe failure: stale revision' },
-  { instruction: 'Tell me a joke about pixels', description: 'Safe failure: unsupported instruction' },
-];
 
 export function runDemoEngine(input: DemoInput, doc: TemplateDoc): DemoResult {
   const instruction = input.instruction.trim();
