@@ -4,6 +4,7 @@ import { Canvas } from '../canvas/Canvas';
 import { LayersPanel } from '../panels/LayersPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { useEditorStore, type RightPanelTab } from '../../store/editorStore';
+import { CodePanel } from '../code/CodePanel';
 import { ErrorToasts } from './ErrorToasts';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
@@ -14,18 +15,28 @@ const TABS: { id: RightPanelTab; label: string }[] = [
 ];
 
 export function EditorShell() {
-  const [mobileLayersOpen, setMobileLayersOpen] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(true);
   const rightPanelTab = useEditorStore((s) => s.rightPanelTab);
   const setRightPanelTab = useEditorStore((s) => s.setRightPanelTab);
 
   return (
-    <div className="flex h-screen min-w-[1280px] flex-col bg-slate-50">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
       <TopBar />
       <ErrorToasts />
-      <div className="flex min-h-0 flex-1">
-        {mobileLayersOpen && <LayersPanel />}
+      <div className="flex min-h-0 min-w-[1280px] flex-1">
+        {layersOpen && <LayersPanel />}
         <main className="flex min-w-0 flex-1 flex-col" aria-label="Template canvas">
-          <Canvas />
+          <div className="min-h-0 flex-1">
+            <Canvas />
+          </div>
+          <div
+            className="border-t border-slate-300 bg-white transition-all"
+            style={{ height: rightPanelTab === 'code' ? '42vh' : 0 }}
+            data-testid="code-drawer"
+            hidden={rightPanelTab !== 'code'}
+          >
+            <CodePanel />
+          </div>
         </main>
         <aside className="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white">
           <div role="tablist" aria-label="Editor panels" className="flex border-b border-slate-200">
@@ -55,17 +66,19 @@ export function EditorShell() {
               <p className="p-4 text-sm text-slate-500">History panel arrives in a later phase.</p>
             )}
             {rightPanelTab === 'code' && (
-              <p className="p-4 text-sm text-slate-500">Code surface arrives in a later phase.</p>
+              <p className="p-4 text-sm text-slate-500">
+                The code surface is open below the canvas. Select one element to scope the editor to it.
+              </p>
             )}
           </div>
         </aside>
       </div>
       <button
         type="button"
-        onClick={() => setMobileLayersOpen((v) => !v)}
+        onClick={() => setLayersOpen((v) => !v)}
         className="absolute bottom-3 left-3 cursor-pointer rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg"
       >
-        {mobileLayersOpen ? 'Hide layers' : 'Show layers'}
+        {layersOpen ? 'Hide layers' : 'Show layers'}
       </button>
     </div>
   );

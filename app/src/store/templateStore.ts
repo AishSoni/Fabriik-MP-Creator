@@ -2,12 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { EditCommand, HistoryLog, RevisionEntry } from '../types/commands';
 import type { TemplateDoc } from '../types/template';
+import { defaultContentFor } from '../types/template';
 import { commitCommand } from '../engine/commit';
 import { restoreRevision } from '../engine/restore';
-import { validateCommand, type CommandError } from '../engine/validate';
-import { templateDocSchema } from '../engine/validate';
+import { validateCommand, templateDocSchema, type CommandError } from '../engine/validate';
+import { diffDocs } from '../engine/diffCommands';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { defaultContentFor } from '../types/template';
 
 interface TemplateState {
   doc: TemplateDoc;
@@ -16,7 +16,7 @@ interface TemplateState {
   dispatch: (command: EditCommand) => CommandError[];
   dispatchMany: (commands: EditCommand[]) => CommandError[];
   restore: (entry: RevisionEntry) => void;
-  replaceDoc: (doc: unknown) => CommandError[] | null;
+  replaceDoc: (doc: unknown) => CommandError[];
   resetDoc: () => void;
 }
 
@@ -44,7 +44,8 @@ export const useTemplateStore = create<TemplateState>()(
       dispatchMany: (commands) => {
         let currentDoc = get().doc;
         let currentHistory = get().history;
-        for (const command of commands) {
+        for (const rawCommand of commands) {
+          const command = { ...rawCommand, baseRevision: currentDoc.revision } as EditCommand;
           const errors = validateCommand(currentDoc, command);
           if (errors.length > 0) {
             set({ lastErrors: errors });
@@ -89,33 +90,39 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: errors });
           return errors;
         }
-        if (parsed.data.revision !== get().doc.revision) {
-          const errors = [
-            {
-              code: 'stale-revision' as const,
-              message: `document revision ${parsed.data.revision} does not match current revision ${get().doc.revision}`,
-            },
-          ];
-          set({ lastErrors: errors });
-          return errors;
-        }
+        const raw = parsed.data;
         const normalized: TemplateDoc = {
-          templateId: parsed.data.templateId,
-          templateName: parsed.data.templateName,
-          revision: parsed.data.revision,
-          rootId: parsed.data.rootId,
+          templateId: raw.templateId,
+          templateName: raw.templateName,
+          revision: raw.revision,
+          rootId: raw.rootId,
           elements: Object.fromEntries(
-            Object.entries(parsed.data.elements).map(([id, element]) => [
+            Object.entries(raw.elements).map(([id, element]) => [
               id,
               {
                 ...element,
-                content: { base: element.content.base ?? defaultContentFor(element.type), overrides: element.content.overrides },
+                content: {
+                  base: element.content.base ?? defaultContentFor(element.type),
+                  overrides: element.content.overrides,
+                },
               },
             ]),
           ),
         };
-        set({ doc: normalized, lastErrors: [] });
-        return null;
+        const { commands, errors } = diffDocs(get().doc, normalized, { source: 'code' });
+        if (errors.length > 0) {
+          const mapped = errors.map((message) => ({
+            code: 'forbidden-field' as const,
+            message,
+          }));
+          set({ lastErrors: mapped });
+          return mapped;
+        }
+        const result = get().dispatchMany(commands);
+        if (result.length === 0 && normalized.templateName !== get().doc.templateName) {
+          set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
+        }
+        return result;
       },
 
       resetDoc: () => {
