@@ -1,6 +1,7 @@
 import type { TemplateDoc } from '../types/template';
 import { createDefaultTemplate } from './defaultTemplate';
 import { createPortfolioTemplate } from './portfolioTemplate';
+import { createSaasTemplate } from './saasTemplate';
 
 export interface TemplateDefinition {
   id: string;
@@ -21,6 +22,12 @@ export const TEMPLATES: TemplateDefinition[] = [
     name: 'Creative Portfolio',
     description: 'Dark personal portfolio with work cards, skills list and contact CTA.',
     create: createPortfolioTemplate,
+  },
+  {
+    id: 'tpl-saas-v1',
+    name: 'SaaS Launch',
+    description: 'Indigo SaaS landing with capability cards, pricing tiers and testimonial.',
+    create: createSaasTemplate,
   },
 ];
 
