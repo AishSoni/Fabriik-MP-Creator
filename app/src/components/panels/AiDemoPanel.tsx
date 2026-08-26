@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { runDemoEngine, EXAMPLE_INSTRUCTIONS } from '../../engine/ai/scenarioEngine';
+import { useMemo, useState } from 'react';
+import { runDemoEngine } from '../../engine/ai/scenarioEngine';
+import { groupExamples } from '../../engine/ai/exampleCatalog';
 import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import { useReviewStore } from '../../store/reviewStore';
@@ -24,6 +25,10 @@ export function AiDemoPanel() {
   const rejectAllPending = useReviewStore((s) => s.rejectAllPending);
 
   const [instruction, setInstruction] = useState('Rewrite the text to be more exciting');
+  const exampleGroups = useMemo(
+    () => groupExamples(undefined, selectedIds.length),
+    [selectedIds.length],
+  );
 
   const run = () => {
     const result = runDemoEngine({ instruction, selectedIds, scope: editScope }, doc);
@@ -65,22 +70,38 @@ export function AiDemoPanel() {
         Run deterministic demo
       </button>
 
-      <details className="rounded border border-slate-200 p-2 text-xs">
-        <summary className="cursor-pointer font-medium text-slate-600">Example instructions (documented paths)</summary>
-        <ul className="mt-2 flex flex-col gap-1">
-          {EXAMPLE_INSTRUCTIONS.map(({ instruction: example, description }) => (
-            <li key={example}>
-              <button
-                type="button"
-                onClick={() => setInstruction(example)}
-                className="w-full cursor-pointer rounded bg-slate-50 px-2 py-1 text-left hover:bg-blue-50"
-              >
-                <span className="font-medium">{description}</span>: “{example}”
-              </button>
-            </li>
-          ))}
-        </ul>
-      </details>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" data-testid="example-gallery">
+        <div className="text-xs font-semibold text-slate-600">
+          Examples — click one to autofill the prompt
+          {selectedIds.length > 1 && (
+            <span className="ml-1 font-normal text-violet-600">(multi-element picks shown first)</span>
+          )}
+        </div>
+        {exampleGroups.map((group) => (
+          <div key={group.category} className="mt-2">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{group.label}</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {group.items.map((example) => (
+                <button
+                  key={example.instruction}
+                  type="button"
+                  onClick={() => setInstruction(example.instruction)}
+                  aria-label={`Autofill ${example.description}`}
+                  title={example.instruction}
+                  disabled={example.category === 'multi-element' && selectedIds.length < 2}
+                  className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    instruction === example.instruction
+                      ? 'border-violet-500 bg-violet-100 text-violet-700'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-40'
+                  }`}
+                >
+                  {example.description}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {pendingResult?.error && (
         <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
