@@ -1,0 +1,276 @@
+import type { TemplateDoc } from '../types/template';
+
+const el = <T extends { id: string }>(e: T): T => e;
+
+export const createDefaultTemplate = (): TemplateDoc => ({
+  templateId: 'tpl-landing-v1',
+  templateName: 'Landing Page',
+  revision: 0,
+  rootId: 'page-root',
+  elements: {
+    'page-root': el({
+      id: 'page-root',
+      type: 'section',
+      parentId: null,
+      childIds: ['top-nav', 'hero-section', 'features-section', 'testimonial-section', 'cta-section', 'footer-section'],
+      content: { base: {} },
+      style: {
+        base: { backgroundColor: '#ffffff', color: '#1f2937', paddingX: 0, paddingY: 0 },
+      },
+    }),
+    'top-nav': el({
+      id: 'top-nav',
+      type: 'nav',
+      parentId: 'page-root',
+      childIds: [],
+      content: {
+        base: {
+          brand: 'Landing',
+          links: [
+            { label: 'Features', href: '#features' },
+            { label: 'Pricing', href: '#pricing' },
+            { label: 'About', href: '#about' },
+          ],
+        },
+      },
+      style: {
+        base: { backgroundColor: '#4f46e5', color: '#ffffff', paddingX: 32, paddingY: 16 },
+        overrides: { mobile: { paddingX: 16 } },
+      },
+    }),
+    'hero-section': el({
+      id: 'hero-section',
+      type: 'section',
+      parentId: 'page-root',
+      childIds: ['hero-eyebrow', 'hero-heading', 'hero-subtext', 'hero-cta'],
+      content: { base: {} },
+      style: {
+        base: { backgroundColor: '#4f46e5', color: '#ffffff', paddingX: 48, paddingY: 96 },
+      },
+    }),
+    'hero-eyebrow': el({
+      id: 'hero-eyebrow',
+      type: 'text',
+      parentId: 'hero-section',
+      childIds: [],
+      content: { base: { text: 'What business are you in?' } },
+      style: { base: { fontSize: 14, fontWeight: 600, textAlign: 'center', marginBottom: 8, lineHeight: 1.4 } },
+    }),
+    'hero-heading': el({
+      id: 'hero-heading',
+      type: 'heading',
+      parentId: 'hero-section',
+      childIds: [],
+      content: { base: { text: 'Main Hero Message to Sell Yourself!' } },
+      style: {
+        base: { fontSize: 48, fontWeight: 700, textAlign: 'center', lineHeight: 1.15, marginBottom: 16 },
+        overrides: { tablet: { fontSize: 40 }, mobile: { fontSize: 32 } },
+      },
+    }),
+    'hero-subtext': el({
+      id: 'hero-subtext',
+      type: 'text',
+      parentId: 'hero-section',
+      childIds: [],
+      content: {
+        base: { text: 'Sub-hero message, not too long and not too short. Make it just right!' },
+      },
+      style: {
+        base: { fontSize: 24, fontWeight: 400, textAlign: 'center', marginBottom: 32, lineHeight: 1.5 },
+        overrides: { mobile: { fontSize: 18 } },
+      },
+    }),
+    'hero-cta': el({
+      id: 'hero-cta',
+      type: 'button',
+      parentId: 'hero-section',
+      childIds: [],
+      content: { base: { label: 'Subscribe', href: '#subscribe' } },
+      style: {
+        base: {
+          backgroundColor: '#ffffff',
+          color: '#1f2937',
+          fontSize: 18,
+          fontWeight: 700,
+          paddingX: 32,
+          paddingY: 16,
+          borderRadius: 999,
+          marginTop: 0,
+          marginBottom: 0,
+        },
+      },
+    }),
+    'features-section': el({
+      id: 'features-section',
+      type: 'section',
+      parentId: 'page-root',
+      childIds: ['features-heading', 'feature-card-1', 'feature-card-2'],
+      content: { base: {} },
+      style: {
+        base: { backgroundColor: '#ffffff', paddingX: 48, paddingY: 64 },
+      },
+    }),
+    'features-heading': el({
+      id: 'features-heading',
+      type: 'heading',
+      parentId: 'features-section',
+      childIds: [],
+      content: { base: { text: 'Everything you need' } },
+      style: {
+        base: { fontSize: 36, fontWeight: 700, textAlign: 'center', marginBottom: 40, color: '#111827' },
+        overrides: { mobile: { fontSize: 28 } },
+      },
+    }),
+    'feature-card-1': el({
+      id: 'feature-card-1',
+      type: 'section',
+      parentId: 'features-section',
+      childIds: ['feature-1-title', 'feature-1-text'],
+      content: { base: {} },
+      style: {
+        base: {
+          backgroundColor: '#f9fafb',
+          borderRadius: 12,
+          paddingX: 24,
+          paddingY: 24,
+          widthPercent: 50,
+        },
+        overrides: { mobile: { widthPercent: 100 } },
+      },
+    }),
+    'feature-1-title': el({
+      id: 'feature-1-title',
+      type: 'heading',
+      parentId: 'feature-card-1',
+      childIds: [],
+      content: { base: { text: 'Modular elements' } },
+      style: { base: { fontSize: 22, fontWeight: 700, marginBottom: 12, color: '#111827' } },
+    }),
+    'feature-1-text': el({
+      id: 'feature-1-text',
+      type: 'text',
+      parentId: 'feature-card-1',
+      childIds: [],
+      content: {
+        base: { text: 'Every element on the page is independently editable, selectable, and recoverable.' },
+      },
+      style: { base: { fontSize: 16, lineHeight: 1.6, color: '#4b5563' } },
+    }),
+    'feature-card-2': el({
+      id: 'feature-card-2',
+      type: 'section',
+      parentId: 'features-section',
+      childIds: ['feature-2-title', 'feature-2-text'],
+      content: { base: {} },
+      style: {
+        base: {
+          backgroundColor: '#f9fafb',
+          borderRadius: 12,
+          paddingX: 24,
+          paddingY: 24,
+          widthPercent: 50,
+        },
+        overrides: { mobile: { widthPercent: 100 } },
+      },
+    }),
+    'feature-2-title': el({
+      id: 'feature-2-title',
+      type: 'heading',
+      parentId: 'feature-card-2',
+      childIds: [],
+      content: { base: { text: 'Scoped AI proposals' } },
+      style: { base: { fontSize: 22, fontWeight: 700, marginBottom: 12, color: '#111827' } },
+    }),
+    'feature-2-text': el({
+      id: 'feature-2-text',
+      type: 'text',
+      parentId: 'feature-card-2',
+      childIds: [],
+      content: {
+        base: { text: 'Text-driven edits stay inside your selection and never overwrite work until you approve.' },
+      },
+      style: { base: { fontSize: 16, lineHeight: 1.6, color: '#4b5563' } },
+    }),
+    'testimonial-section': el({
+      id: 'testimonial-section',
+      type: 'section',
+      parentId: 'page-root',
+      childIds: ['testimonial-quote', 'testimonial-attribution'],
+      content: { base: {} },
+      style: { base: { backgroundColor: '#f3f4f6', paddingX: 64, paddingY: 56 } },
+    }),
+    'testimonial-quote': el({
+      id: 'testimonial-quote',
+      type: 'text',
+      parentId: 'testimonial-section',
+      childIds: [],
+      content: {
+        base: { text: '“This editor let me restyle my whole landing page without ever losing an earlier version.”' },
+      },
+      style: {
+        base: { fontSize: 20, textAlign: 'center', lineHeight: 1.6, marginBottom: 12, color: '#374151' },
+      },
+    }),
+    'testimonial-attribution': el({
+      id: 'testimonial-attribution',
+      type: 'text',
+      parentId: 'testimonial-section',
+      childIds: [],
+      content: { base: { text: '— A small-business owner' } },
+      style: { base: { fontSize: 14, fontWeight: 600, textAlign: 'center', color: '#6b7280' } },
+    }),
+    'cta-section': el({
+      id: 'cta-section',
+      type: 'section',
+      parentId: 'page-root',
+      childIds: ['cta-heading', 'cta-button'],
+      content: { base: {} },
+      style: { base: { backgroundColor: '#111827', color: '#ffffff', paddingX: 48, paddingY: 72 } },
+    }),
+    'cta-heading': el({
+      id: 'cta-heading',
+      type: 'heading',
+      parentId: 'cta-section',
+      childIds: [],
+      content: { base: { text: 'Ready to get started?' } },
+      style: {
+        base: { fontSize: 32, fontWeight: 700, textAlign: 'center', marginBottom: 24 },
+        overrides: { mobile: { fontSize: 26 } },
+      },
+    }),
+    'cta-button': el({
+      id: 'cta-button',
+      type: 'button',
+      parentId: 'cta-section',
+      childIds: [],
+      content: { base: { label: 'Start Free', href: '#start' } },
+      style: {
+        base: {
+          backgroundColor: '#4f46e5',
+          color: '#ffffff',
+          fontSize: 16,
+          fontWeight: 700,
+          paddingX: 28,
+          paddingY: 14,
+          borderRadius: 8,
+        },
+      },
+    }),
+    'footer-section': el({
+      id: 'footer-section',
+      type: 'section',
+      parentId: 'page-root',
+      childIds: ['footer-text'],
+      content: { base: {} },
+      style: { base: { backgroundColor: '#ffffff', paddingX: 32, paddingY: 24 } },
+    }),
+    'footer-text': el({
+      id: 'footer-text',
+      type: 'text',
+      parentId: 'footer-section',
+      childIds: [],
+      content: { base: { text: '© 2026 Landing Inc. All rights reserved.' } },
+      style: { base: { fontSize: 14, textAlign: 'center', color: '#9ca3af' } },
+    }),
+  },
+});

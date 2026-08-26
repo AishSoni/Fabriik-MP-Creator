@@ -1,0 +1,6 @@
+*.md
+!app/README.md
+node_modules/
+dist/
+*.local
+.DS_Store
