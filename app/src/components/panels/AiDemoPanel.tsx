@@ -87,9 +87,13 @@ export function AiDemoPanel() {
                   type="button"
                   onClick={() => setInstruction(example.instruction)}
                   aria-label={`Autofill ${example.description}`}
-                  title={example.instruction}
+                  title={
+                    example.category === 'multi-element' && selectedIds.length < 2
+                      ? 'Select at least two elements first'
+                      : example.instruction
+                  }
                   disabled={example.category === 'multi-element' && selectedIds.length < 2}
-                  className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
                     instruction === example.instruction
                       ? 'border-violet-500 bg-violet-100 text-violet-700'
                       : 'border-slate-300 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-40'
