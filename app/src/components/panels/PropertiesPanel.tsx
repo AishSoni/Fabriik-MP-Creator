@@ -2,20 +2,13 @@ import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import { resolveElement } from '../../engine/resolve';
 import type { StylePatch } from '../../types/template';
+import { useCommittingDraft } from './useCommittingDraft';
 
 export function PropertiesPanel() {
   const doc = useTemplateStore((s) => s.doc);
   const dispatch = useTemplateStore((s) => s.dispatch);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const editScope = useEditorStore((s) => s.editScope);
-
-  if (selectedIds.length === 0) {
-    return (
-      <div className="p-4 text-sm text-slate-500">
-        Select an element on the canvas or in Layers to edit its properties.
-      </div>
-    );
-  }
 
   const single = selectedIds.length === 1 ? doc.elements[selectedIds[0]] : undefined;
   const resolved = single ? resolveElement(single, editScope === 'all' ? 'desktop' : editScope) : undefined;
@@ -48,6 +41,61 @@ export function PropertiesPanel() {
     });
   };
 
+  const setBrand = (brand: string) => {
+    if (!single) return;
+    const current = resolveElement(single, 'desktop').content;
+    dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: [single.id],
+      scope: editScope,
+      baseRevision: doc.revision,
+      content: { brand, links: 'links' in current ? current.links : [] },
+    });
+  };
+
+  const setLinks = (raw: string) => {
+    if (!single) return;
+    const links = raw
+      .split('\n')
+      .map((line) => line.split('::'))
+      .filter((parts) => parts[0]?.trim())
+      .map((parts) => ({ label: parts[0].trim(), href: parts[1]?.trim() ?? '#' }));
+    const current = resolveElement(single, 'desktop').content;
+    dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: [single.id],
+      scope: editScope,
+      baseRevision: doc.revision,
+      content: { brand: 'brand' in current ? current.brand : '', links },
+    });
+  };
+
+  const textSource = single && resolved && 'text' in resolved.content ? resolved.content.text : '';
+  const brandSource =
+    single && resolved && 'brand' in resolved.content
+      ? (resolved.content as { brand: string }).brand
+      : '';
+  const linksSource =
+    single && resolved && 'brand' in resolved.content
+      ? (resolved.content as { links: { label: string; href: string }[] }).links
+          .map((link) => `${link.label} :: ${link.href}`)
+          .join('\n')
+      : '';
+
+  const textDraft = useCommittingDraft(textSource, setContentText);
+  const brandDraft = useCommittingDraft(brandSource, setBrand);
+  const linksDraft = useCommittingDraft(linksSource, setLinks);
+
+  if (selectedIds.length === 0) {
+    return (
+      <div className="p-4 text-sm text-slate-500">
+        Select an element on the canvas or in Layers to edit its properties.
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 p-4 text-sm">
       <div>
@@ -59,12 +107,21 @@ export function PropertiesPanel() {
 
       {single && resolved && 'text' in resolved.content && (
         <label className="flex flex-col gap-1">
-          <span className="font-medium text-slate-600">Text</span>
+          <span className="font-medium text-slate-600">
+            Text{textDraft.isDirty ? ' · press Ctrl+Enter or blur to apply' : ''}
+          </span>
           <textarea
             aria-label="Element text"
             rows={2}
-            value={resolved.content.text}
-            onChange={(e) => setContentText(e.target.value)}
+            value={textDraft.value}
+            onChange={(e) => textDraft.onChange(e.target.value)}
+            onBlur={() => textDraft.commit()}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                textDraft.commit();
+              }
+            }}
             className="rounded border border-slate-300 px-2 py-1 focus:border-blue-500 focus:outline-none"
           />
         </label>
@@ -75,22 +132,36 @@ export function PropertiesPanel() {
           <span className="font-medium text-slate-600">Brand</span>
           <input
             aria-label="Brand text"
-            value={resolved.content.brand}
-            onChange={(e) => {
-              const current = resolveElement(single, 'desktop').content;
-              dispatch({
-                kind: 'set-content',
-                source: 'canvas',
-                targetIds: [single.id],
-                scope: editScope,
-                baseRevision: doc.revision,
-                content: {
-                  brand: e.target.value,
-                  links: 'links' in current ? current.links : [],
-                },
-              });
+            value={brandDraft.value}
+            onChange={(e) => brandDraft.onChange(e.target.value)}
+            onBlur={() => brandDraft.commit()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                brandDraft.commit();
+              }
             }}
             className="rounded border border-slate-300 px-2 py-1 focus:border-blue-500 focus:outline-none"
+          />
+        </label>
+      )}
+
+      {single && resolved && 'brand' in resolved.content && (
+        <label className="flex flex-col gap-1">
+          <span className="font-medium text-slate-600">Links (one per line: label :: href)</span>
+          <textarea
+            aria-label="Navigation links"
+            rows={3}
+            value={linksDraft.value}
+            onChange={(e) => linksDraft.onChange(e.target.value)}
+            onBlur={() => linksDraft.commit()}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                linksDraft.commit();
+              }
+            }}
+            className="rounded border border-slate-300 px-2 py-1 font-mono text-xs focus:border-blue-500 focus:outline-none"
           />
         </label>
       )}

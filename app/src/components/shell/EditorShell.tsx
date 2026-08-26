@@ -20,6 +20,7 @@ export function EditorShell() {
   const [layersOpen, setLayersOpen] = useState(true);
   const rightPanelTab = useEditorStore((s) => s.rightPanelTab);
   const setRightPanelTab = useEditorStore((s) => s.setRightPanelTab);
+  const selectionKey = useEditorStore((s) => s.selectedIds.join('|'));
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
@@ -60,7 +61,7 @@ export function EditorShell() {
             ))}
           </div>
           <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
-            {rightPanelTab === 'properties' && <PropertiesPanel />}
+            {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
             {rightPanelTab === 'ai' && <AiDemoPanel />}
             {rightPanelTab === 'history' && <HistoryPanel />}
             {rightPanelTab === 'code' && (
