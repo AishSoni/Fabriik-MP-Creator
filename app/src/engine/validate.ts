@@ -5,6 +5,11 @@ import type { EditCommand } from '../types/commands';
 import { STYLE_PROPS } from '../types/template';
 import { VIEWPORTS } from '../types/viewport';
 
+const viewportRecord = <T extends z.ZodType>(valueSchema: T) =>
+  z.strictObject(
+    Object.fromEntries(VIEWPORTS.map((vp) => [vp, valueSchema.optional()])),
+  );
+
 export const stylePatchSchema = z.strictObject(
   Object.fromEntries(
     [...STYLE_PROPS].map((key) => [
@@ -45,9 +50,7 @@ const elementTypeSchema = z.enum([
 
 const scopedStyleSchema = z.strictObject({
   base: stylePatchSchema,
-  overrides: z
-    .record(z.enum(VIEWPORTS), stylePatchSchema)
-    .optional(),
+  overrides: viewportRecord(stylePatchSchema).optional(),
 });
 
 const elementContentSchema = z.union([
@@ -57,13 +60,12 @@ const elementContentSchema = z.union([
   elementContentSchemas.image,
   elementContentSchemas.list,
   elementContentSchemas.nav,
+  elementContentSchemas.section,
 ]);
 
 const scopedContentShape = {
   base: elementContentSchema.optional(),
-  overrides: z
-    .record(z.enum(VIEWPORTS), elementContentSchema)
-    .optional(),
+  overrides: viewportRecord(elementContentSchema).optional(),
 };
 
 const templateElementSchema = z.strictObject({

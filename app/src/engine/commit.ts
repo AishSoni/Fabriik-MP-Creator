@@ -23,6 +23,11 @@ const nextRevisionId = () => `rev-${Date.now().toString(36)}-${(revisionCounter+
 export const commandIdFor = (cmd: EditCommand, seq: number) =>
   `cmd-${cmd.source}-${cmd.kind}-${cmd.baseRevision}-${seq}`;
 
+function snapshotClone<T>(value: T): T {
+  if (value === undefined || value === null || typeof value !== 'object') return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
 function isViewportScope(scope: Scope): scope is Viewport {
   return scope !== 'all';
 }
@@ -116,14 +121,15 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
         const element = draft.elements[id];
         if (!element) break;
         const before = writeContentLayer(element as TemplateElement, command.scope, command.content);
+        const after = readContentLayer(element as TemplateElement, command.scope);
         recordRevision({
           elementId: id,
           scope: command.scope,
           source: command.source,
           kind,
           label,
-          before: { content: before },
-          after: { content: readContentLayer(element as TemplateElement, command.scope) },
+          before: { content: snapshotClone(before) },
+          after: { content: snapshotClone(after) },
         });
         break;
       }

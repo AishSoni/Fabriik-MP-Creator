@@ -1,6 +1,6 @@
 import { produce } from 'immer';
 import type { RevisionEntry } from '../types/commands';
-import type { ElementId, TemplateDoc, TemplateElement } from '../types/template';
+import type { ElementContent, ElementId, TemplateDoc, TemplateElement } from '../types/template';
 import type { Scope } from '../types/viewport';
 import { getSubtreeIds } from './resolve';
 
@@ -54,11 +54,14 @@ export function restoreRevision(doc: TemplateDoc, entry: RevisionEntry): Restore
       if (!element) return;
       if (entry.before.content !== undefined || entry.after.content !== undefined) {
         const beforeContent = entry.before.content;
-        const afterContent =
+        const afterContentRaw =
           entry.after.content ??
           (isViewportScope(entry.scope)
             ? element.content.overrides?.[entry.scope]
             : element.content.base);
+        const afterContent = afterContentRaw
+          ? (JSON.parse(JSON.stringify(afterContentRaw)) as ElementContent)
+          : undefined;
         if (beforeContent === undefined) {
           if (!isViewportScope(entry.scope)) return;
           if (element.content.overrides && entry.scope in element.content.overrides) {
