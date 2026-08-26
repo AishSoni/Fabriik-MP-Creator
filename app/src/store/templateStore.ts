@@ -8,19 +8,23 @@ import { restoreRevision } from '../engine/restore';
 import { validateCommand, templateDocSchema, type CommandError } from '../engine/validate';
 import { diffDocs } from '../engine/diffCommands';
 import { createDefaultTemplate } from '../template/defaultTemplate';
+import { getTemplateById } from '../template';
 
 interface TemplateState {
   doc: TemplateDoc;
   history: HistoryLog;
   lastErrors: CommandError[];
+  activeTemplateId: string;
   dispatch: (command: EditCommand) => CommandError[];
   dispatchMany: (commands: EditCommand[]) => CommandError[];
   restore: (entry: RevisionEntry) => void;
   replaceDoc: (doc: unknown) => CommandError[];
+  loadTemplate: (templateId: string) => CommandError[] | null;
   resetDoc: () => void;
 }
 
 const initialHistory: HistoryLog = {};
+const FALLBACK_TEMPLATE_ID = 'tpl-landing-v1';
 
 export const useTemplateStore = create<TemplateState>()(
   persist(
@@ -28,6 +32,7 @@ export const useTemplateStore = create<TemplateState>()(
       doc: createDefaultTemplate(),
       history: initialHistory,
       lastErrors: [],
+      activeTemplateId: FALLBACK_TEMPLATE_ID,
 
       dispatch: (command) => {
         const { doc, history } = get();
@@ -125,15 +130,51 @@ export const useTemplateStore = create<TemplateState>()(
         return result;
       },
 
+      loadTemplate: (templateId) => {
+        const definition = getTemplateById(templateId);
+        if (!definition) {
+          const errors = [
+            {
+              code: 'unknown-element' as const,
+              message: `no template registered under "${templateId}"`,
+            },
+          ];
+          set({ lastErrors: errors });
+          return errors;
+        }
+        set({
+          doc: definition.create(),
+          history: initialHistory,
+          activeTemplateId: definition.id,
+          lastErrors: [],
+        });
+        return null;
+      },
+
       resetDoc: () => {
-        set({ doc: createDefaultTemplate(), history: initialHistory, lastErrors: [] });
+        set({
+          doc: (getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!).create(),
+          history: initialHistory,
+          lastErrors: [],
+        });
       },
     }),
     {
       name: 'sate-template-v1',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ doc: state.doc, history: state.history }),
+      partialize: (state) => ({
+        doc: state.doc,
+        history: state.history,
+        activeTemplateId: state.activeTemplateId,
+      }),
+      migrate: (persisted, version) => {
+        const data = persisted as { doc?: TemplateDoc; activeTemplateId?: string } & Record<string, unknown>;
+        if ((version ?? 1) < 2 && !data.activeTemplateId) {
+          data.activeTemplateId = data.doc?.templateId ?? FALLBACK_TEMPLATE_ID;
+        }
+        return data as typeof persisted;
+      },
     },
   ),
 );
