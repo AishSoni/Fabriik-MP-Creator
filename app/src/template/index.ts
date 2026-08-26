@@ -2,6 +2,7 @@ import type { TemplateDoc } from '../types/template';
 import { createDefaultTemplate } from './defaultTemplate';
 import { createPortfolioTemplate } from './portfolioTemplate';
 import { createSaasTemplate } from './saasTemplate';
+import { createBistroTemplate } from './bistroTemplate';
 
 export interface TemplateDefinition {
   id: string;
@@ -28,6 +29,12 @@ export const TEMPLATES: TemplateDefinition[] = [
     name: 'SaaS Launch',
     description: 'Indigo SaaS landing with capability cards, pricing tiers and testimonial.',
     create: createSaasTemplate,
+  },
+  {
+    id: 'tpl-bistro-v1',
+    name: 'Neighborhood Bistro',
+    description: 'Warm restaurant page with story, weekly menu cards and reservation CTA.',
+    create: createBistroTemplate,
   },
 ];
 
