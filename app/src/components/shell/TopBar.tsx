@@ -16,6 +16,8 @@ export function TopBar() {
   const setEditScope = useEditorStore((s) => s.setEditScope);
   const darkMode = useEditorStore((s) => s.darkMode);
   const toggleDarkMode = useEditorStore((s) => s.toggleDarkMode);
+  const isCompareOpen = useEditorStore((s) => s.isCompareOpen);
+  const setCompareOpen = useEditorStore((s) => s.setCompareOpen);
   const resetDoc = useTemplateStore((s) => s.resetDoc);
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
@@ -104,6 +106,16 @@ export function TopBar() {
       </label>
 
       <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setCompareOpen(!isCompareOpen)}
+          aria-pressed={isCompareOpen}
+          data-testid="compare-toggle"
+          title={isCompareOpen ? 'Close compare view' : 'Compare base vs current'}
+          className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold ${isCompareOpen ? (darkMode ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-600 bg-blue-600 text-white') : darkMode ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+        >
+          Compare
+        </button>
         <button
           type="button"
           onClick={toggleDarkMode}

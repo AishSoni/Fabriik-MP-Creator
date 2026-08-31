@@ -8,6 +8,7 @@ import { CodePanel } from '../code/CodePanel';
 import { HistoryPanel } from '../panels/HistoryPanel';
 import { AiDemoPanel } from '../panels/AiDemoPanel';
 import { ErrorToasts } from './ErrorToasts';
+import { CompareView } from '../compare/CompareView';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
   { id: 'properties', label: 'Properties' },
@@ -84,6 +85,7 @@ export function EditorShell() {
       >
         {layersOpen ? 'Hide layers' : 'Show layers'}
       </button>
+      <CompareView />
     </div>
   );
 }

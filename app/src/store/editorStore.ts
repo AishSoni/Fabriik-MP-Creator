@@ -11,6 +11,7 @@ interface EditorState {
   selectedIds: ElementId[];
   rightPanelTab: RightPanelTab;
   darkMode: boolean;
+  isCompareOpen: boolean;
   setActiveViewport: (viewport: Viewport) => void;
   setEditScope: (scope: Scope) => void;
   selectOnly: (id: ElementId) => void;
@@ -20,6 +21,7 @@ interface EditorState {
   setRightPanelTab: (tab: RightPanelTab) => void;
   toggleDarkMode: () => void;
   setDarkMode: (darkMode: boolean) => void;
+  setCompareOpen: (open: boolean) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -30,6 +32,7 @@ export const useEditorStore = create<EditorState>()(
       selectedIds: [],
       rightPanelTab: 'properties',
       darkMode: true,
+      isCompareOpen: false,
       setActiveViewport: (activeViewport) => set({ activeViewport }),
       setEditScope: (editScope) => set({ editScope }),
       selectOnly: (id) => set({ selectedIds: [id] }),
@@ -44,6 +47,7 @@ export const useEditorStore = create<EditorState>()(
       setRightPanelTab: (rightPanelTab) => set({ rightPanelTab }),
       toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
       setDarkMode: (darkMode) => set({ darkMode }),
+      setCompareOpen: (isCompareOpen) => set({ isCompareOpen }),
     }),
     {
       name: 'fabriik-editor-v1',
