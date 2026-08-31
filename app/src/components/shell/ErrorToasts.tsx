@@ -12,7 +12,7 @@ export function ErrorToasts() {
   return (
     <div
       role="alert"
-      className="mx-4 mt-2 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+      className="mx-4 mt-2 flex shrink-0 items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
     >
       <ul className="list-disc pl-4">
         {lastErrors.slice(0, 3).map((error, i) => (

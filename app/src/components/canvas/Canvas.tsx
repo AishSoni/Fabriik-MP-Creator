@@ -66,8 +66,9 @@ export function Canvas() {
 
   return (
     <div
-      className="flex flex-1 justify-center overflow-auto bg-slate-200 p-6"
+      className="flex min-h-0 flex-1 justify-center overflow-auto overscroll-contain bg-slate-200 p-6"
       data-canvas-surface="true"
+      data-testid="canvas-scroll"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

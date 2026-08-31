@@ -23,17 +23,17 @@ export function EditorShell() {
   const selectionKey = useEditorStore((s) => s.selectedIds.join('|'));
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
       <TopBar />
       <ErrorToasts />
-      <div className="flex min-h-0 min-w-[1280px] flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {layersOpen && <LayersPanel />}
-        <main className="flex min-w-0 flex-1 flex-col" aria-label="Template canvas">
-          <div className="min-h-0 flex-1">
+        <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden" aria-label="Template canvas">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Canvas />
           </div>
           <div
-            className="border-t border-slate-300 bg-white transition-all"
+            className="shrink-0 overflow-hidden border-t border-slate-300 bg-white transition-all"
             style={{ height: rightPanelTab === 'code' ? '42vh' : 0 }}
             data-testid="code-drawer"
             hidden={rightPanelTab !== 'code'}
@@ -41,8 +41,8 @@ export function EditorShell() {
             <CodePanel />
           </div>
         </main>
-        <aside className="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white">
-          <div role="tablist" aria-label="Editor panels" className="flex border-b border-slate-200">
+        <aside className="flex w-80 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white min-h-0">
+          <div role="tablist" aria-label="Editor panels" className="flex shrink-0 border-b border-slate-200">
             {TABS.map(({ id, label }) => (
               <button
                 key={id}
@@ -60,7 +60,7 @@ export function EditorShell() {
               </button>
             ))}
           </div>
-          <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
+          <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
             {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
             {rightPanelTab === 'ai' && <AiDemoPanel />}
             {rightPanelTab === 'history' && <HistoryPanel />}

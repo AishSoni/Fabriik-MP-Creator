@@ -20,6 +20,7 @@ interface ElementNodeProps {
 export function ElementNode({ id }: ElementNodeProps) {
   const doc = useTemplateStore((s) => s.doc);
   const viewport = useEditorStore((s) => s.activeViewport);
+  const editScope = useEditorStore((s) => s.editScope);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectOnly = useEditorStore((s) => s.selectOnly);
   const toggleSelect = useEditorStore((s) => s.toggleSelect);
@@ -34,7 +35,7 @@ export function ElementNode({ id }: ElementNodeProps) {
   const resolved = resolveElement(element, viewport);
   const css = styleToCss(resolved.style);
   const isSelected = selectedIds.includes(id);
-  const editableText = getEditableText(element);
+  const editableText = getEditableTextFromResolved(resolved);
 
   const handleClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -42,6 +43,17 @@ export function ElementNode({ id }: ElementNodeProps) {
       toggleSelect(id);
     } else {
       selectOnly(id);
+    }
+  };
+
+  const handleDoubleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (editableText !== null) {
+      // quickly edit display text: select and enter edit mode
+      selectOnly(id);
+      setDraftText(editableText);
+      setEditing(true);
     }
   };
 
@@ -71,15 +83,16 @@ export function ElementNode({ id }: ElementNodeProps) {
       kind: 'set-content',
       source: 'canvas',
       targetIds: [id],
-      scope: useEditorStore.getState().editScope,
+      scope: editScope,
       baseRevision: doc.revision,
-      content: nextContentFor(element, trimmed),
+      content: nextContentFor(element, resolved, trimmed),
     });
   };
 
   const commonProps = {
     'data-eid': id,
     onClick: handleClick,
+    onDoubleClick: editableText !== null ? handleDoubleClick : undefined,
     onKeyDown: handleKeyDown,
     tabIndex: 0,
     role: 'button',
@@ -118,9 +131,13 @@ export function ElementNode({ id }: ElementNodeProps) {
           onChange={(e) => setDraftText(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={(e) => {
+            e.stopPropagation();
             if (e.key === 'Enter') commitEdit();
             if (e.key === 'Escape') setEditing(false);
           }}
+          onKeyUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
           className="w-full rounded border border-blue-500 px-2 py-1 text-slate-900"
         />
       </div>
@@ -130,43 +147,19 @@ export function ElementNode({ id }: ElementNodeProps) {
   switch (element.type) {
     case 'heading':
       return (
-        <div
-          {...commonProps}
-          onDoubleClick={() => {
-            if (editableText !== null) {
-              setDraftText(editableText);
-              setEditing(true);
-            }
-          }}
-        >
+        <div {...commonProps} style={css}>
           <HeadingView resolved={resolved} style={css} />
         </div>
       );
     case 'text':
       return (
-        <div
-          {...commonProps}
-          onDoubleClick={() => {
-            if (editableText !== null) {
-              setDraftText(editableText);
-              setEditing(true);
-            }
-          }}
-        >
+        <div {...commonProps} style={css}>
           <TextView resolved={resolved} style={css} />
         </div>
       );
     case 'button':
       return (
-        <div
-          {...commonProps}
-          onDoubleClick={() => {
-            if (editableText !== null) {
-              setDraftText(editableText);
-              setEditing(true);
-            }
-          }}
-        >
+        <div {...commonProps} style={css}>
           <ButtonView resolved={resolved} style={css} />
         </div>
       );
@@ -187,20 +180,26 @@ export function ElementNode({ id }: ElementNodeProps) {
   }
 }
 
-function getEditableText(element: TemplateElement): string | null {
-  const content = resolveElement(element, 'desktop').content;
-  if ('text' in content) return content.text;
-  if ('label' in content) return content.label;
+function getEditableTextFromResolved(resolved: import('../../engine/resolve').ResolvedElement): string | null {
+  const content = resolved.content as Record<string, unknown>;
+  if ('text' in content && typeof content.text === 'string') return content.text as string;
+  if ('label' in content && typeof content.label === 'string') return content.label as string;
   return null;
 }
 
-function nextContentFor(element: TemplateElement, text: string): ElementContent {
+function nextContentFor(
+  element: TemplateElement,
+  resolved: import('../../engine/resolve').ResolvedElement,
+  text: string,
+): ElementContent {
   switch (element.type) {
     case 'heading':
     case 'text':
       return { text };
-    case 'button':
-      return { label: text, href: (resolveElement(element, 'desktop').content as { href: string }).href };
+    case 'button': {
+      const href = (resolved.content as { href: string }).href ?? '#';
+      return { label: text, href };
+    }
     default:
       return { text };
   }

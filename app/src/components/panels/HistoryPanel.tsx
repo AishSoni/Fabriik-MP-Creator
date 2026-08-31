@@ -25,8 +25,8 @@ export function HistoryPanel() {
   }, [history, filterSelected, selectedIds]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-3 py-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Revisions</span>
         <label className="flex items-center gap-1 text-xs text-slate-600">
           <input
@@ -41,7 +41,7 @@ export function HistoryPanel() {
       {entries.length === 0 && (
         <p className="p-4 text-sm text-slate-500">No revisions yet. Edits appear here and can be restored per element.</p>
       )}
-      <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+      <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain">
         {entries.map((entry) => (
           <li key={entry.id} className="flex items-start gap-2 px-3 py-2 text-sm">
             <div className="min-w-0 flex-1">
