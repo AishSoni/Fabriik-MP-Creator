@@ -14,6 +14,8 @@ export function TopBar() {
   const setActiveViewport = useEditorStore((s) => s.setActiveViewport);
   const editScope = useEditorStore((s) => s.editScope);
   const setEditScope = useEditorStore((s) => s.setEditScope);
+  const darkMode = useEditorStore((s) => s.darkMode);
+  const toggleDarkMode = useEditorStore((s) => s.toggleDarkMode);
   const resetDoc = useTemplateStore((s) => s.resetDoc);
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
@@ -37,16 +39,18 @@ export function TopBar() {
   ];
 
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-2">
-      <span className="text-sm font-bold text-slate-800">Scoped Template Editor</span>
+    <header
+      className={`flex shrink-0 flex-wrap items-center gap-4 border-b px-4 py-2 ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'}`}
+    >
+      <span className={`text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>Fabriik</span>
 
       <label className="flex items-center gap-2 text-sm">
-        <span className="font-medium text-slate-600">Template</span>
+        <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Template</span>
         <select
           aria-label="Active template"
           value={activeTemplateId}
           onChange={(e) => handleTemplateSwitch(e.target.value)}
-          className="max-w-52 rounded border border-slate-300 bg-white px-2 py-1 focus:border-blue-500 focus:outline-none"
+          className={`max-w-52 rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
         >
           {TEMPLATES.map((definition) => (
             <option key={definition.id} value={definition.id} title={definition.description}>
@@ -56,7 +60,11 @@ export function TopBar() {
         </select>
       </label>
 
-      <div role="radiogroup" aria-label="Preview viewport" className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+      <div
+        role="radiogroup"
+        aria-label="Preview viewport"
+        className={`flex items-center gap-1 rounded-lg p-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}
+      >
         {VIEWPORT_LABELS.map(({ id, label, width }) => (
           <button
             key={id}
@@ -65,21 +73,27 @@ export function TopBar() {
             aria-checked={activeViewport === id}
             onClick={() => setActiveViewport(id)}
             className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium ${
-              activeViewport === id ? 'bg-white shadow text-blue-700' : 'text-slate-600 hover:text-slate-900'
+              activeViewport === id
+                ? darkMode
+                  ? 'bg-slate-700 shadow text-blue-400'
+                  : 'bg-white shadow text-blue-700'
+                : darkMode
+                  ? 'text-slate-400 hover:text-slate-100'
+                  : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {label} <span className="text-xs text-slate-400">{width}px</span>
+            {label} <span className={darkMode ? 'text-slate-500' : 'text-slate-400'}>{width}px</span>
           </button>
         ))}
       </div>
 
       <label className="flex items-center gap-2 text-sm">
-        <span className="font-medium text-slate-600">Edit scope</span>
+        <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Edit scope</span>
         <select
           aria-label="Edit scope"
           value={editScope}
           onChange={(e) => setEditScope(e.target.value as Scope)}
-          className="rounded border border-slate-300 bg-white px-2 py-1 focus:border-blue-500 focus:outline-none"
+          className={`rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
         >
           {scopeOptions.map(({ id, label }) => (
             <option key={id} value={id}>
@@ -89,13 +103,26 @@ export function TopBar() {
         </select>
       </label>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          aria-label="Toggle dark mode"
+          aria-pressed={darkMode}
+          data-testid="dark-mode-toggle"
+          title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          className={`cursor-pointer rounded-md border p-1.5 text-sm leading-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+        >
+          <span aria-hidden="true" className="text-base leading-none">
+            {darkMode ? '☀️' : '🌙'}
+          </span>
+        </button>
         <button
           type="button"
           onClick={() => {
             if (window.confirm('Reset the template and all history to its original state?')) resetDoc();
           }}
-          className="cursor-pointer rounded-md border border-red-200 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50"
+          className="cursor-pointer rounded-md border border-red-200 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
         >
           Reset template
         </button>

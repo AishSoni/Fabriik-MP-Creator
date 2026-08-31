@@ -1,4 +1,4 @@
-# Scoped AI Template Editor
+# Fabriik
 
 A browser-based website-builder prototype where a non-technical business owner can edit a responsive landing page through **canvas or code**, target edits to **desktop / tablet / mobile**, run a **deterministic text-driven AI demo** confined to the current selection, and **recover any element independently** — without ever losing unrelated work.
 

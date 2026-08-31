@@ -12,6 +12,7 @@ export function CodePanel() {
   const replaceDoc = useTemplateStore((s) => s.replaceDoc);
   const lastErrors = useTemplateStore((s) => s.lastErrors);
   const selectedIds = useEditorStore((s) => s.selectedIds);
+  const darkMode = useEditorStore((s) => s.darkMode);
   const [mode, setMode] = useState<CodeMode>('template');
   const [text, setText] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -56,15 +57,15 @@ export function CodePanel() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 text-xs">
+    <div className={`flex h-full flex-col ${darkMode ? 'bg-slate-900' : 'bg-white'}`}>
+      <div className={`flex items-center gap-2 border-b px-3 py-2 text-xs ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}>
         <div role="radiogroup" aria-label="Code surface scope" className="flex gap-1">
           <button
             type="button"
             role="radio"
             aria-checked={effectiveMode === 'template'}
             onClick={() => setMode('template')}
-            className={`cursor-pointer rounded px-2 py-1 font-medium ${effectiveMode === 'template' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`cursor-pointer rounded px-2 py-1 font-medium ${effectiveMode === 'template' ? (darkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700') : darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
             Whole template
           </button>
@@ -75,7 +76,7 @@ export function CodePanel() {
             disabled={selectedIds.length !== 1}
             onClick={() => setMode('element')}
             title={selectedIds.length !== 1 ? 'Select exactly one element first' : undefined}
-            className={`cursor-pointer rounded px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`cursor-pointer rounded px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700') : darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
             Selected element
           </button>
@@ -85,14 +86,14 @@ export function CodePanel() {
           onClick={apply}
           disabled={!dirty}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className={`ml-auto cursor-pointer rounded-md px-3 py-1 text-sm font-semibold ${dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-200 text-slate-400'}`}
+          className={`ml-auto cursor-pointer rounded-md px-3 py-1 text-sm font-semibold ${dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-400'}`}
         >
           Apply
         </button>
       </div>
 
       {(localError || lastErrors.length > 0) && (
-        <div role="alert" className="border-b border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div role="alert" className={`border-b px-3 py-2 text-xs ${darkMode ? 'border-red-900 bg-red-900/20 text-red-300' : 'border-red-200 bg-red-50 text-red-700'}`}>
           {localError && <p className="font-mono">{localError}</p>}
           {lastErrors.slice(0, 3).map((error, i) => (
             <p key={i} className="font-mono">
@@ -115,6 +116,7 @@ export function CodePanel() {
         <CodeMirror
           value={displayed}
           height="100%"
+          theme={darkMode ? 'dark' : 'light'}
           extensions={[json()]}
           onChange={(value) => {
             setText(value);
@@ -124,10 +126,9 @@ export function CodePanel() {
         />
       </div>
 
-      <p className="border-t border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500">
+      <p className={`border-t px-3 py-1.5 text-[11px] ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
         Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press Ctrl/Cmd+Enter or click Apply.
       </p>
     </div>
   );
 }
-

@@ -8,6 +8,7 @@ export function LayersPanel() {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectOnly = useEditorStore((s) => s.selectOnly);
   const toggleSelect = useEditorStore((s) => s.toggleSelect);
+  const darkMode = useEditorStore((s) => s.darkMode);
   const root = doc.elements[doc.rootId];
 
   const move = (id: string, direction: -1 | 1) => {
@@ -39,8 +40,13 @@ export function LayersPanel() {
   };
 
   return (
-    <aside aria-label="Layers" className="flex w-56 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white min-h-0">
-      <div className="shrink-0 border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <aside
+      aria-label="Layers"
+      className={`flex w-56 shrink-0 flex-col overflow-hidden border-r min-h-0 ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'}`}
+    >
+      <div
+        className={`shrink-0 border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide ${darkMode ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+      >
         Layers
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-1 text-sm">
@@ -96,6 +102,7 @@ interface RowProps {
 }
 
 function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove }: RowProps) {  const doc = useTemplateStore((s) => s.doc);
+  const darkMode = useEditorStore((s) => s.darkMode);
   const element = doc.elements[id];
   if (!element) return null;
   const isSelected = selectedIds.includes(id);
@@ -103,7 +110,7 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
 
   return (
     <div
-      className={`group flex items-center gap-1 rounded px-2 py-1 ${isSelected ? 'bg-blue-100' : 'hover:bg-slate-100'}`}
+      className={`group flex items-center gap-1 rounded px-2 py-1 ${isSelected ? (darkMode ? 'bg-blue-900/40 text-blue-200' : 'bg-blue-100') : darkMode ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100'}`}
       style={{ marginLeft: depth * 12 }}
     >
       <button
@@ -114,13 +121,13 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
       >
         {label}
       </button>
-      <button type="button" aria-label={`Move ${label} up`} onClick={() => onMove(id, -1)} className="invisible cursor-pointer px-1 text-slate-500 hover:text-slate-900 group-hover:visible">
+      <button type="button" aria-label={`Move ${label} up`} onClick={() => onMove(id, -1)} className={`invisible cursor-pointer px-1 group-hover:visible ${darkMode ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-slate-900'}`}>
         ↑
       </button>
-      <button type="button" aria-label={`Move ${label} down`} onClick={() => onMove(id, 1)} className="invisible cursor-pointer px-1 text-slate-500 hover:text-slate-900 group-hover:visible">
+      <button type="button" aria-label={`Move ${label} down`} onClick={() => onMove(id, 1)} className={`invisible cursor-pointer px-1 group-hover:visible ${darkMode ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-slate-900'}`}>
         ↓
       </button>
-      <button type="button" aria-label={`Delete ${label}`} onClick={() => onRemove(id)} className="invisible cursor-pointer px-1 text-slate-500 hover:text-red-600 group-hover:visible">
+      <button type="button" aria-label={`Delete ${label}`} onClick={() => onRemove(id)} className={`invisible cursor-pointer px-1 group-hover:visible ${darkMode ? 'text-slate-400 hover:text-red-400' : 'text-slate-500 hover:text-red-600'}`}>
         ✕
       </button>
     </div>

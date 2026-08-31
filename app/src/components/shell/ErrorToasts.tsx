@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useTemplateStore } from '../../store/templateStore';
+import { useEditorStore } from '../../store/editorStore';
 
 export function ErrorToasts() {
   const lastErrors = useTemplateStore((s) => s.lastErrors);
+  const darkMode = useEditorStore((s) => s.darkMode);
   const [dismissed, setDismissed] = useState<string | null>(null);
 
   if (lastErrors.length === 0) return null;
@@ -12,7 +14,7 @@ export function ErrorToasts() {
   return (
     <div
       role="alert"
-      className="mx-4 mt-2 flex shrink-0 items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+      className={`mx-4 mt-2 flex shrink-0 items-start justify-between gap-3 rounded-lg border px-4 py-2 text-sm ${darkMode ? 'border-red-800 bg-red-900/20 text-red-300' : 'border-red-200 bg-red-50 text-red-700'}`}
     >
       <ul className="list-disc pl-4">
         {lastErrors.slice(0, 3).map((error, i) => (
@@ -25,7 +27,7 @@ export function ErrorToasts() {
       <button
         type="button"
         onClick={() => setDismissed(signature)}
-        className="cursor-pointer rounded px-2 py-0.5 font-medium hover:bg-red-100"
+        className={`cursor-pointer rounded px-2 py-0.5 font-medium ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-100'}`}
       >
         Dismiss
       </button>
