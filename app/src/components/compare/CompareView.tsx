@@ -42,7 +42,7 @@ function StaticCanvas({ doc, viewport }: { doc: TemplateDoc; viewport: 'desktop'
   );
 }
 
-function getChangedIds(base: TemplateDoc, current: TemplateDoc): string[] {
+export function getChangedIds(base: TemplateDoc, current: TemplateDoc): string[] {
   const ids = new Set<string>([...Object.keys(base.elements), ...Object.keys(current.elements)]);
   const changed: string[] = [];
   for (const id of ids) {

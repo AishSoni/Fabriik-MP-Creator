@@ -8,6 +8,7 @@ import { CodePanel } from '../code/CodePanel';
 import { HistoryPanel } from '../panels/HistoryPanel';
 import { AiDemoPanel } from '../panels/AiDemoPanel';
 import { ErrorToasts } from './ErrorToasts';
+import { Toast } from './Toast';
 import { CompareView } from '../compare/CompareView';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
@@ -86,6 +87,7 @@ export function EditorShell() {
         {layersOpen ? 'Hide layers' : 'Show layers'}
       </button>
       <CompareView />
+      <Toast />
     </div>
   );
 }

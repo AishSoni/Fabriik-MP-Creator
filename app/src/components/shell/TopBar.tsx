@@ -1,6 +1,8 @@
 import { useEditorStore } from '../../store/editorStore';
 import { useTemplateStore } from '../../store/templateStore';
 import { TEMPLATES } from '../../template';
+import { getTemplateById } from '../../template';
+import { getChangedIds } from '../compare/CompareView';
 import type { Scope, Viewport } from '../../types/viewport';
 
 const VIEWPORT_LABELS: { id: Viewport; label: string; width: number }[] = [
@@ -18,9 +20,11 @@ export function TopBar() {
   const toggleDarkMode = useEditorStore((s) => s.toggleDarkMode);
   const isCompareOpen = useEditorStore((s) => s.isCompareOpen);
   const setCompareOpen = useEditorStore((s) => s.setCompareOpen);
+  const setToastMessage = useEditorStore((s) => s.setToastMessage);
   const resetDoc = useTemplateStore((s) => s.resetDoc);
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
+  const doc = useTemplateStore((s) => s.doc);
 
   const handleTemplateSwitch = (nextId: string) => {
     if (nextId === activeTemplateId) return;
@@ -108,7 +112,19 @@ export function TopBar() {
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setCompareOpen(!isCompareOpen)}
+          onClick={() => {
+            if (isCompareOpen) {
+              setCompareOpen(false);
+              return;
+            }
+            const baseDoc = getTemplateById(activeTemplateId)?.create() ?? doc;
+            const changedIds = getChangedIds(baseDoc, doc);
+            if (changedIds.length === 0) {
+              setToastMessage('There are no changes');
+              return;
+            }
+            setCompareOpen(true);
+          }}
           aria-pressed={isCompareOpen}
           data-testid="compare-toggle"
           title={isCompareOpen ? 'Close compare view' : 'Compare base vs current'}
