@@ -23,9 +23,9 @@ function StaticElement({ doc, id, viewport }: { doc: TemplateDoc; id: string; vi
     );
   }
   if (element.type === 'nav') return <nav data-eid={id}><NavView resolved={resolved} style={css} /></nav>;
-  if (element.type === 'heading') return <div data-eid={id} style={css}><HeadingView resolved={resolved} style={css} /></div>;
-  if (element.type === 'text') return <div data-eid={id} style={css}><TextView resolved={resolved} style={css} /></div>;
-  if (element.type === 'button') return <div data-eid={id} style={css}><ButtonView resolved={resolved} style={css} /></div>;
+  if (element.type === 'heading') return <div data-eid={id}><HeadingView resolved={resolved} style={css} /></div>;
+  if (element.type === 'text') return <div data-eid={id}><TextView resolved={resolved} style={css} /></div>;
+  if (element.type === 'button') return <div data-eid={id}><ButtonView resolved={resolved} style={css} /></div>;
   if (element.type === 'image') return <div data-eid={id}><ImageView resolved={resolved} style={css} /></div>;
   if (element.type === 'list') return <div data-eid={id}><ListView resolved={resolved} style={css} /></div>;
   return null;

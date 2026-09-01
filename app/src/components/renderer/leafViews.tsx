@@ -13,7 +13,12 @@ export function NavView({ resolved, style }: LeafProps) {
       <span className="text-lg font-bold">{content.brand}</span>
       <div className="flex min-w-0 flex-wrap items-center justify-end gap-4 overflow-hidden">
         {content.links.map((link, i) => (
-          <a key={i} href={link.href} className="opacity-90 hover:opacity-100">
+          <a
+            key={i}
+            href={link.href}
+            onClick={(e) => e.preventDefault()}
+            className="opacity-90 hover:opacity-100"
+          >
             {link.label}
           </a>
         ))}
@@ -39,17 +44,6 @@ export function ButtonView({ resolved, style, editable }: LeafProps & { editable
         draggable={false}
         onClick={(e) => e.preventDefault()}
         className="inline-block cursor-pointer no-underline"
-        style={{
-          backgroundColor: 'inherit',
-          color: 'inherit',
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
-          paddingLeft: 'inherit',
-          paddingRight: 'inherit',
-          paddingTop: 'inherit',
-          paddingBottom: 'inherit',
-          borderRadius: 'inherit',
-        }}
       >
         {content.label}
       </a>

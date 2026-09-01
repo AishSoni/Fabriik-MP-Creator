@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ElementNode } from './ElementNode';
 import { useEditorStore } from '../../store/editorStore';
+import { useTemplateStore } from '../../store/templateStore';
 import { VIEWPORT_WIDTH } from '../../types/viewport';
 
 interface Rect {
@@ -58,7 +59,17 @@ export function Canvas() {
           elRect.bottom > marquee.y;
         if (intersects && el.dataset.eid) ids.push(el.dataset.eid);
       });
-      if (ids.length > 0) setSelection(ids);
+      const doc = useTemplateStore.getState().doc;
+      const ancestors = new Set<string>();
+      for (const id of ids) {
+        let current: string | null = doc.elements[id]?.parentId ?? null;
+        while (current) {
+          ancestors.add(current);
+          current = doc.elements[current]?.parentId ?? null;
+        }
+      }
+      const deepest = ids.filter((id) => !ancestors.has(id));
+      if (deepest.length > 0) setSelection(deepest);
     }
     origin.current = null;
     setMarquee(null);

@@ -27,7 +27,10 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
   const newIds = new Set(Object.keys(newDoc.elements));
 
   for (const id of oldIds) {
-    if (!newIds.has(id) && id !== oldDoc.rootId) {
+    if (id === oldDoc.rootId || newIds.has(id)) continue;
+    const removed = oldDoc.elements[id];
+    const parentId = removed?.parentId;
+    if (!parentId || newIds.has(parentId)) {
       commands.push({
         kind: 'remove',
         source: options.source,
@@ -53,6 +56,36 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
       });
       continue;
     }
+    if (prev.type !== next.type || prev.parentId !== next.parentId) {
+      if (prev.childIds.length > 0) {
+        const what = prev.type !== next.type ? `type (${prev.type} → ${next.type})` : `parent (${prev.parentId} → ${next.parentId})`;
+        errors.push(
+          `element "${id}": changing ${what} on elements with children is not supported — remove and re-add the element instead`,
+        );
+        continue;
+      }
+      const oldParentGone = !prev.parentId || !newIds.has(prev.parentId);
+      if (!oldParentGone) {
+        commands.push({
+          kind: 'remove',
+          source: options.source,
+          targetIds: [id],
+          scope: 'all',
+          baseRevision: 0,
+        });
+      }
+      commands.push({
+        kind: 'insert',
+        source: options.source,
+        targetIds: [],
+        scope: 'all',
+        baseRevision: 0,
+        parentId: next.parentId ?? newDoc.rootId,
+        index: insertionIndex(newDoc, next.parentId ?? newDoc.rootId, id),
+        element: stripTransient(next),
+      });
+      continue;
+    }
     appendPropertyCommands(commands, id, prev.content, next.content, prev.style, next.style, options.source);
   }
 
@@ -66,6 +99,16 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
     if (!prevParent || !nextParent) continue;
     const prevChildren = prevParent.childIds.filter((cid) => newIds.has(cid));
     const nextChildren = [...nextParent.childIds];
+    for (const wanted of nextChildren) {
+      const wantedElement = newDoc.elements[wanted];
+      if (!wantedElement) {
+        errors.push(`element "${parentId}": childIds reference unknown element "${wanted}"`);
+      } else if (wantedElement.parentId !== parentId) {
+        errors.push(
+          `element "${wanted}": childIds of "${parentId}" and parentId "${wantedElement.parentId}" disagree`,
+        );
+      }
+    }
     let current = [...prevChildren];
     for (let targetIndex = 0; targetIndex < nextChildren.length; targetIndex++) {
       const wanted = nextChildren[targetIndex];

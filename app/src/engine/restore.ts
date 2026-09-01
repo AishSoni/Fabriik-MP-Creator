@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import type { RevisionEntry } from '../types/commands';
+import type { RevisionEntry, StyleSnapshot } from '../types/commands';
 import type { ElementContent, ElementId, TemplateDoc, TemplateElement } from '../types/template';
 import type { Scope } from '../types/viewport';
 import { getSubtreeIds } from './resolve';
@@ -16,13 +16,13 @@ function isViewportScope(scope: Scope): scope is Exclude<Scope, 'all'> {
 function writeStyleValues(
   element: TemplateElement,
   scope: Scope,
-  values: Record<string, number | string | undefined>,
+  values: StyleSnapshot,
 ) {
   const layer = isViewportScope(scope)
     ? ((element.style.overrides ??= {})[scope] ??= {})
     : element.style.base;
   for (const [key, value] of Object.entries(values)) {
-    (layer as Record<string, unknown>)[key] = value;
+    (layer as Record<string, unknown>)[key] = value === null ? undefined : value;
   }
 }
 
@@ -102,16 +102,18 @@ export function restoreRevision(doc: TemplateDoc, entry: RevisionEntry): Restore
         const currentLayer = isViewportScope(entry.scope)
           ? element.style.overrides?.[entry.scope]
           : element.style.base;
-        const afterStyle: Record<string, number | string | undefined> = {};
+        const afterStyle: Record<string, number | string | null> = {};
         for (const key of Object.keys(beforeStyle)) {
-          afterStyle[key] = (currentLayer as Record<string, number | string | undefined> | undefined)?.[key];
+          const value = (currentLayer as Record<string, number | string | undefined> | undefined)?.[key];
+          afterStyle[key] = value === undefined ? null : value;
         }
+        const restoredBefore: StyleSnapshot = afterStyle;
         writeStyleValues(element as TemplateElement, entry.scope, beforeStyle);
         restoreEntry = {
           ...base,
           id: `rev-${draft.revision}-${Math.random().toString(36).slice(2, 8)}`,
           commandId: `restore-${entry.id}`,
-          before: { style: afterStyle },
+          before: { style: restoredBefore },
           after: { style: { ...beforeStyle } },
           timestamp: Date.now(),
         };

@@ -14,7 +14,9 @@ export function LayersPanel() {
   const move = (id: string, direction: -1 | 1) => {
     const element = doc.elements[id];
     if (!element?.parentId) return;
-    const siblings = doc.elements[element.parentId].childIds;
+    const parent = doc.elements[element.parentId];
+    if (!parent) return;
+    const siblings = parent.childIds;
     const current = siblings.indexOf(id);
     const target = current + direction;
     if (target < 0 || target >= siblings.length) return;

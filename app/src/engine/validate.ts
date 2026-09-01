@@ -17,7 +17,7 @@ export const stylePatchSchema = z.strictObject(
       key === 'textAlign'
         ? z.enum(['left', 'center', 'right']).optional()
         : key === 'color' || key === 'backgroundColor'
-          ? z.string().regex(/^#[0-9a-fA-F]{3,8}$/).optional()
+          ? z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/).optional()
           : z.number().finite().optional(),
     ]),
   ),
@@ -184,8 +184,12 @@ export function validateCommand(
       requireElements(cmd.targetIds);
       const target = doc.elements[cmd.targetIds[0]];
       if (target) {
-        const expectedKeys = Object.keys(defaultContentFor(target.type));
-        if (!expectedKeys.every((key) => key in cmd.content)) {
+        const expectedKeys = Object.keys(defaultContentFor(target.type)).sort();
+        const contentKeys = Object.keys(cmd.content).sort();
+        const exactMatch =
+          expectedKeys.length === contentKeys.length &&
+          expectedKeys.every((key, i) => key === contentKeys[i]);
+        if (!exactMatch) {
           errors.push(
             err(
               'invalid-payload',
@@ -227,6 +231,27 @@ export function validateCommand(
       }
       if (doc.elements[cmd.element.id]) {
         errors.push(err('id-collision', `element id "${cmd.element.id}" already exists`));
+      }
+      if (cmd.element.childIds.includes(cmd.element.id)) {
+        errors.push(
+          err('invalid-target', `inserted element "${cmd.element.id}" cannot reference itself in childIds`),
+        );
+      }
+      for (const childId of cmd.element.childIds) {
+        if (childId === cmd.element.id) continue;
+        if (doc.elements[childId]) {
+          errors.push(
+            err('id-collision', `child id "${childId}" already belongs to another element`),
+          );
+        }
+      }
+      if (cmd.element.parentId !== cmd.parentId) {
+        errors.push(
+          err(
+            'invalid-payload',
+            `element parentId "${cmd.element.parentId}" does not match command parent "${cmd.parentId}"`,
+          ),
+        );
       }
       const parent = doc.elements[cmd.parentId];
       if (parent && cmd.index > parent.childIds.length) {

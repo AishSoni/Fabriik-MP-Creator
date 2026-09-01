@@ -147,19 +147,19 @@ export function ElementNode({ id }: ElementNodeProps) {
   switch (element.type) {
     case 'heading':
       return (
-        <div {...commonProps} style={css}>
+        <div {...commonProps}>
           <HeadingView resolved={resolved} style={css} />
         </div>
       );
     case 'text':
       return (
-        <div {...commonProps} style={css}>
+        <div {...commonProps}>
           <TextView resolved={resolved} style={css} />
         </div>
       );
     case 'button':
       return (
-        <div {...commonProps} style={css}>
+        <div {...commonProps}>
           <ButtonView resolved={resolved} style={css} />
         </div>
       );

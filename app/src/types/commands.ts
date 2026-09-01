@@ -1,4 +1,4 @@
-import type { ElementContent, ElementId, StylePatch, TemplateElement } from './template';
+import type { ElementContent, ElementId, StylePatch, StyleProps, TemplateElement } from './template';
 import type { Scope } from './viewport';
 
 export type EditSource = 'canvas' | 'code' | 'ai' | 'restore';
@@ -58,9 +58,11 @@ export type EditCommand =
   | InsertCommand
   | RemoveCommand;
 
+export type StyleSnapshot = Partial<Record<keyof StyleProps, number | string | null>>;
+
 export interface ElementSnapshot {
   content?: ElementContent;
-  style?: StylePatch;
+  style?: StyleSnapshot;
   element?: TemplateElement;
 }
 

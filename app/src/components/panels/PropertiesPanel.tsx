@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import { resolveElement } from '../../engine/resolve';
@@ -227,19 +228,33 @@ function NumberField({
   max?: number;
 }) {
   const darkMode = useEditorStore((s) => s.darkMode);
+  const [draft, setDraft] = useState<string | null>(null);
+  const displayed = draft ?? (value !== undefined ? String(value) : '');
+  const commit = () => {
+    if (draft === null) return;
+    const trimmed = draft.trim();
+    setDraft(null);
+    if (trimmed === '') return;
+    const next = Number(trimmed);
+    if (!Number.isNaN(next) && Number.isFinite(next) && next !== value) onChange(next);
+  };
   return (
     <label className="flex items-center gap-2">
       <span className={`w-24 shrink-0 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{label}</span>
       <input
         type="number"
         aria-label={label}
-        value={value ?? ''}
+        value={displayed}
         step={step}
         min={min}
         max={max}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          if (!Number.isNaN(next)) onChange(next);
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
         }}
         className={`min-w-0 flex-1 rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
       />
@@ -273,7 +288,7 @@ function ColorField({
         value={value ?? ''}
         onChange={(e) => {
           const v = e.target.value;
-          if (/^#[0-9a-fA-F]{3,8}$/.test(v)) onChange(v);
+          if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) onChange(v);
         }}
         className={`min-w-0 flex-1 rounded border px-2 py-1 font-mono text-xs focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
       />

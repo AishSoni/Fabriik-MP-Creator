@@ -160,7 +160,7 @@ export const useTemplateStore = create<TemplateState>()(
       },
     }),
     {
-      name: 'sate-template-v1',
+      name: 'fabriik-template-v1',
       version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
@@ -174,6 +174,25 @@ export const useTemplateStore = create<TemplateState>()(
           data.activeTemplateId = data.doc?.templateId ?? FALLBACK_TEMPLATE_ID;
         }
         return data as typeof persisted;
+      },
+      merge: (persisted, current) => {
+        const data = (persisted ?? {}) as { doc?: unknown };
+        if (data.doc !== undefined && !templateDocSchema.safeParse(data.doc).success) {
+          return {
+            ...current,
+            doc: createDefaultTemplate(),
+            history: initialHistory,
+            activeTemplateId: FALLBACK_TEMPLATE_ID,
+            lastErrors: [
+              {
+                code: 'invalid-payload' as const,
+                message:
+                  'invalid json template: persisted state failed validation and was reset to the default template',
+              },
+            ],
+          };
+        }
+        return { ...current, ...(persisted as Record<string, unknown>) };
       },
     },
   ),

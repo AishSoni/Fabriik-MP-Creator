@@ -4,6 +4,7 @@ import type {
   HistoryLog,
   RevisionEntry,
   RevisionKind,
+  StyleSnapshot,
 } from '../types/commands';
 import type {
   ElementContent,
@@ -30,6 +31,14 @@ function snapshotClone<T>(value: T): T {
 
 function isViewportScope(scope: Scope): scope is Viewport {
   return scope !== 'all';
+}
+
+function nullifyStyle(
+  record: Record<string, number | string | undefined>,
+): StyleSnapshot {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, value === undefined ? null : value]),
+  );
 }
 
 function writeStyleLayer(
@@ -148,8 +157,8 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
             source: command.source,
             kind,
             label,
-            before: { style: before },
-            after: { style: after },
+            before: { style: nullifyStyle(before) },
+            after: { style: nullifyStyle(after) },
           });
         }
         break;
@@ -185,7 +194,7 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
         const parent = draft.elements[command.parentId];
         if (!parent) break;
         const index = Math.max(0, Math.min(command.index, parent.childIds.length));
-        const element = command.element;
+        const element = { ...command.element, parentId: command.parentId };
         parent.childIds.splice(index, 0, element.id);
         draft.elements[element.id] = element;
         recordRevision({
