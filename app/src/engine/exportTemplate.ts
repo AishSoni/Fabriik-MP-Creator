@@ -1,5 +1,6 @@
 import type { TemplateDoc } from '../types/template';
 import {
+  normalizeTemplateDoc,
   templateDocSchema,
   validateTemplateSemantics,
   zodErrorToCommandErrors,
@@ -79,11 +80,12 @@ export function parseTemplateJson(text: string): ParseTemplateResult {
   if (!result.success) {
     return { ok: false, errors: zodErrorToCommandErrors(result.error) };
   }
-  const semanticErrors = validateTemplateSemantics(result.data);
+  const doc = normalizeTemplateDoc(result.data);
+  const semanticErrors = validateTemplateSemantics(doc);
   if (semanticErrors.length > 0) {
     return { ok: false, errors: semanticErrors };
   }
-  return { ok: true, doc: result.data };
+  return { ok: true, doc };
 }
 
 function isEnvelopeShaped(value: unknown): boolean {

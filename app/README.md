@@ -10,7 +10,7 @@ Built with React 19 + TypeScript + Vite, Tailwind CSS v4, Zustand (+persist) & I
 cd app
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 59 focused unit/integration tests
+npm test           # 100 focused unit/integration tests
 npm run build      # production build
 ```
 
@@ -27,6 +27,29 @@ Four built-in templates ship in `src/template/`, all expressed through the same 
 
 Visual styling in all of them is driven entirely by the model’s style properties — no hardcoded CSS per template. A cross-fixture integrity suite (`src/template/templates.test.ts`) validates schema conformance, parent/child symmetry, reachability from root, resolution at all viewports and the presence of responsive overrides for every registered template.
 
+## Import & export
+
+The **Fabriik** brand text in the top bar opens a file menu:
+
+- **Export JSON** — writes the current document as a versioned envelope
+  (`{ format: 'fabriik-template', version: 1, exportedAt, doc }`).
+- **Import JSON…** — accepts that envelope (or a bare document). The file must pass the Zod
+  schema *and* semantic checks (`validateTemplateSemantics`: root existence, parent/child
+  symmetry, reachability from root, content/type match) before it replaces the current doc
+  and resets history — the same full-replacement semantics as switching templates. Because
+  import is destructive, you are first prompted to save your current work as JSON.
+- **Export HTML** — one self-contained `.html` file: the Tailwind Play CDN script plus the
+  exact utility classes the canvas renders, and a generated `<style>` block holding
+  per-element rules (desktop base) with full resolved `max-width: 1023px` (tablet) and
+  `max-width: 767px` (mobile) blocks for elements that have overrides. The dependency
+  policy intentionally allows only the lightweight Tailwind CDN and image `src` URLs —
+  hosted image URLs are recommended (see the menu item's tooltip) so you don't have to
+  manage image files locally. `javascript:` hrefs are sanitized away and all content is
+  HTML-escaped.
+
+Imported templates keep their own id: the template picker shows them as
+“«name» (imported)”, and Reset returns to the built-in Landing Page fallback.
+
 ## Architecture
 
 ```
@@ -38,18 +61,23 @@ src/
 │   ├── commit.ts         # applyCommand via immer → new doc + per-element revisions
 │   ├── restore.ts        # Per-element/per-scope recovery as a NEW revision
 │   ├── diffCommands.ts   # Whole-document diffs → granular command streams
+│   ├── exportTemplate.ts # Template ⇄ versioned .json file (envelope parse/serialize)
+│   ├── styleToCssText.ts # StyleProps → raw CSS declarations (HTML-export path)
+│   ├── exportHtml.ts     # Single-file HTML export (Tailwind CDN + per-viewport styles)
 │   └── ai/               # Deterministic scenario engine (no network, no model)
 ├── store/
 │   ├── templateStore.ts  # Canonical state: Zustand + persist(doc, history, activeTemplateId)
 │   ├── editorStore.ts    # Ephemeral UI: selection, viewport, scope
 │   └── reviewStore.ts    # Pending AI proposals + accept/reject status machine
+├── lib/
+│   └── download.ts       # Browser file download plumbing (Blob + object URL)
 ├── template/             # Built-in fixtures + registry (index.ts) + integrity tests
 └── components/
     ├── canvas/       # ElementNode renderer/wrapper, marquee Canvas
     ├── renderer/     # Leaf views per ElementType (registry pattern)
     ├── panels/       # Layers, Properties, AI Demo, History
     ├── code/         # CodeMirror JSON surface (whole template | selection)
-    └── shell/        # TopBar (viewport/scope/reset), EditorShell, error toasts
+    └── shell/        # TopBar (viewport/scope/reset), FileMenu (import/export), EditorShell, error toasts
 ```
 
 ### Where this application owns the hard parts
@@ -99,6 +127,8 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 | Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-based safely against current revision, genuinely stale proposals stay blocked |
 | Per-element × scope recovery | `HistoryPanel` + `engine/restore.ts`; independence tested |
 | Persistence + reset | `templateStore` persist middleware (localStorage, versioned, per-template reset); Reset button |
-| Tests (AI scope, canvas-code consistency, view isolation, independent recovery) | `src/engine/ai/*.test.ts`, `src/engine/diffCommands.test.ts`, `src/engine/commit.test.ts`, `src/engine/restore.test.ts`, `src/journey.test.tsx`, `src/templates.journey.test.tsx` |
+| Template import/export (.json) | `FileMenu` + `engine/exportTemplate.ts` + `store importDoc`; versioned envelope, schema + semantic gate, full replacement with history reset, save-first prompt |
+| Single-file HTML export | `engine/exportHtml.ts` + `FileMenu`; Tailwind CDN + canvas utility classes, per-element style block, full resolved tablet/mobile media queries, href sanitization |
+| Tests (AI scope, canvas-code consistency, view isolation, independent recovery, import/export round-trip) | `src/engine/ai/*.test.ts`, `src/engine/diffCommands.test.ts`, `src/engine/commit.test.ts`, `src/engine/restore.test.ts`, `src/engine/exportTemplate.test.ts`, `src/engine/exportHtml.test.ts`, `src/store/importDoc.test.ts`, `src/components/shell/FileMenu.test.tsx`, `src/journey.test.tsx`, `src/templates.journey.test.tsx` |
 
 See also: [`../PRODUCT_NOTES.md`](../PRODUCT_NOTES.md) for product decisions and [`../AI_USAGE.md`](../AI_USAGE.md) for how AI tools were used.

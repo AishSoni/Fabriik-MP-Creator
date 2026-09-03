@@ -85,6 +85,27 @@ export const templateDocSchema = z.strictObject({
   elements: z.record(z.string(), templateElementSchema),
 });
 
+export function normalizeTemplateDoc(raw: z.infer<typeof templateDocSchema>): TemplateDoc {
+  return {
+    templateId: raw.templateId,
+    templateName: raw.templateName,
+    revision: raw.revision,
+    rootId: raw.rootId,
+    elements: Object.fromEntries(
+      Object.entries(raw.elements).map(([id, element]) => [
+        id,
+        {
+          ...element,
+          content: {
+            base: element.content.base ?? defaultContentFor(element.type),
+            overrides: element.content.overrides,
+          },
+        },
+      ]),
+    ),
+  };
+}
+
 export const editCommandSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('set-content'),

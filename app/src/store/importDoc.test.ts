@@ -43,7 +43,7 @@ describe('importDoc', () => {
 
   it('fills in missing default content bases', () => {
     const imported = doc();
-    delete imported.elements['hero-heading'].content.base;
+    delete (imported.elements['hero-heading'].content as { base?: unknown }).base;
     const result = useTemplateStore.getState().importDoc(imported);
 
     expect(result).toBeNull();
