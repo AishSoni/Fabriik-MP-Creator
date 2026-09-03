@@ -10,6 +10,7 @@ import { AiDemoPanel } from '../panels/AiDemoPanel';
 import { ErrorToasts } from './ErrorToasts';
 import { Toast } from './Toast';
 import { CompareView } from '../compare/CompareView';
+import { cn } from '../../lib/cn';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
   { id: 'properties', label: 'Properties' },
@@ -27,9 +28,10 @@ export function EditorShell() {
 
   return (
     <div
-      className={`flex h-screen flex-col overflow-hidden antialiased selection:bg-[var(--color-accent-soft)] ${
-        darkMode ? 'bg-[#0E0E10] text-[#FDFBF7]' : 'bg-[#FDFBF7] text-[#0E0E10]'
-      }`}
+      className={cn(
+        'flex h-screen flex-col overflow-hidden antialiased selection:bg-accent-soft',
+        darkMode ? 'bg-ink text-paper' : 'bg-paper text-ink',
+      )}
       style={{ fontFamily: 'var(--font-sans)' }}
     >
       <TopBar />
@@ -41,9 +43,10 @@ export function EditorShell() {
             <Canvas />
           </div>
           <div
-            className={`shrink-0 overflow-hidden border-t transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-              darkMode ? 'border-[#262629] bg-[#141416]' : 'border-[#E7E5E0] bg-white'
-            }`}
+            className={cn(
+              'shrink-0 overflow-hidden border-t transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              darkMode ? 'border-surface-dark-muted bg-surface-dark' : 'border-stone bg-surface',
+            )}
             style={{ height: rightPanelTab === 'code' ? '42vh' : 0 }}
             data-testid="code-drawer"
             hidden={rightPanelTab !== 'code'}
@@ -52,17 +55,19 @@ export function EditorShell() {
           </div>
         </main>
         <aside
-          className={`flex w-[348px] shrink-0 flex-col overflow-hidden border-l min-h-0 ${
-            darkMode ? 'border-[#262629] bg-[#141416]' : 'border-[#E7E5E0] bg-white'
-          }`}
+          className={cn(
+            'flex w-[348px] shrink-0 flex-col overflow-hidden border-l min-h-0',
+            darkMode ? 'border-surface-dark-muted bg-surface-dark' : 'border-stone bg-surface',
+          )}
           style={{ boxShadow: darkMode ? 'none' : 'var(--shadow-panel)' }}
         >
           <div
             role="tablist"
             aria-label="Editor panels"
-            className={`flex shrink-0 items-center gap-1 border-b p-1.5 ${
-              darkMode ? 'border-[#262629] bg-[#1E1E20]' : 'border-[#E7E5E0] bg-[#F3EFE8]'
-            }`}
+            className={cn(
+              'flex shrink-0 items-center gap-1 border-b p-1.5',
+              darkMode ? 'border-surface-dark-muted bg-surface-dark-raised' : 'border-stone bg-surface-muted',
+            )}
           >
             {TABS.map(({ id, label }) => {
               const active = rightPanelTab === id;
@@ -73,15 +78,16 @@ export function EditorShell() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setRightPanelTab(id)}
-                  className={`flex-1 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                  className={cn(
+                    'flex-1 cursor-pointer rounded-pill px-3 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]',
                     active
                       ? darkMode
-                        ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
-                        : 'bg-[#0E0E10] text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
+                        ? 'bg-paper text-ink shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
+                        : 'bg-ink text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
                       : darkMode
-                        ? 'text-[#9A9996] hover:text-[#FDFBF7] hover:bg-white/[0.06]'
-                        : 'text-[#6B6A68] hover:text-[#0E0E10] hover:bg-[#0E0E10]/[0.06]'
-                  }`}
+                        ? 'text-[#9A9996] hover:bg-white/[0.06] hover:text-paper'
+                        : 'text-[#6B6A68] hover:bg-ink/[0.06] hover:text-ink',
+                  )}
                 >
                   {label}
                 </button>
@@ -90,9 +96,10 @@ export function EditorShell() {
           </div>
           <div
             role="tabpanel"
-            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain ${
-              darkMode ? 'bg-[#141416]' : 'bg-white'
-            }`}
+            className={cn(
+              'min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain',
+              darkMode ? 'bg-surface-dark' : 'bg-surface',
+            )}
           >
             {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
             {rightPanelTab === 'ai' && <AiDemoPanel />}
@@ -100,9 +107,12 @@ export function EditorShell() {
             {rightPanelTab === 'code' && (
               <div className="p-5">
                 <div
-                  className={`rounded-[14px] border px-4 py-3 text-sm leading-relaxed ${
-                    darkMode ? 'border-[#262629] bg-[#1E1E20] text-[#9A9996]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#6B6A68]'
-                  }`}
+                  className={cn(
+                    'rounded-[14px] border px-4 py-3 text-sm leading-relaxed',
+                    darkMode
+                      ? 'border-surface-dark-muted bg-surface-dark-raised text-[#9A9996]'
+                      : 'border-stone bg-paper text-[#6B6A68]',
+                  )}
                 >
                   <p className="font-medium text-[13px] tracking-wide" style={{ fontFamily: 'var(--font-sans)' }}>
                     Code surface active
@@ -119,13 +129,17 @@ export function EditorShell() {
       <button
         type="button"
         onClick={() => setLayersOpen((v) => !v)}
-        className={`absolute bottom-4 left-4 z-10 cursor-pointer inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-[0_8px_24px_rgba(14,14,16,0.14),0_2px_8px_rgba(14,14,16,0.08)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-          darkMode
-            ? 'bg-[#FDFBF7] text-[#0E0E10] hover:bg-white'
-            : 'bg-[#0E0E10] text-white hover:bg-[#1A1A1E]'
-        }`}
+        className={cn(
+          'absolute bottom-4 left-4 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-floating transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]',
+          darkMode ? 'bg-paper text-ink hover:bg-surface' : 'bg-ink text-white hover:bg-ink-soft',
+        )}
       >
-        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] leading-none ${darkMode ? 'bg-black/10' : 'bg-white/15'}`}>
+        <span
+          className={cn(
+            'inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] leading-none',
+            darkMode ? 'bg-black/10' : 'bg-white/15',
+          )}
+        >
           {layersOpen ? '−' : '+'}
         </span>
         {layersOpen ? 'Hide layers' : 'Show layers'}

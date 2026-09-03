@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useEditorStore } from '../../store/editorStore';
+import { cn } from '../../lib/cn';
 
 type Align = 'left' | 'right' | 'center';
 
@@ -105,14 +106,14 @@ export function Dropdown({
   }, [open, onOpenChange]);
 
   // base shell is deliberately neutral so file variant can add its own header/footer
-  const baseShell =
-    variant === 'file'
-      ? 'overflow-hidden rounded-[16px] border p-1.5 shadow-[0_12px_40px_rgba(14,14,16,0.14),0_4px_12px_rgba(14,14,16,0.08)]'
-      : 'overflow-hidden rounded-[16px] border p-1 shadow-[0_12px_40px_rgba(14,14,16,0.14),0_4px_12px_rgba(14,14,16,0.08)]';
+  const baseShell = cn(
+    'overflow-hidden rounded-[16px] border shadow-floating',
+    variant === 'file' ? 'p-1.5' : 'p-1',
+  );
 
   const darkMode = useEditorStore((s) => s.darkMode);
   // fallback respects JS-driven darkMode (Tailwind dark: variant would not fire for store-based theme)
-  const fallbackTone = darkMode ? 'border-[#262629] bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white';
+  const fallbackTone = darkMode ? 'border-surface-dark-muted bg-surface-dark-raised' : 'border-stone bg-surface';
 
   // use fixed when open to escape overflow-hidden sidepanel containers; fallback to absolute if measurement not ready
   const useFixed = open && fixedStyle.left !== undefined;
@@ -127,7 +128,13 @@ export function Dropdown({
           aria-label={label}
           data-testid={menuTestId}
           style={useFixed ? fixedStyle : undefined}
-          className={`${useFixed ? '' : `absolute z-20 mt-2 ${alignClass[align]}`} ${widthClass} ${baseShell} animate-in max-w-[calc(100vw-16px)] ${className ? className : fallbackTone}`}
+          className={cn(
+            !useFixed && `absolute z-20 mt-2 ${alignClass[align]}`,
+            widthClass,
+            baseShell,
+            'animate-in max-w-[calc(100vw-16px)]',
+            className ?? fallbackTone,
+          )}
         >
           {children}
         </div>
