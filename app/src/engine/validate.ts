@@ -147,10 +147,14 @@ const err = (code: CommandErrorCode, message: string): CommandError => ({
   message,
 });
 
-function parseErrors(error: z.ZodError): CommandError[] {
+export function zodErrorToCommandErrors(error: z.ZodError): CommandError[] {
   return error.issues.map((issue) =>
     err('invalid-payload', `${issue.path.join('.') || '(root)'}: ${issue.message}`),
   );
+}
+
+function parseErrors(error: z.ZodError): CommandError[] {
+  return zodErrorToCommandErrors(error);
 }
 
 export function validateCommand(
@@ -265,6 +269,95 @@ export function validateCommand(
         errors.push(err('forbidden-field', 'the page root cannot be removed'));
       }
       break;
+    }
+  }
+
+  return errors;
+}
+
+export function validateTemplateSemantics(doc: TemplateDoc): CommandError[] {
+  const errors: CommandError[] = [];
+  const elements = doc.elements;
+
+  if (!elements[doc.rootId]) {
+    errors.push(
+      err('unknown-element', `rootId "${doc.rootId}" does not exist in elements`),
+    );
+  }
+
+  for (const element of Object.values(elements)) {
+    if (element.id === doc.rootId && element.parentId !== null) {
+      errors.push(
+        err('invalid-target', `root element "${element.id}" must have a null parentId`),
+      );
+    }
+    if (element.childIds.includes(element.id)) {
+      errors.push(
+        err('invalid-target', `element "${element.id}" references itself in childIds`),
+      );
+    }
+    if (element.parentId !== null) {
+      const parent = elements[element.parentId];
+      if (!parent) {
+        errors.push(
+          err('unknown-element', `element "${element.id}" references missing parent "${element.parentId}"`),
+        );
+      } else if (!parent.childIds.includes(element.id)) {
+        errors.push(
+          err('invalid-target', `element "${parent.id}" does not list "${element.id}" in childIds`),
+        );
+      }
+    }
+    for (const childId of element.childIds) {
+      const child = elements[childId];
+      if (!child) {
+        errors.push(
+          err('unknown-element', `element "${element.id}" references missing child "${childId}"`),
+        );
+      } else if (child.parentId !== element.id) {
+        errors.push(
+          err('invalid-target', `element "${childId}" does not point back to parent "${element.id}"`),
+        );
+      }
+    }
+  }
+
+  const reachable = new Set<string>();
+  const queue = [doc.rootId];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) break;
+    if (reachable.has(current)) continue;
+    reachable.add(current);
+    const element = elements[current];
+    if (!element) continue;
+    queue.push(...element.childIds);
+  }
+  for (const id of Object.keys(elements)) {
+    if (!reachable.has(id)) {
+      errors.push(
+        err('invalid-target', `element "${id}" is not reachable from root "${doc.rootId}"`),
+      );
+    }
+  }
+
+  for (const element of Object.values(elements)) {
+    const expectedKeys = Object.keys(defaultContentFor(element.type)).sort();
+    const contents = [element.content.base, ...Object.values(element.content.overrides ?? {})];
+    for (const content of contents) {
+      const contentKeys = Object.keys(content ?? {}).sort();
+      const matches =
+        expectedKeys.length === contentKeys.length &&
+        expectedKeys.every((key, i) => key === contentKeys[i]);
+      if (!matches) {
+        errors.push(
+          err(
+            'invalid-payload',
+            `content of element "${element.id}" does not match element type "${element.type}"`,
+          ),
+        );
+        break;
+      }
     }
   }
 
