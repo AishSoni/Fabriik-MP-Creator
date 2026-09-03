@@ -3,6 +3,7 @@
 !AI_USAGE.md
 !PRODUCT_NOTES.md
 !app/README.md
+!specs/*.md
 node_modules/
 dist/
 *.local
