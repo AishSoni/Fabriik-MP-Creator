@@ -1,0 +1,332 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exportHtml > snapshots the default template export 1`] = `
+"<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Landing Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+    /* Element styles */
+    .fx-page-root {
+      color: #1f2937;
+      background-color: #ffffff;
+      padding-left: 0px;
+      padding-right: 0px;
+      padding-top: 0px;
+      padding-bottom: 0px;
+    }
+
+    .fx-top-nav {
+      color: #ffffff;
+      background-color: #4f46e5;
+      padding-left: 32px;
+      padding-right: 32px;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+
+    .fx-hero-section {
+      color: #ffffff;
+      background-color: #4f46e5;
+      padding-left: 48px;
+      padding-right: 48px;
+      padding-top: 96px;
+      padding-bottom: 96px;
+    }
+
+    .fx-hero-eyebrow {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .fx-hero-heading {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.15;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .fx-hero-subtext {
+      font-size: 24px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .fx-hero-cta {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2937;
+      background-color: #ffffff;
+      padding-left: 32px;
+      padding-right: 32px;
+      padding-top: 16px;
+      padding-bottom: 16px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      border-radius: 999px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .fx-features-section {
+      background-color: #ffffff;
+      padding-left: 48px;
+      padding-right: 48px;
+      padding-top: 64px;
+      padding-bottom: 64px;
+    }
+
+    .fx-features-heading {
+      font-size: 36px;
+      font-weight: 700;
+      text-align: center;
+      color: #111827;
+      margin-bottom: 40px;
+    }
+
+    .fx-feature-card-1 {
+      background-color: #f9fafb;
+      padding-left: 24px;
+      padding-right: 24px;
+      padding-top: 24px;
+      padding-bottom: 24px;
+      width: 50%;
+      border-radius: 12px;
+    }
+
+    .fx-feature-1-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+
+    .fx-feature-1-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    .fx-feature-card-2 {
+      background-color: #f9fafb;
+      padding-left: 24px;
+      padding-right: 24px;
+      padding-top: 24px;
+      padding-bottom: 24px;
+      width: 50%;
+      border-radius: 12px;
+    }
+
+    .fx-feature-2-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+
+    .fx-feature-2-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    .fx-testimonial-section {
+      background-color: #f3f4f6;
+      padding-left: 64px;
+      padding-right: 64px;
+      padding-top: 56px;
+      padding-bottom: 56px;
+    }
+
+    .fx-testimonial-quote {
+      font-size: 20px;
+      line-height: 1.6;
+      text-align: center;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .fx-testimonial-attribution {
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .fx-cta-section {
+      color: #ffffff;
+      background-color: #111827;
+      padding-left: 48px;
+      padding-right: 48px;
+      padding-top: 72px;
+      padding-bottom: 72px;
+    }
+
+    .fx-cta-heading {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .fx-cta-button {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      background-color: #4f46e5;
+      padding-left: 28px;
+      padding-right: 28px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .fx-footer-section {
+      background-color: #ffffff;
+      padding-left: 32px;
+      padding-right: 32px;
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+
+    .fx-footer-text {
+      font-size: 14px;
+      text-align: center;
+      color: #9ca3af;
+    }
+
+    /* Tablet */
+    @media (max-width: 1023px) {
+        .fx-hero-heading {
+          font-size: 40px;
+          font-weight: 700;
+          line-height: 1.15;
+          text-align: center;
+          margin-bottom: 16px;
+        }
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+        .fx-top-nav {
+          color: #ffffff;
+          background-color: #4f46e5;
+          padding-left: 16px;
+          padding-right: 16px;
+          padding-top: 16px;
+          padding-bottom: 16px;
+        }
+
+        .fx-hero-heading {
+          font-size: 32px;
+          font-weight: 700;
+          line-height: 1.15;
+          text-align: center;
+          margin-bottom: 16px;
+        }
+
+        .fx-hero-subtext {
+          font-size: 18px;
+          font-weight: 400;
+          line-height: 1.5;
+          text-align: center;
+          margin-bottom: 32px;
+        }
+
+        .fx-features-heading {
+          font-size: 28px;
+          font-weight: 700;
+          text-align: center;
+          color: #111827;
+          margin-bottom: 40px;
+        }
+
+        .fx-feature-card-1 {
+          background-color: #f9fafb;
+          padding-left: 24px;
+          padding-right: 24px;
+          padding-top: 24px;
+          padding-bottom: 24px;
+          width: 100%;
+          border-radius: 12px;
+        }
+
+        .fx-feature-card-2 {
+          background-color: #f9fafb;
+          padding-left: 24px;
+          padding-right: 24px;
+          padding-top: 24px;
+          padding-bottom: 24px;
+          width: 100%;
+          border-radius: 12px;
+        }
+
+        .fx-cta-heading {
+          font-size: 26px;
+          font-weight: 700;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+    }
+    </style>
+  </head>
+  <body>
+  <div class="fx-page-root fx-section">
+    <nav>
+      <div class="fx-top-nav fx-nav flex items-center justify-between gap-4">
+        <span class="text-lg font-bold">Landing</span>
+        <div class="flex min-w-0 flex-wrap items-center justify-end gap-4 overflow-hidden">
+          <a href="#features" class="opacity-90 hover:opacity-100">Features</a>
+          <a href="#pricing" class="opacity-90 hover:opacity-100">Pricing</a>
+          <a href="#about" class="opacity-90 hover:opacity-100">About</a>
+        </div>
+      </div>
+    </nav>
+    <div class="fx-hero-section fx-section">
+      <p class="fx-hero-eyebrow fx-text">What business are you in?</p>
+      <h2 class="fx-hero-heading fx-heading">Main Hero Message to Sell Yourself!</h2>
+      <p class="fx-hero-subtext fx-text">Sub-hero message, not too long and not too short. Make it just right!</p>
+      <div class="fx-hero-cta fx-button">
+        <a href="#subscribe" class="inline-block cursor-pointer no-underline">Subscribe</a>
+      </div>
+    </div>
+    <div class="fx-features-section fx-section">
+      <h2 class="fx-features-heading fx-heading">Everything you need</h2>
+      <div class="fx-feature-card-1 fx-section">
+        <h2 class="fx-feature-1-title fx-heading">Modular elements</h2>
+        <p class="fx-feature-1-text fx-text">Every element on the page is independently editable, selectable, and recoverable.</p>
+      </div>
+      <div class="fx-feature-card-2 fx-section">
+        <h2 class="fx-feature-2-title fx-heading">Scoped AI proposals</h2>
+        <p class="fx-feature-2-text fx-text">Text-driven edits stay inside your selection and never overwrite work until you approve.</p>
+      </div>
+    </div>
+    <div class="fx-testimonial-section fx-section">
+      <p class="fx-testimonial-quote fx-text">“This editor let me restyle my whole landing page without ever losing an earlier version.”</p>
+      <p class="fx-testimonial-attribution fx-text">— A small-business owner</p>
+    </div>
+    <div class="fx-cta-section fx-section">
+      <h2 class="fx-cta-heading fx-heading">Ready to get started?</h2>
+      <div class="fx-cta-button fx-button">
+        <a href="#start" class="inline-block cursor-pointer no-underline">Start Free</a>
+      </div>
+    </div>
+    <div class="fx-footer-section fx-section">
+      <p class="fx-footer-text fx-text">© 2026 Landing Inc. All rights reserved.</p>
+    </div>
+  </div>
+  </body>
+</html>
+"
+`;
