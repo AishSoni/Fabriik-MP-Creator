@@ -26,7 +26,12 @@ export function EditorShell() {
   const darkMode = useEditorStore((s) => s.darkMode);
 
   return (
-    <div className={`flex h-screen flex-col overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div
+      className={`flex h-screen flex-col overflow-hidden antialiased selection:bg-[var(--color-accent-soft)] ${
+        darkMode ? 'bg-[#0E0E10] text-[#FDFBF7]' : 'bg-[#FDFBF7] text-[#0E0E10]'
+      }`}
+      style={{ fontFamily: 'var(--font-sans)' }}
+    >
       <TopBar />
       <ErrorToasts />
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -36,7 +41,9 @@ export function EditorShell() {
             <Canvas />
           </div>
           <div
-            className={`shrink-0 overflow-hidden border-t transition-all ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-300 bg-white'}`}
+            className={`shrink-0 overflow-hidden border-t transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+              darkMode ? 'border-[#262629] bg-[#141416]' : 'border-[#E7E5E0] bg-white'
+            }`}
             style={{ height: rightPanelTab === 'code' ? '42vh' : 0 }}
             data-testid="code-drawer"
             hidden={rightPanelTab !== 'code'}
@@ -44,37 +51,65 @@ export function EditorShell() {
             <CodePanel />
           </div>
         </main>
-        <aside className={`flex w-80 shrink-0 flex-col overflow-hidden border-l min-h-0 ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'}`}>
-          <div role="tablist" aria-label="Editor panels" className={`flex shrink-0 border-b ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-            {TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={rightPanelTab === id}
-                onClick={() => setRightPanelTab(id)}
-                className={`flex-1 cursor-pointer px-2 py-2 text-xs font-semibold ${
-                  rightPanelTab === id
-                    ? darkMode
-                      ? 'border-b-2 border-blue-500 text-blue-400'
-                      : 'border-b-2 border-blue-600 text-blue-700'
-                    : darkMode
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        <aside
+          className={`flex w-[348px] shrink-0 flex-col overflow-hidden border-l min-h-0 ${
+            darkMode ? 'border-[#262629] bg-[#141416]' : 'border-[#E7E5E0] bg-white'
+          }`}
+          style={{ boxShadow: darkMode ? 'none' : 'var(--shadow-panel)' }}
+        >
+          <div
+            role="tablist"
+            aria-label="Editor panels"
+            className={`flex shrink-0 items-center gap-1 border-b p-1.5 ${
+              darkMode ? 'border-[#262629] bg-[#1E1E20]' : 'border-[#E7E5E0] bg-[#F3EFE8]'
+            }`}
+          >
+            {TABS.map(({ id, label }) => {
+              const active = rightPanelTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setRightPanelTab(id)}
+                  className={`flex-1 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                    active
+                      ? 'bg-[#0E0E10] text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)] dark:bg-white dark:text-[#0E0E10]'
+                      : darkMode
+                        ? 'text-[#9A9996] hover:text-[#FDFBF7] hover:bg-white/[0.06]'
+                        : 'text-[#6B6A68] hover:text-[#0E0E10] hover:bg-[#0E0E10]/[0.06]'
+                  } ${active && !darkMode ? '!bg-[#0E0E10] !text-white' : ''} ${active && darkMode ? '!bg-[#FDFBF7] !text-[#0E0E10]' : ''}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-          <div role="tabpanel" className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain ${darkMode ? 'bg-slate-900' : 'bg-white'}`}>
+          <div
+            role="tabpanel"
+            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain ${
+              darkMode ? 'bg-[#141416]' : 'bg-white'
+            }`}
+          >
             {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
             {rightPanelTab === 'ai' && <AiDemoPanel />}
             {rightPanelTab === 'history' && <HistoryPanel />}
             {rightPanelTab === 'code' && (
-              <p className={`p-4 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                The code surface is open below the canvas. Select one element to scope the editor to it.
-              </p>
+              <div className="p-5">
+                <div
+                  className={`rounded-[14px] border px-4 py-3 text-sm leading-relaxed ${
+                    darkMode ? 'border-[#262629] bg-[#1E1E20] text-[#9A9996]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#6B6A68]'
+                  }`}
+                >
+                  <p className="font-medium text-[13px] tracking-wide" style={{ fontFamily: 'var(--font-sans)' }}>
+                    Code surface active
+                  </p>
+                  <p className="mt-1 text-[12.5px] leading-5 opacity-80">
+                    The JSON editor is open below the canvas. Select a single element to scope the editor to it, or edit the whole template.
+                  </p>
+                </div>
+              </div>
             )}
           </div>
         </aside>
@@ -82,8 +117,15 @@ export function EditorShell() {
       <button
         type="button"
         onClick={() => setLayersOpen((v) => !v)}
-        className={`absolute bottom-3 left-3 cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium shadow-lg ${darkMode ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-white'}`}
+        className={`absolute bottom-4 left-4 z-10 cursor-pointer inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-[0_8px_24px_rgba(14,14,16,0.14),0_2px_8px_rgba(14,14,16,0.08)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+          darkMode
+            ? 'bg-[#FDFBF7] text-[#0E0E10] hover:bg-white'
+            : 'bg-[#0E0E10] text-white hover:bg-[#1A1A1E]'
+        }`}
       >
+        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] leading-none dark:bg-black/10">
+          {layersOpen ? '−' : '+'}
+        </span>
         {layersOpen ? 'Hide layers' : 'Show layers'}
       </button>
       <CompareView />
