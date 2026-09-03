@@ -92,7 +92,7 @@ export function Canvas() {
         <div
           className={cn(
             'hidden shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm sm:inline-flex',
-            darkMode ? 'border-surface-dark-muted bg-surface-dark-raised text-[#9A9996]' : 'border-stone bg-surface text-[#6B6A68]',
+            darkMode ? 'border-surface-dark-muted bg-surface-dark-raised text-muted-dark' : 'border-stone bg-surface text-muted',
           )}
         >
           <span

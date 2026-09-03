@@ -8,6 +8,7 @@ import { Dropdown } from './Dropdown';
 import { FileMenu } from './FileMenu';
 import type { Scope, Viewport } from '../../types/viewport';
 import { cn } from '../../lib/cn';
+import { viewportPillVariants } from '../../lib/variants';
 
 const VIEWPORT_LABELS: { id: Viewport; label: string; width: number }[] = [
   { id: 'desktop', label: 'Desktop', width: 1440 },
@@ -66,7 +67,7 @@ export function TopBar() {
         <span
           className={cn(
             'hidden text-[11px] font-semibold uppercase tracking-[0.08em] sm:inline',
-            darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]',
+            darkMode ? 'text-muted-dark' : 'text-muted',
           )}
         >
           Template
@@ -107,7 +108,7 @@ export function TopBar() {
                 className={cn(
                   'shrink-0 transition-transform duration-200',
                   templateOpen && 'rotate-180',
-                  darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]',
+                  darkMode ? 'text-muted-dark' : 'text-muted',
                 )}
               >
                 <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -119,12 +120,12 @@ export function TopBar() {
             <p
               className={cn(
                 'text-[11px] font-semibold uppercase tracking-[0.08em]',
-                darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]',
+                darkMode ? 'text-muted-dark' : 'text-muted',
               )}
             >
               Switch template
             </p>
-            <p className={cn('text-[11px]', darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]')}>Edits and history will be discarded</p>
+            <p className={cn('text-[11px]', darkMode ? 'text-muted' : 'text-muted-dark')}>Edits and history will be discarded</p>
           </div>
           <div className="mt-1 flex flex-col gap-0.5 p-1">
             {!TEMPLATES.some((d) => d.id === activeTemplateId) && (
@@ -171,7 +172,7 @@ export function TopBar() {
                   {active ? (
                     <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', darkMode ? 'bg-ink' : 'bg-white')} />
                   ) : (
-                    <span className={cn('hidden sm:inline truncate text-xs font-normal', darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]')}>
+                    <span className={cn('hidden sm:inline truncate text-xs font-normal', darkMode ? 'text-muted-dark' : 'text-muted')}>
                       {definition.description.slice(0, 28)}…
                     </span>
                   )}
@@ -188,7 +189,7 @@ export function TopBar() {
               data-testid="template-library-coming-soon"
               className={cn(
                 'flex cursor-not-allowed items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium opacity-60',
-                darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]',
+                darkMode ? 'text-muted-dark' : 'text-muted',
               )}
             >
               <span className="inline-flex items-center gap-2">
@@ -203,7 +204,7 @@ export function TopBar() {
               <span
                 className={cn(
                   'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                  darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-surface-muted text-[#6B6A68]',
+                  darkMode ? 'bg-white/10 text-muted-dark' : 'bg-surface-muted text-muted',
                 )}
               >
                 Coming soon
@@ -249,22 +250,13 @@ export function TopBar() {
               role="radio"
               aria-checked={active}
               onClick={() => setActiveViewport(id)}
-              className={cn(
-                'cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]',
-                active
-                  ? darkMode
-                    ? 'bg-paper text-ink shadow-sm'
-                    : 'bg-ink text-white shadow-sm'
-                  : darkMode
-                    ? 'text-[#9A9996] hover:text-paper'
-                    : 'text-[#6B6A68] hover:text-ink',
-              )}
+              className={viewportPillVariants({ active, dark: darkMode })}
             >
               <span>{label}</span>{' '}
               <span
                 className={cn(
                   'font-mono text-[11px] tabular-nums',
-                  active ? (darkMode ? 'text-ink/60' : 'text-white/60') : darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]',
+                  active ? (darkMode ? 'text-ink/60' : 'text-white/60') : darkMode ? 'text-muted' : 'text-muted-dark',
                 )}
               >
                 {width}
@@ -289,8 +281,8 @@ export function TopBar() {
                   ? 'bg-white text-ink'
                   : 'bg-ink text-white'
                 : darkMode
-                  ? 'bg-surface-dark-raised text-[#9A9996]'
-                  : 'bg-surface border border-stone text-[#6B6A68]',
+                  ? 'bg-surface-dark-raised text-muted-dark'
+                  : 'bg-surface border border-stone text-muted',
             )}
           >
             {id[0]}
@@ -300,7 +292,7 @@ export function TopBar() {
 
       {/* Scope — Dropdown */}
       <div className="hidden items-center gap-2 text-sm lg:flex">
-        <span className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]')}>Scope</span>
+        <span className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', darkMode ? 'text-muted-dark' : 'text-muted')}>Scope</span>
         <Dropdown
           open={scopeOpen}
           onOpenChange={setScopeOpen}
@@ -333,7 +325,7 @@ export function TopBar() {
                 className={cn(
                   'shrink-0 transition-transform duration-200',
                   scopeOpen && 'rotate-180',
-                  darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]',
+                  darkMode ? 'text-muted-dark' : 'text-muted',
                 )}
               >
                 <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />

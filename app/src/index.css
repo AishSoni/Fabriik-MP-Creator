@@ -22,6 +22,11 @@
   --color-moss: #2b332e;
   --color-danger: #e85d4a;
 
+  /* Text muted — replaces arbitrary #6B6A68 / #9A9996 / #3A3938 in TSX */
+  --color-muted: #6b6a68;
+  --color-muted-dark: #9a9996;
+  --color-muted-strong: #3a3938;
+
   /* Surfaces */
   --color-surface: #ffffff;
   --color-surface-raised: #fdfbf7;

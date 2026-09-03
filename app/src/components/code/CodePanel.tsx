@@ -69,7 +69,7 @@ export function CodePanel() {
             role="radio"
             aria-checked={effectiveMode === 'template'}
             onClick={() => setMode('template')}
-            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${effectiveMode === 'template' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-ink'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${effectiveMode === 'template' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-muted-dark hover:text-white' : 'text-muted hover:text-ink'}`}
           >
             Whole template
           </button>
@@ -80,12 +80,12 @@ export function CodePanel() {
             disabled={selectedIds.length !== 1}
             onClick={() => setMode('element')}
             title={selectedIds.length !== 1 ? 'Select exactly one element first' : undefined}
-            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-ink'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-muted-dark hover:text-white' : 'text-muted hover:text-ink'}`}
           >
             Selected element
           </button>
         </div>
-        <span className={`hidden text-[11px] font-medium tabular-nums sm:inline-flex ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>
+        <span className={`hidden text-[11px] font-medium tabular-nums sm:inline-flex ${darkMode ? 'text-muted' : 'text-muted-dark'}`}>
           rev {doc.revision} · {Object.keys(doc.elements).length} nodes
         </span>
         <button
@@ -93,7 +93,7 @@ export function CodePanel() {
           onClick={apply}
           disabled={!dirty}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className={`ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed ${dirty ? 'bg-accent text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] hover:bg-accent-strong' : darkMode ? 'bg-surface/10 text-[#6B6A68]' : 'bg-stone text-[#9A9996]'}`}
+          className={`ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed ${dirty ? 'bg-accent text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] hover:bg-accent-strong' : darkMode ? 'bg-surface/10 text-muted' : 'bg-stone text-muted-dark'}`}
         >
           <span>Apply</span>
           {dirty && <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-surface/15 text-[10px]">↗</span>}
@@ -142,7 +142,7 @@ export function CodePanel() {
         </div>
       </div>
 
-      <p className={`border-t px-4 py-2.5 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark-raised text-[#6B6A68]' : 'border-stone bg-surface text-[#9A9996]'}`}>
+      <p className={`border-t px-4 py-2.5 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark-raised text-muted' : 'border-stone bg-surface text-muted-dark'}`}>
         Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press <span className="font-medium text-accent">Ctrl/Cmd+Enter</span> or click Apply.
       </p>
     </div>

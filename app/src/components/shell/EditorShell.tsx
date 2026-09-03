@@ -11,6 +11,7 @@ import { ErrorToasts } from './ErrorToasts';
 import { Toast } from './Toast';
 import { CompareView } from '../compare/CompareView';
 import { cn } from '../../lib/cn';
+import { editorTabVariants } from '../../lib/variants';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
   { id: 'properties', label: 'Properties' },
@@ -78,16 +79,7 @@ export function EditorShell() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setRightPanelTab(id)}
-                  className={cn(
-                    'flex-1 cursor-pointer rounded-pill px-3 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]',
-                    active
-                      ? darkMode
-                        ? 'bg-paper text-ink shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
-                        : 'bg-ink text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
-                      : darkMode
-                        ? 'text-[#9A9996] hover:bg-white/[0.06] hover:text-paper'
-                        : 'text-[#6B6A68] hover:bg-ink/[0.06] hover:text-ink',
-                  )}
+                  className={cn('flex-1', editorTabVariants({ active, dark: darkMode }))}
                 >
                   {label}
                 </button>
@@ -110,8 +102,8 @@ export function EditorShell() {
                   className={cn(
                     'rounded-[14px] border px-4 py-3 text-sm leading-relaxed',
                     darkMode
-                      ? 'border-surface-dark-muted bg-surface-dark-raised text-[#9A9996]'
-                      : 'border-stone bg-paper text-[#6B6A68]',
+                      ? 'border-surface-dark-muted bg-surface-dark-raised text-muted-dark'
+                      : 'border-stone bg-paper text-muted',
                   )}
                 >
                   <p className="font-medium text-[13px] tracking-wide" style={{ fontFamily: 'var(--font-sans)' }}>

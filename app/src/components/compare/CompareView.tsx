@@ -91,19 +91,19 @@ export function CompareView() {
               <h2 className="text-display text-[22px] font-semibold tracking-tight sm:text-[26px]" style={{ fontFamily: 'var(--font-display)' }}>
                 Compare
               </h2>
-              <p className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5 ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
-                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${darkMode ? 'border-white/10 bg-surface/5 text-[#9A9996]' : 'border-stone bg-paper text-[#3A3938]'}`}>
+              <p className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${darkMode ? 'border-white/10 bg-surface/5 text-muted-dark' : 'border-stone bg-paper text-muted-strong'}`}>
                   Base <span className={`font-semibold ${darkMode ? 'text-white' : 'text-ink'}`}>{baseDoc.templateName}</span>
                 </span>
                 <span className="hidden sm:inline opacity-40">→</span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasChanges ? (darkMode ? 'bg-accent/20 text-accent-ring' : 'bg-accent-soft text-accent-strong') : darkMode ? 'bg-surface/10 text-[#9A9996]' : 'bg-stone text-[#6B6A68]'}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasChanges ? (darkMode ? 'bg-accent/20 text-accent-ring' : 'bg-accent-soft text-accent-strong') : darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-stone text-muted'}`}>
                   {hasChanges ? `${changedIds.length} changed` : 'No changes'}
                 </span>
                 <span className="hidden text-[11px] tabular-nums sm:inline opacity-60">at {activeViewport}</span>
               </p>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <span className={`hidden rounded-full px-3 py-1 text-xs font-medium tabular-nums sm:inline-flex ${darkMode ? 'bg-surface/5 text-[#9A9996] border border-white/10' : 'bg-surface-muted text-[#6B6A68] border border-stone'}`} aria-live="polite">
+              <span className={`hidden rounded-full px-3 py-1 text-xs font-medium tabular-nums sm:inline-flex ${darkMode ? 'bg-surface/5 text-muted-dark border border-white/10' : 'bg-surface-muted text-muted border border-stone'}`} aria-live="polite">
                 {hasChanges ? `${changedIds.length} changes` : 'Identical'}
               </span>
               <button
@@ -111,7 +111,7 @@ export function CompareView() {
                 onClick={() => setCompareOpen(false)}
                 aria-label="Close compare"
                 data-testid="compare-close"
-                className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${darkMode ? 'bg-paper text-ink hover:bg-surface' : 'bg-ink text-white hover:bg-[#1A1A1E] shadow-sm'}`}
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${darkMode ? 'bg-paper text-ink hover:bg-surface' : 'bg-ink text-white hover:bg-ink-soft shadow-sm'}`}
               >
                 Close <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${darkMode ? 'bg-black/10' : 'bg-surface/15'}`}>✕</span>
               </button>
@@ -120,8 +120,8 @@ export function CompareView() {
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             <section className={`flex min-h-0 flex-1 flex-col overflow-hidden border-b lg:border-b-0 lg:border-r ${darkMode ? 'border-white/10' : 'border-stone'}`} aria-label="Base template preview">
-              <div className={`flex shrink-0 items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'bg-surface-dark text-[#9A9996] border-b border-white/10' : 'bg-surface-muted text-[#6B6A68] border-b border-stone'}`}>
-                <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#9A9996]" /> Base</span>
+              <div className={`flex shrink-0 items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'bg-surface-dark text-muted-dark border-b border-white/10' : 'bg-surface-muted text-muted border-b border-stone'}`}>
+                <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-muted-dark" /> Base</span>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${darkMode ? 'bg-surface/10 text-stone' : 'bg-ink text-white'}`}>{activeViewport}</span>
               </div>
               <div className={`flex min-h-0 flex-1 justify-center overflow-auto overscroll-contain p-6 ${darkMode ? 'canvas-grid-dark' : 'canvas-grid'}`} data-testid="compare-base-preview">
@@ -130,9 +130,9 @@ export function CompareView() {
             </section>
 
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label="Current modification preview">
-              <div className={`flex shrink-0 items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'bg-surface-dark text-[#9A9996] border-b border-white/10' : 'bg-surface-muted text-[#6B6A68] border-b border-stone'}`}>
+              <div className={`flex shrink-0 items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'bg-surface-dark text-muted-dark border-b border-white/10' : 'bg-surface-muted text-muted border-b border-stone'}`}>
                 <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Current</span>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasChanges ? 'bg-accent text-white' : darkMode ? 'bg-surface/10 text-[#9A9996]' : 'bg-stone text-[#6B6A68]'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasChanges ? 'bg-accent text-white' : darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-stone text-muted'}`}>
                   {hasChanges ? `${changedIds.length} changed` : 'no changes'}
                 </span>
               </div>
@@ -145,7 +145,7 @@ export function CompareView() {
           <div className={`max-h-44 shrink-0 overflow-y-auto border-t p-4 text-xs ${darkMode ? 'border-white/10 bg-surface-dark-raised' : 'border-stone bg-surface'}`}>
             {hasChanges ? (
               <div>
-                <div className={`mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Changed elements</div>
+                <div className={`mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Changed elements</div>
                 <ul className="flex flex-wrap gap-1.5" data-testid="compare-changed-list">
                   {changedIds.map((id) => (
                     <li
@@ -157,12 +157,12 @@ export function CompareView() {
                     </li>
                   ))}
                 </ul>
-                <p className={`mt-3 text-[11px] leading-5 ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>
+                <p className={`mt-3 text-[11px] leading-5 ${darkMode ? 'text-muted' : 'text-muted-dark'}`}>
                   Preview shows base template vs current modifications at viewport <span className="font-semibold text-accent">{activeViewport}</span>. Edit in the main canvas, then reopen Compare to see updates.
                 </p>
               </div>
             ) : (
-              <p className={`rounded-2xl border border-dashed px-4 py-3 text-center text-sm leading-6 ${darkMode ? 'border-white/10 bg-surface/[0.04] text-[#9A9996]' : 'border-stone bg-paper text-[#6B6A68]'}`} data-testid="compare-no-changes">
+              <p className={`rounded-2xl border border-dashed px-4 py-3 text-center text-sm leading-6 ${darkMode ? 'border-white/10 bg-surface/[0.04] text-muted-dark' : 'border-stone bg-paper text-muted'}`} data-testid="compare-no-changes">
                 No differences — current matches base template. Make an edit to see changes here.
               </p>
             )}

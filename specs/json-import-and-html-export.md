@@ -210,3 +210,57 @@ Pipeline:
 5. Docs: README (architecture map + requirement mapping) — include dependency policy,
    image-URL guidance, imported-template behavior
 6. Verification: `npm test`, `npm run build` (includes tsc)
+
+## 10. Code hygiene follow-up — Tailwind class readability (PS)
+
+> PS: ugly `className="..."` strings in TSX were cleaned up as a separate hygiene pass
+> (no spec change). See commits `refactor(tailwind): phase 1b/1c/2/3`.
+
+**Problem:** long single-line `className="flex ... bg-[#141416] text-[#9A9996] ..."` with
+arbitrary hex (`bg-[#141416]`, `text-[#9A9996]`, `border-[#0E0E10]/[0.06]`) and repeated
+`darkMode ? '...' : '...'` ternaries — hard to read, not token-driven.
+
+**Approach (mirrors community consensus — `cn` + `cva` + tokens + formatting):**
+
+1. **Tokens, not hex** — add semantic `@theme` tokens in `app/src/index.css` (`--color-surface-dark`,
+   `--color-muted`, `--color-muted-dark`, `--color-muted-strong`, `--color-ink` etc) and
+   replace arbitrary `bg-[#...]` / `text-[#...]` with `bg-surface-dark`, `text-muted`, `border-ink/6` etc.
+   Stays within the warm stone / ink / paper / accent palette.
+
+2. **`cn` helper** — `app/src/lib/cn.ts` = `clsx` + `tailwind-merge` (shadcn pattern).
+   Conditional `darkMode` branches now go through `cn("base", darkMode ? "dark" : "light")`
+   instead of template-literal ternaries, so Tailwind merge deduplicates correctly.
+
+3. **`cva` variants** — `app/src/lib/variants.ts` (`pillTriggerVariants`, `editorTabVariants`,
+   `viewportPillVariants`, `historyBadgeVariants`, `cardVariants`, `inputVariants`, `buttonVariants`)
+   + primitives `app/src/components/ui/{button,card,input,badge}.tsx`.
+   Repeated pill/tab/badge/input patterns collapsed to `cva` — props `active` / `dark` / `shape`
+   replace 80+ char ternaries.
+
+4. **Multiline formatting** — long `cn(...)` and `className={`...`}` calls are wrapped:
+   ```tsx
+   // before
+   className={`flex flex-col gap-5 p-4 text-sm animate-in ${darkMode ? 'text-stone' : 'text-ink'}`}
+   // after
+   className={cn(
+     "flex flex-col gap-5 p-4 text-sm animate-in",
+     darkMode ? "text-stone" : "text-ink",
+   )}
+   ```
+   Each Tailwind arg on its own line, ternary on its own line — `printWidth` 80 friendly.
+   `PropertiesPanel` (20 sites) and `HistoryPanel` fully use multiline `cn`; other shells
+   (`Dropdown`, `EditorShell`, `TopBar`, `Canvas`, `FileMenu`) already use `cn` + tokens.
+
+5. **Tooling** — `prettier-plugin-tailwindcss` (via `.prettierrc.json`, `tailwindFunctions: ["cn","cva","clsx"]`)
+   auto-sorts classes; `eslint-plugin-readable-tailwind` (`eslint.config.js`) lints:
+   `readable-tailwind/multiline`, `sort-classes`, `no-unnecessary-whitespace`.
+   `oxlint` stays primary (`npm run lint`); Tailwind readability is opt-in via
+   `npm run lint:tailwind` / `npm run format`. No `@apply` — community advises
+   extracting components/variants instead (keeps utilities grep-able).
+
+**Files touched:** `app/src/index.css`, `app/src/lib/{cn,variants}.ts`, `app/src/components/ui/*`,
+`app/src/components/{shell,panel,canvas,code,compare}/*` (token + cn + cva migration +
+multiline wrapping), `app/.prettierrc.json`, `app/.prettierignore`, `app/eslint.config.js`.
+
+**Verification:** `npm run typecheck` and `npm run build` pass; `npm run lint:tailwind`
+and `npm run format:check` enforce going forward. No visual change — purely readability/tokens.

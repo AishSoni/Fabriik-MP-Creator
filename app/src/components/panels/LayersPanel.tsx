@@ -47,8 +47,8 @@ export function LayersPanel() {
       className={`flex w-[280px] shrink-0 flex-col overflow-hidden border-r min-h-0 ${darkMode ? 'border-surface-dark-muted bg-surface-dark' : 'border-stone bg-paper'}`}
     >
       <div className={`shrink-0 flex items-center justify-between border-b px-3.5 py-3 ${darkMode ? 'border-surface-dark-muted' : 'border-stone'}`}>
-        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Layers</span>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${darkMode ? 'bg-surface/10 text-[#9A9996]' : 'bg-ink text-white'}`}>
+        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Layers</span>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-ink text-white'}`}>
           {root.childIds.length} sections
         </span>
       </div>
@@ -57,7 +57,7 @@ export function LayersPanel() {
           <LayerBranch key={sectionId} id={sectionId} depth={0} selectedIds={selectedIds} onSelect={selectOnly} onToggle={toggleSelect} onMove={move} onRemove={removeElement} />
         ))}
       </ul>
-      <div className={`border-t px-3 py-2 text-[11px] leading-4 ${darkMode ? 'border-surface-dark-muted bg-surface-dark-raised text-[#6B6A68]' : 'border-stone bg-surface text-[#9A9996]'}`}>
+      <div className={`border-t px-3 py-2 text-[11px] leading-4 ${darkMode ? 'border-surface-dark-muted bg-surface-dark-raised text-muted' : 'border-stone bg-surface text-muted-dark'}`}>
         Shift / ⌘ click to multi-select · Hover for actions
       </div>
     </aside>
@@ -122,10 +122,10 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
 
   return (
     <div
-      className={`group flex items-center gap-1 rounded-full px-2.5 py-1.5 transition-all duration-150 ${isSelected ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:bg-surface/[0.06] hover:text-paper' : 'text-[#3A3938] hover:bg-surface hover:text-ink hover:shadow-[0_1px_4px_rgba(14,14,16,0.06)]'}`}
+      className={`group flex items-center gap-1 rounded-full px-2.5 py-1.5 transition-all duration-150 ${isSelected ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-muted-dark hover:bg-surface/[0.06] hover:text-paper' : 'text-muted-strong hover:bg-surface hover:text-ink hover:shadow-[0_1px_4px_rgba(14,14,16,0.06)]'}`}
       style={{ marginLeft: depth ? 0 : 0 }}
     >
-      <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isSelected ? 'bg-accent text-white' : darkMode ? 'bg-surface/10 text-[#9A9996]' : 'bg-stone text-[#6B6A68]'}`}>
+      <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isSelected ? 'bg-accent text-white' : darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-stone text-muted'}`}>
         {element.type[0].toUpperCase()}
       </span>
       <button
@@ -136,14 +136,14 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
       >
         {label}
       </button>
-      <span className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${isSelected ? (darkMode ? 'bg-black/10 text-ink' : 'bg-surface/15 text-white') : darkMode ? 'bg-surface/5 text-[#6B6A68]' : 'bg-surface-muted text-[#9A9996]'}`}>
+      <span className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${isSelected ? (darkMode ? 'bg-black/10 text-ink' : 'bg-surface/15 text-white') : darkMode ? 'bg-surface/5 text-muted' : 'bg-surface-muted text-muted-dark'}`}>
         {element.type}
       </span>
       <button
         type="button"
         aria-label={`Move ${label} up`}
         onClick={() => onMove(id, -1)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-[#9A9996] hover:bg-surface/10 hover:text-white' : 'bg-surface text-[#6B6A68] hover:bg-ink hover:text-white border border-stone'}`}
+        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
       >
         ↑
       </button>
@@ -151,7 +151,7 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
         type="button"
         aria-label={`Move ${label} down`}
         onClick={() => onMove(id, 1)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-[#9A9996] hover:bg-surface/10 hover:text-white' : 'bg-surface text-[#6B6A68] hover:bg-ink hover:text-white border border-stone'}`}
+        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
       >
         ↓
       </button>
@@ -159,7 +159,7 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
         type="button"
         aria-label={`Delete ${label}`}
         onClick={() => onRemove(id)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-[#9A9996] hover:bg-[#E85D4A] hover:text-white' : 'bg-surface text-[#9A9996] hover:bg-[#E85D4A] hover:text-white border border-stone'}`}
+        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-[#E85D4A] hover:text-white' : 'bg-surface text-muted-dark hover:bg-[#E85D4A] hover:text-white border border-stone'}`}
       >
         ✕
       </button>

@@ -109,7 +109,7 @@ export function FileMenu() {
               height="10"
               viewBox="0 0 10 10"
               fill="none"
-              className={cn('text-[#9A9996] transition-transform duration-200', open && 'rotate-180')}
+              className={cn('text-muted-dark transition-transform duration-200', open && 'rotate-180')}
               aria-hidden
             >
               <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -119,8 +119,8 @@ export function FileMenu() {
       >
         {/* file variant header — customized for file menu, base variant omits this */}
         <div className={cn('rounded-[10px] px-3 py-2', darkMode ? 'bg-surface-dark' : 'bg-paper')}>
-          <p className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]')}>File</p>
-          <p className={cn('text-xs', darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]')}>{doc.templateName}</p>
+          <p className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', darkMode ? 'text-muted-dark' : 'text-muted')}>File</p>
+          <p className={cn('text-xs', darkMode ? 'text-muted' : 'text-muted-dark')}>{doc.templateName}</p>
         </div>
         <div className="mt-1 flex flex-col gap-0.5 p-1">
           <button
@@ -141,7 +141,7 @@ export function FileMenu() {
               </span>
               Import JSON…
             </span>
-            <span className={cn('text-[11px]', darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]')}>⌘O</span>
+            <span className={cn('text-[11px]', darkMode ? 'text-muted' : 'text-muted-dark')}>⌘O</span>
           </button>
           <button
             role="menuitem"
@@ -164,7 +164,7 @@ export function FileMenu() {
             <span
               className={cn(
                 'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-surface-muted text-[#6B6A68]',
+                darkMode ? 'bg-white/10 text-muted-dark' : 'bg-surface-muted text-muted',
               )}
             >
               JSON
@@ -199,7 +199,7 @@ export function FileMenu() {
             </span>
           </button>
         </div>
-        <p className={cn('px-3 py-2 text-[11px] leading-4', darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]')}>
+        <p className={cn('px-3 py-2 text-[11px] leading-4', darkMode ? 'text-muted' : 'text-muted-dark')}>
           Imports replace the current doc and history. Exports are deterministic and offline.
         </p>
       </Dropdown>
