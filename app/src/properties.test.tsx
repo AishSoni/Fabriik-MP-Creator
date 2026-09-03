@@ -7,7 +7,7 @@ import { useEditorStore } from './store/editorStore';
 
 beforeEach(() => {
   localStorage.clear();
-  useTemplateStore.getState().resetDoc();
+  useTemplateStore.getState().loadTemplate('tpl-landing-v1');
   useEditorStore.getState().clearSelection();
 });
 
