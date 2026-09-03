@@ -47,17 +47,38 @@ export function TopBar() {
 
   return (
     <header
-      className={`flex shrink-0 flex-wrap items-center gap-4 border-b px-4 py-2 ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'}`}
+      className={`flex shrink-0 items-center gap-3 border-b px-3 py-2.5 sm:px-4 ${
+        darkMode ? 'border-[#262629] bg-[#141416]' : 'border-[#E7E5E0] bg-[#FDFBF7]/80 backdrop-blur-xl'
+      }`}
+      style={{ minHeight: 56 }}
     >
       <FileMenu />
 
+      <div className={`hidden h-6 w-px shrink-0 sm:block ${darkMode ? 'bg-[#262629]' : 'bg-[#E7E5E0]'}`} />
+
+      {/* Template */}
       <label className="flex items-center gap-2 text-sm">
-        <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Template</span>
+        <span
+          className={`hidden text-[11px] font-semibold uppercase tracking-[0.08em] sm:inline ${
+            darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'
+          }`}
+        >
+          Template
+        </span>
         <select
           aria-label="Active template"
           value={activeTemplateId}
           onChange={(e) => handleTemplateSwitch(e.target.value)}
-          className={`max-w-52 rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
+          className={`max-w-[168px] cursor-pointer rounded-full border px-3 py-1.5 pr-7 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent appearance-none ${
+            darkMode
+              ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629]'
+              : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:border-[#D9D6D1] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
+          }`}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='${darkMode ? '%239A9996' : '%236B6A68'}' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 10px center',
+          }}
         >
           {!TEMPLATES.some((definition) => definition.id === activeTemplateId) && (
             <option value={activeTemplateId} title="Imported template">
@@ -72,40 +93,72 @@ export function TopBar() {
         </select>
       </label>
 
+      {/* Viewport segmented */}
       <div
         role="radiogroup"
         aria-label="Preview viewport"
-        className={`flex items-center gap-1 rounded-lg p-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}
+        className={`hidden items-center gap-0.5 rounded-full p-1 md:flex ${darkMode ? 'bg-[#1E1E20] border border-[#262629]' : 'bg-white border border-[#E7E5E0] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'}`}
       >
-        {VIEWPORT_LABELS.map(({ id, label, width }) => (
+        {VIEWPORT_LABELS.map(({ id, label, width }) => {
+          const active = activeViewport === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setActiveViewport(id)}
+              className={`cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                active
+                  ? 'bg-[#0E0E10] text-white shadow-sm dark:bg-[#FDFBF7] dark:text-[#0E0E10]'
+                  : darkMode
+                    ? 'text-[#9A9996] hover:text-[#FDFBF7]'
+                    : 'text-[#6B6A68] hover:text-[#0E0E10]'
+              }`}
+            >
+              <span>{label}</span>{' '}
+              <span
+                className={`font-mono text-[11px] tabular-nums ${active ? (darkMode ? 'text-[#0E0E10]/60' : 'text-white/60') : darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}
+              >
+                {width}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Mobile viewport fallback */}
+      <div className="flex items-center gap-1 md:hidden">
+        {VIEWPORT_LABELS.map(({ id }) => (
           <button
             key={id}
             type="button"
-            role="radio"
-            aria-checked={activeViewport === id}
+            aria-pressed={activeViewport === id}
             onClick={() => setActiveViewport(id)}
-            className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium ${
-              activeViewport === id
-                ? darkMode
-                  ? 'bg-slate-700 shadow text-blue-400'
-                  : 'bg-white shadow text-blue-700'
-                : darkMode
-                  ? 'text-slate-400 hover:text-slate-100'
-                  : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`h-7 w-7 rounded-full text-[11px] font-semibold uppercase ${activeViewport === id ? 'bg-[#0E0E10] text-white dark:bg-white dark:text-[#0E0E10]' : darkMode ? 'bg-[#1E1E20] text-[#9A9996]' : 'bg-white border border-[#E7E5E0] text-[#6B6A68]'}`}
           >
-            {label} <span className={darkMode ? 'text-slate-500' : 'text-slate-400'}>{width}px</span>
+            {id[0]}
           </button>
         ))}
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Edit scope</span>
+      {/* Scope */}
+      <label className="hidden items-center gap-2 text-sm lg:flex">
+        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Scope</span>
         <select
           aria-label="Edit scope"
           value={editScope}
           onChange={(e) => setEditScope(e.target.value as Scope)}
-          className={`rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
+          className={`cursor-pointer rounded-full border px-3 py-1.5 pr-7 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent appearance-none ${
+            darkMode
+              ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7]'
+              : 'border-[#E7E5E0] bg-white text-[#0E0E10] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
+          }`}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='${darkMode ? '%239A9996' : '%236B6A68'}' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 10px center',
+          }}
         >
           {scopeOptions.map(({ id, label }) => (
             <option key={id} value={id}>
@@ -115,7 +168,7 @@ export function TopBar() {
         </select>
       </label>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => {
@@ -134,10 +187,18 @@ export function TopBar() {
           aria-pressed={isCompareOpen}
           data-testid="compare-toggle"
           title={isCompareOpen ? 'Close compare view' : 'Compare base vs current'}
-          className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold ${isCompareOpen ? (darkMode ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-600 bg-blue-600 text-white') : darkMode ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+          className={`cursor-pointer inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] ${
+            isCompareOpen
+              ? 'border-[#7868E6] bg-[#7868E6] text-white shadow-[0_4px_12px_rgba(120,104,230,0.3)]'
+              : darkMode
+                ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629] hover:border-[#3A3A40]'
+                : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:bg-[#FDFBF7] hover:border-[#D9D6D1] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
+          }`}
         >
+          <span className={`h-1.5 w-1.5 rounded-full ${isCompareOpen ? 'bg-white' : 'bg-[#7868E6]'}`} />
           Compare
         </button>
+
         <button
           type="button"
           onClick={toggleDarkMode}
@@ -145,20 +206,36 @@ export function TopBar() {
           aria-pressed={darkMode}
           data-testid="dark-mode-toggle"
           title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          className={`cursor-pointer rounded-md border p-1.5 text-sm leading-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+          className={`cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+            darkMode ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:bg-[#FDFBF7]'
+          }`}
         >
-          <span aria-hidden="true" className="text-base leading-none">
-            {darkMode ? '☀️' : '🌙'}
+          <span aria-hidden="true" className="text-[14px] leading-none">
+            {darkMode ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M7 1v1M7 12v1M1 7h1M12 7h1M2.9 2.9l.7.7M10.4 10.4l.7.7M10.4 3.6l.7-.7M2.9 11.1l.7-.7" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <path d="M11.5 7.2A4.5 4.5 0 0 1 6.8 2.5 4.5 4.5 0 1 0 11.5 7.2Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              </svg>
+            )}
           </span>
         </button>
+
         <button
           type="button"
           onClick={() => {
             if (window.confirm('Reset the template and all history to its original state?')) resetDoc();
           }}
-          className="cursor-pointer rounded-md border border-red-200 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+          className={`hidden cursor-pointer rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors sm:inline-flex ${
+            darkMode
+              ? 'border-[#3A2020] bg-[#1E1E20] text-[#E8A0A0] hover:bg-[#2A1A1A] hover:text-[#FFB4B4]'
+              : 'border-[#E8D0D0] bg-white text-[#A33A2E] hover:bg-[#FDF2F2] hover:border-[#E0B8B8]'
+          }`}
         >
-          Reset template
+          Reset
         </button>
       </div>
     </header>

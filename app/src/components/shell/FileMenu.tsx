@@ -84,10 +84,6 @@ export function FileMenu() {
     setToastMessage(`Imported “${parsed.doc.templateName}”`);
   };
 
-  const itemClass = `block w-full cursor-pointer px-3 py-1.5 text-left text-sm ${
-    darkMode ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-700 hover:bg-slate-100'
-  }`;
-
   return (
     <div ref={containerRef} className="relative" data-testid="file-menu">
       <button
@@ -96,46 +92,111 @@ export function FileMenu() {
         aria-expanded={open}
         data-testid="file-menu-trigger"
         onClick={() => setOpen((value) => !value)}
-        className={`cursor-pointer text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}
+        className={`group cursor-pointer inline-flex items-center gap-2.5 rounded-full border px-2.5 py-1.5 pr-3 text-sm font-semibold transition-colors ${
+          darkMode
+            ? 'border-[#262629] bg-[#1E1E20] hover:bg-[#262629] text-[#FDFBF7]'
+            : 'border-[#E7E5E0] bg-white hover:bg-[#FDFBF7] text-[#0E0E10] shadow-[0_1px_2px_rgba(14,14,16,0.06)]'
+        }`}
       >
-        Fabriik
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0E0E10] text-white dark:bg-[#FDFBF7] dark:text-[#0E0E10] text-[12px] font-bold tracking-tight">
+          F
+        </span>
+        <span className="tracking-tight" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em' }}>
+          Fabriik
+        </span>
+        <span
+          className={`hidden text-[10px] font-medium uppercase tracking-[0.08em] sm:inline ${darkMode ? 'text-[#9A9996]' : 'text-[#9A9996]'}`}
+        >
+          Studio
+        </span>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          fill="none"
+          className={`transition-transform duration-200 ${open ? 'rotate-180' : ''} ${darkMode ? 'text-[#9A9996]' : 'text-[#9A9996]'}`}
+          aria-hidden
+        >
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
       {open && (
         <div
           role="menu"
           aria-label="Template file actions"
-          className={`absolute left-0 z-20 mt-2 w-56 rounded-md border py-1 shadow-lg ${
-            darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'
+          className={`absolute left-0 z-20 mt-2 w-64 overflow-hidden rounded-[16px] border p-1.5 shadow-[0_12px_40px_rgba(14,14,16,0.14),0_4px_12px_rgba(14,14,16,0.08)] animate-in ${
+            darkMode ? 'border-[#262629] bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white'
           }`}
         >
-          <button
-            role="menuitem"
-            type="button"
-            data-testid="menu-import"
-            onClick={handleImportClick}
-            className={itemClass}
-          >
-            Import JSON…
-          </button>
-          <button
-            role="menuitem"
-            type="button"
-            data-testid="menu-export-json"
-            onClick={handleExportJson}
-            className={itemClass}
-          >
-            Export JSON
-          </button>
-          <button
-            role="menuitem"
-            type="button"
-            data-testid="menu-export-html"
-            onClick={handleExportHtml}
-            title="Hosted image URLs are preferred so you don't have to manage image files locally."
-            className={itemClass}
-          >
-            Export HTML
-          </button>
+          <div className={`rounded-[10px] px-3 py-2 ${darkMode ? 'bg-[#141416]' : 'bg-[#FDFBF7]'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>File</p>
+            <p className={`text-xs ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>{doc.templateName}</p>
+          </div>
+          <div className="mt-1 flex flex-col gap-0.5 p-1">
+            <button
+              role="menuitem"
+              type="button"
+              data-testid="menu-import"
+              onClick={handleImportClick}
+              className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
+                darkMode ? 'text-[#FDFBF7] hover:bg-white/[0.06]' : 'text-[#0E0E10] hover:bg-[#F3EFE8]'
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${darkMode ? 'bg-white/10' : 'bg-[#0E0E10] text-white'}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M6 2.5v6M3.5 6l2.5 2.5L8.5 6M2 9.5h8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Import JSON…
+              </span>
+              <span className={`text-[11px] ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>⌘O</span>
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              data-testid="menu-export-json"
+              onClick={handleExportJson}
+              className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
+                darkMode ? 'text-[#FDFBF7] hover:bg-white/[0.06]' : 'text-[#0E0E10] hover:bg-[#F3EFE8]'
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${darkMode ? 'bg-white/10' : 'bg-[#E7E5E0]'}`}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M3 8.5l3-3 3 3M6 5.5v4M2 9.5h8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Export JSON
+              </span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-[#F3EFE8] text-[#6B6A68]'}`}>JSON</span>
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              data-testid="menu-export-html"
+              onClick={handleExportHtml}
+              title="Hosted image URLs are preferred so you don't have to manage image files locally."
+              className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
+                darkMode ? 'text-[#FDFBF7] hover:bg-white/[0.06]' : 'text-[#0E0E10] hover:bg-[#F3EFE8]'
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${darkMode ? 'bg-white/10' : 'bg-[#E7E5E0]'}`}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M2 3l2 3-2 3M6 9.5h4M8 3.5l1 1.5-1 1.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Export HTML
+              </span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${darkMode ? 'bg-[#7868E6]/20 text-[#A99CFF]' : 'bg-[#ECE9FF] text-[#7868E6]'}`}>Static</span>
+            </button>
+          </div>
+          <p className={`px-3 py-2 text-[11px] leading-4 ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>
+            Imports replace the current doc and history. Exports are deterministic and offline.
+          </p>
         </div>
       )}
       <input
