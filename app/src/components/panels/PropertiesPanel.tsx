@@ -108,8 +108,8 @@ export function PropertiesPanel() {
 
   return (
     <div className={`flex flex-col gap-5 p-4 text-sm animate-in ${darkMode ? 'text-[#E7E5E0]' : 'text-[#0E0E10]'}`}>
-      <div className={`shell-outer rounded-[20px] ${darkMode ? 'bg-white/[0.04] border-white/10' : 'bg-[#0E0E10]/[0.04] border-[#0E0E10]/[0.06]'}`}>
-        <div className={`shell-inner rounded-[16px] flex items-start justify-between gap-3 p-3.5 ${darkMode ? 'bg-[#1E1E20]' : 'bg-white'}`}>
+      <div className={`shell-outer rounded-[20px] border p-1.5 ${darkMode ? 'bg-white/[0.04] border-white/10' : 'bg-[#0E0E10]/[0.04] border-[#0E0E10]/[0.06]'}`}>
+        <div className={`shell-inner flex items-start justify-between gap-3 rounded-[calc(20px-6px)] p-3.5 ${darkMode ? 'bg-[#1E1E20] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : 'bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'}`}>
           <div className="min-w-0">
             <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
               {single ? single.type : 'Multiple selection'}
@@ -149,7 +149,7 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Write something honest."
-            className={`min-h-[84px] rounded-2xl border px-3.5 py-3 text-[14px] leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] focus:border-[#7868E6]'}`}
+            className={`min-h-[84px] rounded-2xl border px-3.5 py-3 text-[14px] leading-6 transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-[#7868E6]'}`}
           />
         </label>
       )}
@@ -169,7 +169,7 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Fabriik"
-            className={`rounded-full border px-4 py-2.5 text-[14px] font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] focus:border-[#7868E6]'}`}
+            className={`rounded-full border px-4 py-2.5 text-[14px] font-medium transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] focus:border-[#7868E6]'}`}
           />
         </label>
       )}
@@ -190,7 +190,7 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Journal :: /journal"
-            className={`rounded-2xl border px-3.5 py-3 font-mono text-xs leading-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] focus:border-[#7868E6]'}`}
+            className={`rounded-2xl border px-3.5 py-3 font-mono text-xs leading-5 transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-[#7868E6]'}`}
           />
         </label>
       )}
@@ -292,7 +292,7 @@ function NumberField({
           }
         }}
         placeholder="—"
-        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 text-sm font-medium tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#0E0E10] focus:border-[#7868E6] focus:bg-white'}`}
+        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 text-sm font-medium tabular-nums transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#0E0E10] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-[#7868E6] focus:bg-white'}`}
       />
     </label>
   );
@@ -327,7 +327,7 @@ function ColorField({
           const v = e.target.value;
           if (v === '' || /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) onChange(v);
         }}
-        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 font-mono text-xs font-medium tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#0E0E10] focus:border-[#7868E6] focus:bg-white'}`}
+        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 font-mono text-xs font-medium tabular-nums transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-[#141416] text-[#FDFBF7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-[#7868E6]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#0E0E10] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-[#7868E6] focus:bg-white'}`}
       />
     </label>
   );

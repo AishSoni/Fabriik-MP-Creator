@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import { useTemplateStore } from '../../store/templateStore';
 import { TEMPLATES } from '../../template';
 import { getTemplateById } from '../../template';
 import { getChangedIds } from '../compare/CompareView';
+import { Dropdown } from './Dropdown';
 import { FileMenu } from './FileMenu';
 import type { Scope, Viewport } from '../../types/viewport';
 
@@ -26,6 +28,8 @@ export function TopBar() {
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
   const doc = useTemplateStore((s) => s.doc);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [scopeOpen, setScopeOpen] = useState(false);
 
   const handleTemplateSwitch = (nextId: string) => {
     if (nextId === activeTemplateId) return;
@@ -56,42 +60,119 @@ export function TopBar() {
 
       <div className={`hidden h-6 w-px shrink-0 sm:block ${darkMode ? 'bg-[#262629]' : 'bg-[#E7E5E0]'}`} />
 
-      {/* Template */}
-      <label className="flex items-center gap-2 text-sm">
-        <span
-          className={`hidden text-[11px] font-semibold uppercase tracking-[0.08em] sm:inline ${
-            darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'
-          }`}
+      {/* Template — Dropdown */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className={`hidden text-[11px] font-semibold uppercase tracking-[0.08em] sm:inline ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Template</span>
+        <Dropdown
+          open={templateOpen}
+          onOpenChange={setTemplateOpen}
+          label="Template selector"
+          widthClass="w-72"
+          testId="template-dropdown"
+          menuTestId="template-menu"
+          trigger={
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={templateOpen}
+              aria-label="Open template menu"
+              data-testid="template-trigger"
+              onClick={() => setTemplateOpen((v) => !v)}
+              className={`inline-flex max-w-[168px] cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent ${
+                darkMode ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:border-[#D9D6D1] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
+              }`}
+            >
+              <span className="truncate">
+                {!TEMPLATES.some((d) => d.id === activeTemplateId) ? `${doc.templateName} (imported)` : TEMPLATES.find((d) => d.id === activeTemplateId)?.name ?? 'Template'}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className={`shrink-0 transition-transform duration-200 ${templateOpen ? 'rotate-180' : ''} ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          }
         >
-          Template
-        </span>
+          <div className={`rounded-[10px] px-3 py-2 ${darkMode ? 'bg-[#141416]' : 'bg-[#FDFBF7]'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Switch template</p>
+            <p className={`text-[11px] ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>Edits and history will be discarded</p>
+          </div>
+          <div className="mt-1 flex flex-col gap-0.5 p-1">
+            {!TEMPLATES.some((d) => d.id === activeTemplateId) && (
+              <button
+                type="button"
+                role="menuitem"
+                aria-selected={true}
+                onClick={() => setTemplateOpen(false)}
+                className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium ${darkMode ? 'bg-[#7868E6]/20 text-[#A99CFF]' : 'bg-[#ECE9FF] text-[#6354D9]'}`}
+              >
+                <span className="truncate">{`${doc.templateName} (imported)`}</span>
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${darkMode ? 'bg-[#A99CFF]' : 'bg-[#7868E6]'}`} />
+              </button>
+            )}
+            {TEMPLATES.map((definition) => {
+              const active = definition.id === activeTemplateId;
+              return (
+                <button
+                  key={definition.id}
+                  type="button"
+                  role="menuitem"
+                  aria-selected={active}
+                  data-testid={`template-option-${definition.id}`}
+                  onClick={() => {
+                    setTemplateOpen(false);
+                    handleTemplateSwitch(definition.id);
+                  }}
+                  title={definition.description}
+                  className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
+                    active ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10]' : 'bg-[#0E0E10] text-white') : darkMode ? 'text-[#FDFBF7] hover:bg-white/[0.06]' : 'text-[#0E0E10] hover:bg-[#F3EFE8]'
+                  }`}
+                >
+                  <span className="truncate">{definition.name}</span>
+                  {active ? <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${darkMode ? 'bg-[#0E0E10]' : 'bg-white'}`} /> : <span className={`hidden sm:inline truncate text-xs font-normal ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>{definition.description.slice(0, 28)}…</span>}
+                </button>
+              );
+            })}
+            <div className={`my-1 h-px ${darkMode ? 'bg-white/10' : 'bg-[#E7E5E0]'}`} />
+            <button
+              type="button"
+              role="menuitem"
+              disabled
+              aria-disabled="true"
+              title="Template Library — Coming soon"
+              data-testid="template-library-coming-soon"
+              className={`flex cursor-not-allowed items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium opacity-60 ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${darkMode ? 'bg-white/10' : 'bg-[#E7E5E0]'}`}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M3 3.5h6M3 6h6M3 8.5h4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+                    <rect x="2" y="2" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
+                  </svg>
+                </span>
+                Template Library
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-[#F3EFE8] text-[#6B6A68]'}`}>Coming soon</span>
+            </button>
+          </div>
+        </Dropdown>
+        {/* Hidden native select for a11y + test compatibility (user.selectOptions) */}
         <select
           aria-label="Active template"
+          data-testid="template-native-select"
           value={activeTemplateId}
           onChange={(e) => handleTemplateSwitch(e.target.value)}
-          className={`max-w-[168px] cursor-pointer rounded-full border px-3 py-1.5 pr-7 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent appearance-none ${
-            darkMode
-              ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629]'
-              : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:border-[#D9D6D1] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
-          }`}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='${darkMode ? '%239A9996' : '%236B6A68'}' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 10px center',
-          }}
+          className="sr-only"
+          tabIndex={-1}
         >
-          {!TEMPLATES.some((definition) => definition.id === activeTemplateId) && (
-            <option value={activeTemplateId} title="Imported template">
-              {`${doc.templateName} (imported)`}
-            </option>
+          {!TEMPLATES.some((d) => d.id === activeTemplateId) && (
+            <option value={activeTemplateId}>{`${doc.templateName} (imported)`}</option>
           )}
-          {TEMPLATES.map((definition) => (
-            <option key={definition.id} value={definition.id} title={definition.description}>
-              {definition.name}
+          {TEMPLATES.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       {/* Viewport segmented */}
       <div
@@ -144,23 +225,67 @@ export function TopBar() {
         ))}
       </div>
 
-      {/* Scope */}
-      <label className="hidden items-center gap-2 text-sm lg:flex">
+      {/* Scope — Dropdown */}
+      <div className="hidden items-center gap-2 text-sm lg:flex">
         <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Scope</span>
+        <Dropdown
+          open={scopeOpen}
+          onOpenChange={setScopeOpen}
+          label="Edit scope"
+          widthClass="w-48"
+          testId="scope-dropdown"
+          menuTestId="scope-menu"
+          trigger={
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={scopeOpen}
+              aria-label="Open scope menu"
+              data-testid="scope-trigger"
+              onClick={() => setScopeOpen((v) => !v)}
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent ${
+                darkMode ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7] hover:bg-[#262629]' : 'border-[#E7E5E0] bg-white text-[#0E0E10] hover:border-[#D9D6D1] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
+              }`}
+            >
+              <span>{scopeOptions.find((o) => o.id === editScope)?.label ?? editScope}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className={`shrink-0 transition-transform duration-200 ${scopeOpen ? 'rotate-180' : ''} ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-0.5 p-1">
+            {scopeOptions.map(({ id, label }) => {
+              const active = editScope === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  aria-selected={active}
+                  data-testid={`scope-option-${id}`}
+                  onClick={() => {
+                    setEditScope(id as Scope);
+                    setScopeOpen(false);
+                  }}
+                  className={`flex cursor-pointer items-center justify-between rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
+                    active ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10]' : 'bg-[#0E0E10] text-white') : darkMode ? 'text-[#FDFBF7] hover:bg-white/[0.06]' : 'text-[#0E0E10] hover:bg-[#F3EFE8]'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {active && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${darkMode ? 'bg-[#0E0E10]' : 'bg-white'}`} />}
+                </button>
+              );
+            })}
+          </div>
+        </Dropdown>
         <select
           aria-label="Edit scope"
+          data-testid="scope-native-select"
           value={editScope}
           onChange={(e) => setEditScope(e.target.value as Scope)}
-          className={`cursor-pointer rounded-full border px-3 py-1.5 pr-7 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-transparent appearance-none ${
-            darkMode
-              ? 'border-[#2A2A30] bg-[#1E1E20] text-[#FDFBF7]'
-              : 'border-[#E7E5E0] bg-white text-[#0E0E10] shadow-[0_1px_2px_rgba(14,14,16,0.04)]'
-          }`}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='${darkMode ? '%239A9996' : '%236B6A68'}' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 10px center',
-          }}
+          className="sr-only"
+          tabIndex={-1}
         >
           {scopeOptions.map(({ id, label }) => (
             <option key={id} value={id}>
@@ -168,7 +293,7 @@ export function TopBar() {
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       <div className="ml-auto flex items-center gap-1.5">
         <button
