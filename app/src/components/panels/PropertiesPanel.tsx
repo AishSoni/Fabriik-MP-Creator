@@ -196,10 +196,10 @@ export function PropertiesPanel() {
       )}
 
       <fieldset
-        className={`flex flex-col gap-3 rounded-[20px] border p-4 ${darkMode ? 'border-white/10 bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]'}`}
+        className={`flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-[20px] border p-4 ${darkMode ? 'border-white/10 bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]'}`}
       >
         <legend className={`px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Style</legend>
-        <div className="grid gap-3">
+        <div className="grid min-w-0 max-w-full gap-3 overflow-hidden">
           <NumberField label="Font size" value={resolved?.style.fontSize} onChange={(v) => setStyle({ fontSize: v })} />
           <NumberField label="Weight" value={resolved?.style.fontWeight} onChange={(v) => setStyle({ fontWeight: v })} step={100} min={100} max={900} />
           <NumberField label="Line height" value={resolved?.style.lineHeight} onChange={(v) => setStyle({ lineHeight: v })} step={0.1} />
@@ -212,9 +212,9 @@ export function PropertiesPanel() {
           <NumberField label="Radius" value={resolved?.style.borderRadius} onChange={(v) => setStyle({ borderRadius: v })} />
         </div>
 
-        <div className={`mt-1 flex items-center gap-2 rounded-full p-1 ${darkMode ? 'bg-[#141416] border border-white/10' : 'bg-[#F3EFE8] border border-[#E7E5E0]'}`}>
-          <span className={`ml-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Align</span>
-          <div className="ml-auto flex gap-1">
+        <div className={`mt-1 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-full p-1 ${darkMode ? 'bg-[#141416] border border-white/10' : 'bg-[#F3EFE8] border border-[#E7E5E0]'}`}>
+          <span className={`ml-2 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Align</span>
+          <div className="ml-auto flex min-w-0 shrink gap-1 overflow-hidden">
             {(['left', 'center', 'right'] as const).map((align) => (
               <button
                 key={align}
@@ -223,7 +223,9 @@ export function PropertiesPanel() {
                 onClick={() => setStyle({ textAlign: align })}
                 className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-all duration-200 active:scale-[0.98] ${
                   resolved?.style.textAlign === align
-                    ? 'bg-[#0E0E10] text-white shadow-sm dark:bg-[#FDFBF7] dark:text-[#0E0E10]'
+                    ? darkMode
+                      ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm'
+                      : 'bg-[#0E0E10] text-white shadow-sm'
                     : darkMode
                       ? 'text-[#9A9996] hover:bg-white/10 hover:text-white'
                       : 'text-[#6B6A68] hover:bg-white hover:text-[#0E0E10]'

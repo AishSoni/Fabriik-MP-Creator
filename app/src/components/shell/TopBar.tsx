@@ -110,7 +110,9 @@ export function TopBar() {
               onClick={() => setActiveViewport(id)}
               className={`cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 active
-                  ? 'bg-[#0E0E10] text-white shadow-sm dark:bg-[#FDFBF7] dark:text-[#0E0E10]'
+                  ? darkMode
+                    ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm'
+                    : 'bg-[#0E0E10] text-white shadow-sm'
                   : darkMode
                     ? 'text-[#9A9996] hover:text-[#FDFBF7]'
                     : 'text-[#6B6A68] hover:text-[#0E0E10]'
@@ -135,7 +137,7 @@ export function TopBar() {
             type="button"
             aria-pressed={activeViewport === id}
             onClick={() => setActiveViewport(id)}
-            className={`h-7 w-7 rounded-full text-[11px] font-semibold uppercase ${activeViewport === id ? 'bg-[#0E0E10] text-white dark:bg-white dark:text-[#0E0E10]' : darkMode ? 'bg-[#1E1E20] text-[#9A9996]' : 'bg-white border border-[#E7E5E0] text-[#6B6A68]'}`}
+            className={`h-7 w-7 rounded-full text-[11px] font-semibold uppercase ${activeViewport === id ? (darkMode ? 'bg-white text-[#0E0E10]' : 'bg-[#0E0E10] text-white') : darkMode ? 'bg-[#1E1E20] text-[#9A9996]' : 'bg-white border border-[#E7E5E0] text-[#6B6A68]'}`}
           >
             {id[0]}
           </button>

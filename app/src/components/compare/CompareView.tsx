@@ -93,10 +93,10 @@ export function CompareView() {
               </h2>
               <p className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5 ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${darkMode ? 'border-white/10 bg-white/5 text-[#9A9996]' : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#3A3938]'}`}>
-                  Base <span className="font-semibold text-[#0E0E10] dark:text-white">{baseDoc.templateName}</span>
+                  Base <span className={`font-semibold ${darkMode ? 'text-white' : 'text-[#0E0E10]'}`}>{baseDoc.templateName}</span>
                 </span>
                 <span className="hidden sm:inline opacity-40">→</span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasChanges ? 'bg-[#ECE9FF] text-[#6354D9] dark:bg-[#7868E6]/20 dark:text-[#A99CFF]' : 'bg-[#E7E5E0] text-[#6B6A68] dark:bg-white/10 dark:text-[#9A9996]'}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasChanges ? (darkMode ? 'bg-[#7868E6]/20 text-[#A99CFF]' : 'bg-[#ECE9FF] text-[#6354D9]') : darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-[#E7E5E0] text-[#6B6A68]'}`}>
                   {hasChanges ? `${changedIds.length} changed` : 'No changes'}
                 </span>
                 <span className="hidden text-[11px] tabular-nums sm:inline opacity-60">at {activeViewport}</span>
@@ -113,7 +113,7 @@ export function CompareView() {
                 data-testid="compare-close"
                 className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] hover:bg-white' : 'bg-[#0E0E10] text-white hover:bg-[#1A1A1E] shadow-sm'}`}
               >
-                Close <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[11px] dark:bg-black/10">✕</span>
+                Close <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${darkMode ? 'bg-black/10' : 'bg-white/15'}`}>✕</span>
               </button>
             </div>
           </header>
@@ -132,7 +132,7 @@ export function CompareView() {
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label="Current modification preview">
               <div className={`flex shrink-0 items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'bg-[#141416] text-[#9A9996] border-b border-white/10' : 'bg-[#F3EFE8] text-[#6B6A68] border-b border-[#E7E5E0]'}`}>
                 <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#7868E6]" /> Current</span>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasChanges ? 'bg-[#7868E6] text-white' : 'bg-[#E7E5E0] text-[#6B6A68] dark:bg-white/10 dark:text-[#9A9996]'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasChanges ? 'bg-[#7868E6] text-white' : darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-[#E7E5E0] text-[#6B6A68]'}`}>
                   {hasChanges ? `${changedIds.length} changed` : 'no changes'}
                 </span>
               </div>
