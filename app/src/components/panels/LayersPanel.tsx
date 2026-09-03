@@ -136,7 +136,7 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
       >
         {label}
       </button>
-      <span className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${isSelected ? 'bg-white/15 text-white dark:bg-black/10 dark:text-[#0E0E10]' : darkMode ? 'bg-white/5 text-[#6B6A68]' : 'bg-[#F3EFE8] text-[#9A9996]'}`}>
+      <span className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${isSelected ? (darkMode ? 'bg-black/10 text-[#0E0E10]' : 'bg-white/15 text-white') : darkMode ? 'bg-white/5 text-[#6B6A68]' : 'bg-[#F3EFE8] text-[#9A9996]'}`}>
         {element.type}
       </span>
       <button

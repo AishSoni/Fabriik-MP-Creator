@@ -75,11 +75,13 @@ export function EditorShell() {
                   onClick={() => setRightPanelTab(id)}
                   className={`flex-1 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                     active
-                      ? 'bg-[#0E0E10] text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)] dark:bg-white dark:text-[#0E0E10]'
+                      ? darkMode
+                        ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
+                        : 'bg-[#0E0E10] text-white shadow-[0_2px_8px_rgba(14,14,16,0.12)]'
                       : darkMode
                         ? 'text-[#9A9996] hover:text-[#FDFBF7] hover:bg-white/[0.06]'
                         : 'text-[#6B6A68] hover:text-[#0E0E10] hover:bg-[#0E0E10]/[0.06]'
-                  } ${active && !darkMode ? '!bg-[#0E0E10] !text-white' : ''} ${active && darkMode ? '!bg-[#FDFBF7] !text-[#0E0E10]' : ''}`}
+                  }`}
                 >
                   {label}
                 </button>
@@ -123,7 +125,7 @@ export function EditorShell() {
             : 'bg-[#0E0E10] text-white hover:bg-[#1A1A1E]'
         }`}
       >
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] leading-none dark:bg-black/10">
+        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] leading-none ${darkMode ? 'bg-black/10' : 'bg-white/15'}`}>
           {layersOpen ? '−' : '+'}
         </span>
         {layersOpen ? 'Hide layers' : 'Show layers'}

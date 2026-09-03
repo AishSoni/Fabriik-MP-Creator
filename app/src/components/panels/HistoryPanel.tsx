@@ -3,12 +3,17 @@ import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import type { RevisionEntry } from '../../types/commands';
 
-const SOURCE_BADGE: Record<string, string> = {
-  canvas: 'bg-[#E7E5E0] text-[#3A3938] dark:bg-white/10 dark:text-[#9A9996]',
-  code: 'bg-[#FCE8C3] text-[#8A5A00] dark:bg-amber-500/15 dark:text-amber-200',
-  ai: 'bg-[#ECE9FF] text-[#6354D9] dark:bg-[#7868E6]/20 dark:text-[#A99CFF]',
-  restore: 'bg-[#D1F0E6] text-[#0E7A5B] dark:bg-emerald-500/15 dark:text-emerald-200',
-};
+function sourceBadgeClass(source: string, darkMode: boolean): string {
+  const map: Record<string, { light: string; dark: string }> = {
+    canvas: { light: 'bg-[#E7E5E0] text-[#3A3938]', dark: 'bg-white/10 text-[#9A9996]' },
+    code: { light: 'bg-[#FCE8C3] text-[#8A5A00]', dark: 'bg-amber-500/15 text-amber-200' },
+    ai: { light: 'bg-[#ECE9FF] text-[#6354D9]', dark: 'bg-[#7868E6]/20 text-[#A99CFF]' },
+    restore: { light: 'bg-[#D1F0E6] text-[#0E7A5B]', dark: 'bg-emerald-500/15 text-emerald-200' },
+  };
+  const entry = map[source];
+  if (!entry) return darkMode ? 'bg-white/10 text-[#9A9996]' : 'bg-[#E7E5E0] text-[#6B6A68]';
+  return darkMode ? entry.dark : entry.light;
+}
 
 export function HistoryPanel() {
   const history = useTemplateStore((s) => s.history);
@@ -63,7 +68,7 @@ export function HistoryPanel() {
           >
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${SOURCE_BADGE[entry.source] ?? 'bg-[#E7E5E0] text-[#6B6A68]'}`}>{entry.source}</span>
+                <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${sourceBadgeClass(entry.source, darkMode)}`}>{entry.source}</span>
                 <button
                   type="button"
                   onClick={() => selectOnly(entry.elementId)}

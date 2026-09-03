@@ -75,7 +75,7 @@ export function AiDemoPanel() {
         type="button"
         onClick={run}
         disabled={selectedIds.length === 0 || instruction.trim().length === 0}
-        className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#7868E6] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#6354D9] hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#E7E5E0] disabled:text-[#9A9996] disabled:shadow-none dark:disabled:bg-white/10 dark:disabled:text-[#6B6A68]"
+        className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#7868E6] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#6354D9] hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-white/10 disabled:text-[#6B6A68]' : 'disabled:bg-[#E7E5E0] disabled:text-[#9A9996]'}`}
       >
         <span>Run deterministic demo</span>
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
@@ -110,7 +110,9 @@ export function AiDemoPanel() {
                   disabled={example.category === 'multi-element' && selectedIds.length < 2}
                   className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7868E6]/30 disabled:cursor-not-allowed disabled:opacity-40 ${
                     instruction === example.instruction
-                      ? 'border-[#7868E6] bg-[#ECE9FF] text-[#6354D9] shadow-sm dark:border-[#A99CFF] dark:bg-[#7868E6]/20 dark:text-[#E7E5E0]'
+                      ? darkMode
+                        ? 'border-[#A99CFF] bg-[#7868E6]/20 text-[#E7E5E0] shadow-sm'
+                        : 'border-[#7868E6] bg-[#ECE9FF] text-[#6354D9] shadow-sm'
                       : darkMode
                         ? 'border-white/10 bg-[#141416] text-[#9A9996] hover:border-[#7868E6]/40 hover:text-[#E7E5E0]'
                         : 'border-[#E7E5E0] bg-[#FDFBF7] text-[#3A3938] hover:border-[#7868E6]/40 hover:bg-white hover:text-[#0E0E10]'
@@ -278,7 +280,7 @@ function contentDiff(
     if (String(b) === String(a)) continue;
     nodes.push(
       <div key={`c-${key}`} className={darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}>
-        <dt className="inline font-bold text-[#0E0E10] dark:text-[#E7E5E0]">{key}: </dt>
+        <dt className={`inline font-bold ${darkMode ? 'text-[#E7E5E0]' : 'text-[#0E0E10]'}`}>{key}: </dt>
         <dd className="inline">
           <span className={darkMode ? 'text-[#FF9B8F] line-through decoration-[#E85D4A]/40' : 'text-[#B42318] line-through decoration-[#E85D4A]/30'}>{String(truncate(b ?? '∅'))}</span>
           {' → '}
@@ -304,7 +306,7 @@ function styleDiff(
     if (b === a) continue;
     nodes.push(
       <div key={`s-${key}`} className={darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}>
-        <dt className="inline font-bold text-[#0E0E10] dark:text-[#E7E5E0]">{key}: </dt>
+        <dt className={`inline font-bold ${darkMode ? 'text-[#E7E5E0]' : 'text-[#0E0E10]'}`}>{key}: </dt>
         <dd className="inline">
           <span className={darkMode ? 'text-[#FF9B8F] line-through decoration-[#E85D4A]/40' : 'text-[#B42318] line-through decoration-[#E85D4A]/30'}>{b === undefined ? 'unset' : String(b)}</span>
           {' → '}
