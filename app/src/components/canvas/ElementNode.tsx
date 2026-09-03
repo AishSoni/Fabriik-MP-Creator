@@ -50,7 +50,6 @@ export function ElementNode({ id }: ElementNodeProps) {
     e.stopPropagation();
     e.preventDefault();
     if (editableText !== null) {
-      // quickly edit display text: select and enter edit mode
       selectOnly(id);
       setDraftText(editableText);
       setEditing(true);
@@ -89,6 +88,10 @@ export function ElementNode({ id }: ElementNodeProps) {
     });
   };
 
+  const selectionClass = isSelected
+    ? 'ring-2 ring-[#7868E6] ring-offset-0 z-10 shadow-[0_0_0_4px_rgba(120,104,230,0.12),0_4px_16px_rgba(120,104,230,0.18)]'
+    : 'hover:ring-1 hover:ring-[#0E0E10]/15 hover:shadow-[0_2px_8px_rgba(14,14,16,0.06)]';
+
   const commonProps = {
     'data-eid': id,
     onClick: handleClick,
@@ -98,14 +101,18 @@ export function ElementNode({ id }: ElementNodeProps) {
     role: 'button',
     'aria-selected': isSelected,
     'aria-label': `${element.type}: ${editableText ?? element.id}`,
-    className: `relative outline-none transition-[outline] focus-visible:ring-2 focus-visible:ring-blue-500 ${
-      isSelected ? 'ring-2 ring-offset-0 ring-blue-600 z-10' : 'hover:ring-1 hover:ring-blue-300'
-    }`,
+    className: `relative outline-none transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-[#A99CFF] focus-visible:ring-offset-1 rounded-[2px] ${selectionClass}`,
   };
 
   if (element.type === 'section') {
     return (
       <div {...commonProps} style={css}>
+        {isSelected && (
+          <span className="pointer-events-none absolute -top-2 -left-2 z-20 inline-flex items-center gap-1 rounded-full bg-[#0E0E10] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-white shadow-md">
+            <span className="h-1 w-1 rounded-full bg-[#7868E6]" />
+            {id}
+          </span>
+        )}
         {element.childIds.map((childId) => (
           <ElementNode key={childId} id={childId} />
         ))}
@@ -116,6 +123,9 @@ export function ElementNode({ id }: ElementNodeProps) {
   if (element.type === 'nav') {
     return (
       <nav {...commonProps}>
+        {isSelected && (
+          <span className="pointer-events-none absolute -top-2 left-2 z-20 inline-flex rounded-full bg-[#0E0E10] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">NAV · {id}</span>
+        )}
         <NavView resolved={resolved} style={css} />
       </nav>
     );
@@ -138,43 +148,34 @@ export function ElementNode({ id }: ElementNodeProps) {
           onKeyUp={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
-          className="w-full rounded border border-blue-500 px-2 py-1 text-slate-900"
+          className="w-full rounded-full border border-[#7868E6] bg-white px-3 py-2 text-sm font-medium text-[#0E0E10] shadow-[0_4px_16px_rgba(120,104,230,0.2)] focus:outline-none focus:ring-2 focus:ring-[#A99CFF]"
         />
       </div>
     );
   }
 
+  const withBadge = (children: React.ReactNode) => (
+    <div {...commonProps}>
+      {isSelected && (
+        <span className="pointer-events-none absolute -top-2 left-2 z-20 inline-flex rounded-full bg-[#7868E6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
+          {element.type}
+        </span>
+      )}
+      {children}
+    </div>
+  );
+
   switch (element.type) {
     case 'heading':
-      return (
-        <div {...commonProps}>
-          <HeadingView resolved={resolved} style={css} />
-        </div>
-      );
+      return withBadge(<HeadingView resolved={resolved} style={css} />);
     case 'text':
-      return (
-        <div {...commonProps}>
-          <TextView resolved={resolved} style={css} />
-        </div>
-      );
+      return withBadge(<TextView resolved={resolved} style={css} />);
     case 'button':
-      return (
-        <div {...commonProps}>
-          <ButtonView resolved={resolved} style={css} />
-        </div>
-      );
+      return withBadge(<ButtonView resolved={resolved} style={css} />);
     case 'image':
-      return (
-        <div {...commonProps}>
-          <ImageView resolved={resolved} style={css} />
-        </div>
-      );
+      return withBadge(<ImageView resolved={resolved} style={css} />);
     case 'list':
-      return (
-        <div {...commonProps}>
-          <ListView resolved={resolved} style={css} />
-        </div>
-      );
+      return withBadge(<ListView resolved={resolved} style={css} />);
     default:
       return null;
   }
