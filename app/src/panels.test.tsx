@@ -8,10 +8,10 @@ import { useEditorStore } from './store/editorStore';
 import { useReviewStore } from './store/reviewStore';
 
 beforeEach(() => {
-  useTemplateStore.getState().resetDoc();
+  localStorage.clear();
+  useTemplateStore.getState().loadTemplate('tpl-landing-v1');
   useEditorStore.getState().clearSelection();
   useReviewStore.getState().setPendingResult(null);
-  localStorage.clear();
 });
 
 describe('AiDemoPanel', () => {

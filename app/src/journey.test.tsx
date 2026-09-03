@@ -9,10 +9,10 @@ import type { EditCommand } from './types/commands';
 const template = () => useTemplateStore.getState();
 
 beforeEach(() => {
-  template().resetDoc();
+  localStorage.clear();
+  useTemplateStore.getState().loadTemplate('tpl-landing-v1');
   useEditorStore.getState().clearSelection();
   useReviewStore.getState().setPendingResult(null);
-  localStorage.clear();
 });
 
 describe('end-to-end editor journey', () => {
@@ -94,10 +94,10 @@ describe('end-to-end editor journey', () => {
 
     await useTemplateStore.persist.rehydrate();
 
-    expect(template().doc.elements['cta-button']).toBeDefined();
+    expect(template().doc.elements['masthead-heading']).toBeDefined();
     expect(template().doc.revision).toBe(0);
     expect(template().history).toEqual({});
-    expect(template().activeTemplateId).toBe('tpl-landing-v1');
+    expect(template().activeTemplateId).toBe('tpl-editorial-v1');
     expect(template().lastErrors).toHaveLength(1);
     expect(template().lastErrors[0]?.code).toBe('invalid-payload');
     expect(template().lastErrors[0]?.message).toContain('invalid json template');

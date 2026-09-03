@@ -3,6 +3,9 @@ import { createDefaultTemplate } from './defaultTemplate';
 import { createPortfolioTemplate } from './portfolioTemplate';
 import { createSaasTemplate } from './saasTemplate';
 import { createBistroTemplate } from './bistroTemplate';
+import { createEditorialTemplate } from './editorialTemplate';
+import { createBrutalistTemplate } from './brutalistTemplate';
+import { createHorizonTemplate } from './horizonTemplate';
 
 export interface TemplateDefinition {
   id: string;
@@ -12,6 +15,12 @@ export interface TemplateDefinition {
 }
 
 export const TEMPLATES: TemplateDefinition[] = [
+  {
+    id: 'tpl-editorial-v1',
+    name: 'Editorial Atelier',
+    description: 'Warm bento magazine — asymmetric cards, archive list and seasonal subscription.',
+    create: createEditorialTemplate,
+  },
   {
     id: 'tpl-landing-v1',
     name: 'Landing Page',
@@ -35,6 +44,18 @@ export const TEMPLATES: TemplateDefinition[] = [
     name: 'Neighborhood Bistro',
     description: 'Warm restaurant page with story, weekly menu cards and reservation CTA.',
     create: createBistroTemplate,
+  },
+  {
+    id: 'tpl-noir-v1',
+    name: 'Noir Signal',
+    description: 'Brutalist type system conference — sharp grid, mono labels and caution yellow.',
+    create: createBrutalistTemplate,
+  },
+  {
+    id: 'tpl-horizon-v1',
+    name: 'Horizon Retreat',
+    description: 'Twilight boutique retreat — immersive imagery, coastal cabins and quiet nights.',
+    create: createHorizonTemplate,
   },
 ];
 

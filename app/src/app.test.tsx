@@ -7,17 +7,17 @@ import { useEditorStore } from './store/editorStore';
 
 describe('EditorShell', () => {
   beforeEach(() => {
-    useTemplateStore.getState().resetDoc();
+    localStorage.clear();
+    useTemplateStore.getState().loadTemplate('tpl-editorial-v1');
     useEditorStore.getState().clearSelection();
     useEditorStore.getState().setActiveViewport('desktop');
-    localStorage.clear();
   });
 
   it('renders the template inside the device frame', () => {
     render(<EditorShell />);
     const frame = screen.getByTestId('device-frame');
-    expect(frame.querySelector('[data-eid="hero-heading"]')).not.toBeNull();
-    expect(frame.textContent).toContain('Main Hero Message to Sell Yourself!');
+    expect(frame.querySelector('[data-eid="masthead-heading"]')).not.toBeNull();
+    expect(frame.textContent).toContain('Design for the long stay.');
   });
 
   it('switches viewport', async () => {

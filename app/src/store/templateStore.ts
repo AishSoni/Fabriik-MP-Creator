@@ -13,7 +13,7 @@ import {
   type CommandError,
 } from '../engine/validate';
 import { diffDocs } from '../engine/diffCommands';
-import { createDefaultTemplate } from '../template/defaultTemplate';
+import { createEditorialTemplate } from '../template/editorialTemplate';
 import { getTemplateById } from '../template';
 
 interface TemplateState {
@@ -31,12 +31,12 @@ interface TemplateState {
 }
 
 const initialHistory: HistoryLog = {};
-const FALLBACK_TEMPLATE_ID = 'tpl-landing-v1';
+const FALLBACK_TEMPLATE_ID = 'tpl-editorial-v1';
 
 export const useTemplateStore = create<TemplateState>()(
   persist(
     (set, get) => ({
-      doc: createDefaultTemplate(),
+      doc: createEditorialTemplate(),
       history: initialHistory,
       lastErrors: [],
       activeTemplateId: FALLBACK_TEMPLATE_ID,
@@ -227,7 +227,7 @@ export const useTemplateStore = create<TemplateState>()(
         if (data.doc !== undefined && !templateDocSchema.safeParse(data.doc).success) {
           return {
             ...current,
-            doc: createDefaultTemplate(),
+            doc: createEditorialTemplate(),
             history: initialHistory,
             activeTemplateId: FALLBACK_TEMPLATE_ID,
             lastErrors: [
