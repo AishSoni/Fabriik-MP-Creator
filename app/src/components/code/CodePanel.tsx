@@ -57,19 +57,19 @@ export function CodePanel() {
   };
 
   return (
-    <div className={`flex h-full flex-col ${darkMode ? 'bg-[#141416]' : 'bg-[#FDFBF7]'}`}>
-      <div className={`flex flex-wrap items-center gap-2 border-b px-3 py-2.5 ${darkMode ? 'border-white/10 bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white'}`}>
+    <div className={`flex h-full flex-col ${darkMode ? 'bg-surface-dark' : 'bg-paper'}`}>
+      <div className={`flex flex-wrap items-center gap-2 border-b px-3 py-2.5 ${darkMode ? 'border-white/10 bg-surface-dark-raised' : 'border-stone bg-surface'}`}>
         <div
           role="radiogroup"
           aria-label="Code surface scope"
-          className={`inline-flex items-center gap-1 rounded-full border p-1 ${darkMode ? 'border-white/10 bg-[#141416]' : 'border-[#E7E5E0] bg-[#F3EFE8]'}`}
+          className={`inline-flex items-center gap-1 rounded-full border p-1 ${darkMode ? 'border-white/10 bg-surface-dark' : 'border-stone bg-surface-muted'}`}
         >
           <button
             type="button"
             role="radio"
             aria-checked={effectiveMode === 'template'}
             onClick={() => setMode('template')}
-            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${effectiveMode === 'template' ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm' : 'bg-[#0E0E10] text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-[#0E0E10]'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${effectiveMode === 'template' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-ink'}`}
           >
             Whole template
           </button>
@@ -80,7 +80,7 @@ export function CodePanel() {
             disabled={selectedIds.length !== 1}
             onClick={() => setMode('element')}
             title={selectedIds.length !== 1 ? 'Select exactly one element first' : undefined}
-            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm' : 'bg-[#0E0E10] text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-[#0E0E10]'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-paper text-ink shadow-sm' : 'bg-ink text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-ink'}`}
           >
             Selected element
           </button>
@@ -93,10 +93,10 @@ export function CodePanel() {
           onClick={apply}
           disabled={!dirty}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className={`ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed ${dirty ? 'bg-[#7868E6] text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] hover:bg-[#6354D9]' : darkMode ? 'bg-white/10 text-[#6B6A68]' : 'bg-[#E7E5E0] text-[#9A9996]'}`}
+          className={`ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed ${dirty ? 'bg-accent text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] hover:bg-accent-strong' : darkMode ? 'bg-surface/10 text-[#6B6A68]' : 'bg-stone text-[#9A9996]'}`}
         >
           <span>Apply</span>
-          {dirty && <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[10px]">↗</span>}
+          {dirty && <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-surface/15 text-[10px]">↗</span>}
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export function CodePanel() {
       )}
 
       <div
-        className={`m-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border p-1.5 ${darkMode ? 'border-white/10 bg-white/[0.04]' : 'border-[#E7E5E0] bg-[#0E0E10]/[0.04]'}`}
+        className={`m-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border p-1.5 ${darkMode ? 'border-white/10 bg-surface/[0.04]' : 'border-stone bg-ink/[0.04]'}`}
         data-testid="code-editor"
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -125,7 +125,7 @@ export function CodePanel() {
         }}
       >
         <div
-          className={`flex min-h-0 flex-1 overflow-auto rounded-[14px] border ${darkMode ? 'border-white/10 bg-[#0E0E10]' : 'border-[#E7E5E0] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'}`}
+          className={`flex min-h-0 flex-1 overflow-auto rounded-[14px] border ${darkMode ? 'border-white/10 bg-ink' : 'border-stone bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'}`}
         >
           <CodeMirror
             value={displayed}
@@ -142,8 +142,8 @@ export function CodePanel() {
         </div>
       </div>
 
-      <p className={`border-t px-4 py-2.5 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-[#1E1E20] text-[#6B6A68]' : 'border-[#E7E5E0] bg-white text-[#9A9996]'}`}>
-        Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press <span className="font-medium text-[#7868E6]">Ctrl/Cmd+Enter</span> or click Apply.
+      <p className={`border-t px-4 py-2.5 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark-raised text-[#6B6A68]' : 'border-stone bg-surface text-[#9A9996]'}`}>
+        Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press <span className="font-medium text-accent">Ctrl/Cmd+Enter</span> or click Apply.
       </p>
     </div>
   );
