@@ -5,7 +5,13 @@ import type { TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
 import { commitCommand } from '../engine/commit';
 import { restoreRevision } from '../engine/restore';
-import { validateCommand, templateDocSchema, type CommandError } from '../engine/validate';
+import {
+  validateCommand,
+  templateDocSchema,
+  validateTemplateSemantics,
+  zodErrorToCommandErrors,
+  type CommandError,
+} from '../engine/validate';
 import { diffDocs } from '../engine/diffCommands';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { getTemplateById } from '../template';
@@ -19,6 +25,7 @@ interface TemplateState {
   dispatchMany: (commands: EditCommand[]) => CommandError[];
   restore: (entry: RevisionEntry) => void;
   replaceDoc: (doc: unknown) => CommandError[];
+  importDoc: (doc: unknown) => CommandError[] | null;
   loadTemplate: (templateId: string) => CommandError[] | null;
   resetDoc: () => void;
 }
@@ -128,6 +135,46 @@ export const useTemplateStore = create<TemplateState>()(
           set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
         }
         return result;
+      },
+
+      importDoc: (candidate) => {
+        const parsed = templateDocSchema.safeParse(candidate);
+        if (!parsed.success) {
+          const errors = zodErrorToCommandErrors(parsed.error);
+          set({ lastErrors: errors });
+          return errors;
+        }
+        const raw = parsed.data;
+        const normalized: TemplateDoc = {
+          templateId: raw.templateId,
+          templateName: raw.templateName,
+          revision: raw.revision,
+          rootId: raw.rootId,
+          elements: Object.fromEntries(
+            Object.entries(raw.elements).map(([id, element]) => [
+              id,
+              {
+                ...element,
+                content: {
+                  base: element.content.base ?? defaultContentFor(element.type),
+                  overrides: element.content.overrides,
+                },
+              },
+            ]),
+          ),
+        };
+        const semanticErrors = validateTemplateSemantics(normalized);
+        if (semanticErrors.length > 0) {
+          set({ lastErrors: semanticErrors });
+          return semanticErrors;
+        }
+        set({
+          doc: normalized,
+          history: initialHistory,
+          activeTemplateId: normalized.templateId,
+          lastErrors: [],
+        });
+        return null;
       },
 
       loadTemplate: (templateId) => {
