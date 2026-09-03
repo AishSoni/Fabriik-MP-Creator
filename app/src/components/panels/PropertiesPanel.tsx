@@ -4,6 +4,8 @@ import { useEditorStore } from '../../store/editorStore';
 import { resolveElement } from '../../engine/resolve';
 import type { StylePatch } from '../../types/template';
 import { useCommittingDraft } from './useCommittingDraft';
+import { cn } from '../../lib/cn';
+import { inputVariants, pillTriggerVariants } from '../../lib/variants';
 
 export function PropertiesPanel() {
   const doc = useTemplateStore((s) => s.doc);
@@ -92,11 +94,20 @@ export function PropertiesPanel() {
 
   if (selectedIds.length === 0) {
     return (
-      <div className={`p-6 ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+      <div className={cn(
+          "p-6",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>
         <div
-          className={`rounded-[20px] border border-dashed p-6 text-center ${darkMode ? 'border-white/10 bg-surface/[0.04]' : 'border-stone bg-surface'}`}
+          className={cn(
+          "rounded-[20px] border border-dashed p-6 text-center",
+          darkMode ? "border-white/10 bg-surface/[0.04]" : "border-stone bg-surface",
+        )}
         >
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>No selection</p>
+          <p className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>No selection</p>
           <p className="mt-2 text-sm leading-6">
             Select an element on the canvas or in Layers to edit its properties.
           </p>
@@ -107,24 +118,42 @@ export function PropertiesPanel() {
   }
 
   return (
-    <div className={`flex flex-col gap-5 p-4 text-sm animate-in ${darkMode ? 'text-stone' : 'text-ink'}`}>
-      <div className={`shell-outer rounded-[20px] border p-1.5 ${darkMode ? 'bg-surface/[0.04] border-white/10' : 'bg-ink/[0.04] border-[#0E0E10]/[0.06]'}`}>
-        <div className={`shell-inner flex items-start justify-between gap-3 rounded-[calc(20px-6px)] p-3.5 ${darkMode ? 'bg-surface-dark-raised shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : 'bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'}`}>
+    <div className={cn(
+          "flex flex-col gap-5 p-4 text-sm animate-in",
+          darkMode ? "text-stone" : "text-ink",
+        )}>
+      <div className={cn(
+          "shell-outer rounded-[20px] border p-1.5",
+          darkMode ? "bg-surface/[0.04] border-white/10" : "bg-ink/[0.04] border-ink/6",
+        )}>
+        <div className={cn(
+          "shell-inner flex items-start justify-between gap-3 rounded-[calc(20px-6px)] p-3.5",
+          darkMode ? "bg-surface-dark-raised shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" : "bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
+        )}>
           <div className="min-w-0">
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+            <p className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>
               {single ? single.type : 'Multiple selection'}
             </p>
             <p className="mt-1 truncate font-mono text-[13px] font-semibold leading-none tracking-tight">
               {single ? single.id : `${selectedIds.length} elements selected`}
             </p>
             {single && resolved && (
-              <p className={`mt-1.5 truncate text-xs ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+              <p className={cn(
+          "mt-1.5 truncate text-xs",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>
                 In <span className="font-medium text-accent">{doc.elements[single.parentId ?? '']?.id ?? 'root'}</span> · depth handled automatically
               </p>
             )}
           </div>
           <span
-            className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize tabular-nums ${darkMode ? 'bg-paper text-ink' : 'bg-ink text-white'}`}
+            className={cn(
+          "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize tabular-nums",
+          darkMode ? "bg-paper text-ink" : "bg-ink text-white",
+        )}
           >
             {editScope === 'all' ? 'All breakpoints' : editScope}
           </span>
@@ -133,7 +162,10 @@ export function PropertiesPanel() {
 
       {single && resolved && 'text' in resolved.content && (
         <label className="flex flex-col gap-2">
-          <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+          <span className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>
             Text{ textDraft.isDirty ? <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal text-white">● press Ctrl+Enter or blur to apply</span> : null }
           </span>
           <textarea
@@ -149,14 +181,17 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Write something honest."
-            className={`min-h-[84px] rounded-2xl border px-3.5 py-3 text-[14px] leading-6 transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-accent' : 'border-stone bg-surface text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-accent'}`}
+            className={cn('min-h-[84px]', inputVariants({ shape: 'rounded', dark: darkMode }))}
           />
         </label>
       )}
 
       {single && resolved && 'brand' in resolved.content && (
         <label className="flex flex-col gap-2">
-          <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Brand</span>
+          <span className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>Brand</span>
           <input
             aria-label="Brand text"
             value={brandDraft.value}
@@ -169,14 +204,17 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Fabriik"
-            className={`rounded-full border px-4 py-2.5 text-[14px] font-medium transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-accent' : 'border-stone bg-surface text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] focus:border-accent'}`}
+            className={cn(inputVariants({ shape: 'pill', dark: darkMode }), 'px-4 py-2.5 text-[14px] font-medium')}
           />
         </label>
       )}
 
       {single && resolved && 'brand' in resolved.content && (
         <label className="flex flex-col gap-2">
-          <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Links — one per line · label :: href</span>
+          <span className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>Links — one per line · label :: href</span>
           <textarea
             aria-label="Navigation links"
             rows={3}
@@ -190,15 +228,21 @@ export function PropertiesPanel() {
               }
             }}
             placeholder="Journal :: /journal"
-            className={`rounded-2xl border px-3.5 py-3 font-mono text-xs leading-5 transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-accent' : 'border-stone bg-surface text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-accent'}`}
+            className={inputVariants({ shape: 'code', dark: darkMode })}
           />
         </label>
       )}
 
       <fieldset
-        className={`flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-[20px] border p-4 ${darkMode ? 'border-white/10 bg-surface-dark-raised' : 'border-stone bg-surface shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]'}`}
+        className={cn(
+          "flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-[20px] border p-4",
+          darkMode ? "border-white/10 bg-surface-dark-raised" : "border-stone bg-surface shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]",
+        )}
       >
-        <legend className={`px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Style</legend>
+        <legend className={cn(
+          "px-2 text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>Style</legend>
         <div className="grid min-w-0 max-w-full gap-3 overflow-hidden">
           <NumberField label="Font size" value={resolved?.style.fontSize} onChange={(v) => setStyle({ fontSize: v })} />
           <NumberField label="Weight" value={resolved?.style.fontWeight} onChange={(v) => setStyle({ fontWeight: v })} step={100} min={100} max={900} />
@@ -212,8 +256,14 @@ export function PropertiesPanel() {
           <NumberField label="Radius" value={resolved?.style.borderRadius} onChange={(v) => setStyle({ borderRadius: v })} />
         </div>
 
-        <div className={`mt-1 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-full p-1 ${darkMode ? 'bg-surface-dark border border-white/10' : 'bg-surface-muted border border-stone'}`}>
-          <span className={`ml-2 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Align</span>
+        <div className={cn(
+          "mt-1 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-full p-1",
+          darkMode ? "bg-surface-dark border border-white/10" : "bg-surface-muted border border-stone",
+        )}>
+          <span className={cn(
+          "ml-2 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>Align</span>
           <div className="ml-auto flex min-w-0 shrink gap-1 overflow-hidden">
             {(['left', 'center', 'right'] as const).map((align) => (
               <button
@@ -221,15 +271,10 @@ export function PropertiesPanel() {
                 type="button"
                 aria-pressed={resolved?.style.textAlign === align}
                 onClick={() => setStyle({ textAlign: align })}
-                className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-all duration-200 active:scale-[0.98] ${
-                  resolved?.style.textAlign === align
-                    ? darkMode
-                      ? 'bg-paper text-ink shadow-sm'
-                      : 'bg-ink text-white shadow-sm'
-                    : darkMode
-                      ? 'text-[#9A9996] hover:bg-surface/10 hover:text-white'
-                      : 'text-[#6B6A68] hover:bg-surface hover:text-ink'
-                }`}
+                className={pillTriggerVariants({
+                  active: resolved?.style.textAlign === align,
+                  dark: darkMode,
+                })}
               >
                 {align}
               </button>
@@ -239,7 +284,10 @@ export function PropertiesPanel() {
       </fieldset>
 
       {selectedIds.length > 1 && (
-        <p className={`rounded-full px-3 py-2 text-center text-xs ${darkMode ? 'bg-accent/15 text-accent-ring border border-accent/20' : 'bg-accent-soft text-accent-strong border border-accent/15'}`}>
+        <p className={cn(
+          "rounded-full px-3 py-2 text-center text-xs",
+          darkMode ? "bg-accent/15 text-accent-ring border border-accent/20" : "bg-accent-soft text-accent-strong border border-accent/15",
+        )}>
           Style changes apply to all selected elements.
         </p>
       )}
@@ -275,7 +323,10 @@ function NumberField({
   };
   return (
     <label className="flex items-center gap-3">
-      <span className={`w-[88px] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>{label}</span>
+      <span className={cn(
+          "w-[88px] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>{label}</span>
       <input
         type="number"
         aria-label={label}
@@ -292,7 +343,7 @@ function NumberField({
           }
         }}
         placeholder="—"
-        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 text-sm font-medium tabular-nums transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-accent' : 'border-stone bg-paper text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-accent focus:bg-surface'}`}
+        className={cn('min-w-0 flex-1', inputVariants({ shape: 'pill', dark: darkMode }))}
       />
     </label>
   );
@@ -310,13 +361,19 @@ function ColorField({
   const darkMode = useEditorStore((s) => s.darkMode);
   return (
     <label className="flex items-center gap-3">
-      <span className={`w-[88px] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>{label}</span>
+      <span className={cn(
+          "w-[88px] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em]",
+          darkMode ? "text-muted-dark" : "text-muted",
+        )}>{label}</span>
       <input
         type="color"
         aria-label={label}
         value={value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#0E0E10'}
         onChange={(e) => onChange(e.target.value)}
-        className={`h-9 w-14 cursor-pointer rounded-full border p-1 shadow-sm ${darkMode ? 'border-white/10 bg-surface-dark' : 'border-stone bg-surface'}`}
+        className={cn(
+          "h-9 w-14 cursor-pointer rounded-full border p-1 shadow-sm",
+          darkMode ? "border-white/10 bg-surface-dark" : "border-stone bg-surface",
+        )}
       />
       <input
         type="text"
@@ -327,7 +384,7 @@ function ColorField({
           const v = e.target.value;
           if (v === '' || /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) onChange(v);
         }}
-        className={`min-w-0 flex-1 rounded-full border px-3.5 py-2 font-mono text-xs font-medium tabular-nums transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus:border-accent' : 'border-stone bg-paper text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-accent focus:bg-surface'}`}
+        className={cn('min-w-0 flex-1 font-mono text-xs', inputVariants({ shape: 'pill', dark: darkMode }))}
       />
     </label>
   );

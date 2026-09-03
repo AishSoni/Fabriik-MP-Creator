@@ -45,21 +45,21 @@ export function AiDemoPanel() {
   return (
     <div className={`flex flex-col gap-4 p-4 text-sm animate-in ${darkMode ? 'text-stone' : 'text-ink'}`}>
       <label className="flex flex-col gap-2">
-        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Instruction</span>
-        <span className={`text-xs leading-5 ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Describe the change for the selected elements. Deterministic, reviewable, reversible.</span>
+        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Instruction</span>
+        <span className={`text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Describe the change for the selected elements. Deterministic, reviewable, reversible.</span>
         <textarea
           aria-label="AI instruction"
           rows={3}
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           placeholder="e.g. Make the headline bolder and move the button below the copy"
-          className={`min-h-[84px] rounded-2xl border px-3.5 py-3 text-[14px] leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-[#9A9996] focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper focus:border-accent' : 'border-stone bg-surface text-ink focus:border-accent'}`}
+          className={`min-h-[84px] rounded-2xl border px-3.5 py-3 text-[14px] leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-200 placeholder:text-muted-dark focus:outline-none focus:ring-2 focus:ring-[#7868E6]/20 ${darkMode ? 'border-white/10 bg-surface-dark text-paper focus:border-accent' : 'border-stone bg-surface text-ink focus:border-accent'}`}
         />
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${darkMode ? 'border-white/10 bg-surface/[0.06] text-[#9A9996]' : 'border-stone bg-surface text-[#6B6A68] shadow-sm'}`}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${darkMode ? 'border-white/10 bg-surface/[0.06] text-muted-dark' : 'border-stone bg-surface text-muted shadow-sm'}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${selectedIds.length === 0 ? 'bg-[#E85D4A]' : 'bg-accent'}`} />
           {selectedIds.length === 0 ? 'No selection' : `${selectedIds.length} selected · ${selectedIds.join(', ')}`}
@@ -75,7 +75,7 @@ export function AiDemoPanel() {
         type="button"
         onClick={run}
         disabled={selectedIds.length === 0 || instruction.trim().length === 0}
-        className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-accent-strong hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-surface/10 disabled:text-[#6B6A68]' : 'disabled:bg-stone disabled:text-[#9A9996]'}`}
+        className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-accent-strong hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-surface/10 disabled:text-muted' : 'disabled:bg-stone disabled:text-muted-dark'}`}
       >
         <span>Run deterministic demo</span>
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
@@ -87,14 +87,14 @@ export function AiDemoPanel() {
       >
         <div className={`flex items-baseline justify-between gap-2 text-xs font-semibold ${darkMode ? 'text-stone' : 'text-ink'}`}>
           <span>Examples</span>
-          <span className={`text-[11px] font-normal ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>click to autofill</span>
+          <span className={`text-[11px] font-normal ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>click to autofill</span>
         </div>
         {selectedIds.length > 1 && (
           <p className="mt-1 text-[11px] font-medium text-accent">Multi-element picks shown first</p>
         )}
         {exampleGroups.map((group) => (
           <div key={group.category} className="mt-3">
-            <div className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>{group.label}</div>
+            <div className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>{group.label}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {group.items.map((example) => (
                 <button
@@ -114,8 +114,8 @@ export function AiDemoPanel() {
                         ? 'border-[#A99CFF] bg-accent/20 text-stone shadow-sm'
                         : 'border-accent bg-accent-soft text-accent-strong shadow-sm'
                       : darkMode
-                        ? 'border-white/10 bg-surface-dark text-[#9A9996] hover:border-accent/40 hover:text-stone'
-                        : 'border-stone bg-paper text-[#3A3938] hover:border-accent/40 hover:bg-surface hover:text-ink'
+                        ? 'border-white/10 bg-surface-dark text-muted-dark hover:border-accent/40 hover:text-stone'
+                        : 'border-stone bg-paper text-muted-strong hover:border-accent/40 hover:bg-surface hover:text-ink'
                   }`}
                 >
                   {example.description}
@@ -141,7 +141,7 @@ export function AiDemoPanel() {
           <div
             className={`flex flex-wrap items-center justify-between gap-2 rounded-full border px-3 py-2 text-xs ${darkMode ? 'border-white/10 bg-surface-dark' : 'border-stone bg-surface-muted'}`}
           >
-            <span data-testid="review-summary" className={`font-medium tabular-nums ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>
+            <span data-testid="review-summary" className={`font-medium tabular-nums ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>
               <span className="text-[#1DB188]">{accepted} accepted</span> · {rejected} rejected ·{' '}
               <span className="text-[#E85D4A]">{invalid} blocked</span> · {proposals.length - accepted - rejected - invalid} pending
             </span>
@@ -150,7 +150,7 @@ export function AiDemoPanel() {
                 type="button"
                 onClick={acceptAllPending}
                 disabled={!anyPending}
-                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-40 ${darkMode ? 'bg-[#1DB188] text-white hover:bg-[#15946f]' : 'bg-ink text-white hover:bg-[#1A1A1E]'}`}
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-40 ${darkMode ? 'bg-[#1DB188] text-white hover:bg-[#15946f]' : 'bg-ink text-white hover:bg-ink-soft'}`}
               >
                 Accept all
               </button>
@@ -158,7 +158,7 @@ export function AiDemoPanel() {
                 type="button"
                 onClick={rejectAllPending}
                 disabled={!anyPending}
-                className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-40 ${darkMode ? 'border-white/10 bg-surface/5 text-stone hover:bg-surface/10' : 'border-stone bg-surface text-[#3A3938] hover:bg-paper'}`}
+                className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-40 ${darkMode ? 'border-white/10 bg-surface/5 text-stone hover:bg-surface/10' : 'border-stone bg-surface text-muted-strong hover:bg-paper'}`}
               >
                 Reject all
               </button>
@@ -196,8 +196,8 @@ function ProposalCard({
       ? 'bg-[#1DB188] text-white'
       : proposal.status === 'rejected'
         ? darkMode
-          ? 'bg-surface/10 text-[#9A9996]'
-          : 'bg-stone text-[#6B6A68]'
+          ? 'bg-surface/10 text-muted-dark'
+          : 'bg-stone text-muted'
         : proposal.status === 'invalid'
           ? 'bg-[#E85D4A] text-white'
           : 'bg-accent text-white';
@@ -223,10 +223,10 @@ function ProposalCard({
           <span className={`truncate font-mono text-xs font-medium ${darkMode ? 'text-stone' : 'text-ink'}`}>{proposal.targetId}</span>
         </header>
 
-        <p className={`mt-2 text-xs leading-5 ${darkMode ? 'text-[#9A9996]' : 'text-[#3A3938]'}`}>{proposal.explanation}</p>
+        <p className={`mt-2 text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted-strong'}`}>{proposal.explanation}</p>
 
         <dl
-          className={`mt-3 space-y-1 rounded-2xl border p-3 font-mono text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark text-[#9A9996]' : 'border-stone bg-paper text-[#3A3938]'}`}
+          className={`mt-3 space-y-1 rounded-2xl border p-3 font-mono text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark text-muted-dark' : 'border-stone bg-paper text-muted-strong'}`}
           data-testid={`diff-${proposal.targetId}`}
         >
           {contentDiff(
@@ -248,7 +248,7 @@ function ProposalCard({
             type="button"
             onClick={onAccept}
             disabled={proposal.status !== 'pending'}
-            className={`cursor-pointer rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'bg-[#1DB188] text-white hover:bg-[#15946f]' : 'bg-ink text-white hover:bg-[#1A1A1E] disabled:bg-stone disabled:text-[#9A9996]'}`}
+            className={`cursor-pointer rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'bg-[#1DB188] text-white hover:bg-[#15946f]' : 'bg-ink text-white hover:bg-ink-soft disabled:bg-stone disabled:text-muted-dark'}`}
           >
             Accept
           </button>
@@ -256,7 +256,7 @@ function ProposalCard({
             type="button"
             onClick={onReject}
             disabled={proposal.status !== 'pending'}
-            className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'border-white/10 bg-surface/5 text-stone hover:bg-surface/10' : 'border-stone bg-surface text-[#3A3938] hover:bg-paper'}`}
+            className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'border-white/10 bg-surface/5 text-stone hover:bg-surface/10' : 'border-stone bg-surface text-muted-strong hover:bg-paper'}`}
           >
             Reject
           </button>
@@ -279,7 +279,7 @@ function contentDiff(
     const a = after?.[key];
     if (String(b) === String(a)) continue;
     nodes.push(
-      <div key={`c-${key}`} className={darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}>
+      <div key={`c-${key}`} className={darkMode ? 'text-muted-dark' : 'text-muted'}>
         <dt className={`inline font-bold ${darkMode ? 'text-stone' : 'text-ink'}`}>{key}: </dt>
         <dd className="inline">
           <span className={darkMode ? 'text-[#FF9B8F] line-through decoration-[#E85D4A]/40' : 'text-[#B42318] line-through decoration-[#E85D4A]/30'}>{String(truncate(b ?? '∅'))}</span>
@@ -305,7 +305,7 @@ function styleDiff(
     const a = after[key];
     if (b === a) continue;
     nodes.push(
-      <div key={`s-${key}`} className={darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}>
+      <div key={`s-${key}`} className={darkMode ? 'text-muted-dark' : 'text-muted'}>
         <dt className={`inline font-bold ${darkMode ? 'text-stone' : 'text-ink'}`}>{key}: </dt>
         <dd className="inline">
           <span className={darkMode ? 'text-[#FF9B8F] line-through decoration-[#E85D4A]/40' : 'text-[#B42318] line-through decoration-[#E85D4A]/30'}>{b === undefined ? 'unset' : String(b)}</span>
