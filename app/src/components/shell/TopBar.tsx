@@ -3,6 +3,7 @@ import { useTemplateStore } from '../../store/templateStore';
 import { TEMPLATES } from '../../template';
 import { getTemplateById } from '../../template';
 import { getChangedIds } from '../compare/CompareView';
+import { FileMenu } from './FileMenu';
 import type { Scope, Viewport } from '../../types/viewport';
 
 const VIEWPORT_LABELS: { id: Viewport; label: string; width: number }[] = [
@@ -48,7 +49,7 @@ export function TopBar() {
     <header
       className={`flex shrink-0 flex-wrap items-center gap-4 border-b px-4 py-2 ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'}`}
     >
-      <span className={`text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>Fabriik</span>
+      <FileMenu />
 
       <label className="flex items-center gap-2 text-sm">
         <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Template</span>
@@ -58,6 +59,11 @@ export function TopBar() {
           onChange={(e) => handleTemplateSwitch(e.target.value)}
           className={`max-w-52 rounded border px-2 py-1 focus:border-blue-500 focus:outline-none ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'}`}
         >
+          {!TEMPLATES.some((definition) => definition.id === activeTemplateId) && (
+            <option value={activeTemplateId} title="Imported template">
+              {`${doc.templateName} (imported)`}
+            </option>
+          )}
           {TEMPLATES.map((definition) => (
             <option key={definition.id} value={definition.id} title={definition.description}>
               {definition.name}
