@@ -57,15 +57,19 @@ export function CodePanel() {
   };
 
   return (
-    <div className={`flex h-full flex-col ${darkMode ? 'bg-slate-900' : 'bg-white'}`}>
-      <div className={`flex items-center gap-2 border-b px-3 py-2 text-xs ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}>
-        <div role="radiogroup" aria-label="Code surface scope" className="flex gap-1">
+    <div className={`flex h-full flex-col ${darkMode ? 'bg-[#141416]' : 'bg-[#FDFBF7]'}`}>
+      <div className={`flex flex-wrap items-center gap-2 border-b px-3 py-2.5 ${darkMode ? 'border-white/10 bg-[#1E1E20]' : 'border-[#E7E5E0] bg-white'}`}>
+        <div
+          role="radiogroup"
+          aria-label="Code surface scope"
+          className={`inline-flex items-center gap-1 rounded-full border p-1 ${darkMode ? 'border-white/10 bg-[#141416]' : 'border-[#E7E5E0] bg-[#F3EFE8]'}`}
+        >
           <button
             type="button"
             role="radio"
             aria-checked={effectiveMode === 'template'}
             onClick={() => setMode('template')}
-            className={`cursor-pointer rounded px-2 py-1 font-medium ${effectiveMode === 'template' ? (darkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700') : darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${effectiveMode === 'template' ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm' : 'bg-[#0E0E10] text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-[#0E0E10]'}`}
           >
             Whole template
           </button>
@@ -76,35 +80,42 @@ export function CodePanel() {
             disabled={selectedIds.length !== 1}
             onClick={() => setMode('element')}
             title={selectedIds.length !== 1 ? 'Select exactly one element first' : undefined}
-            className={`cursor-pointer rounded px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700') : darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${effectiveMode === 'element' ? (darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] shadow-sm' : 'bg-[#0E0E10] text-white shadow-sm') : darkMode ? 'text-[#9A9996] hover:text-white' : 'text-[#6B6A68] hover:text-[#0E0E10]'}`}
           >
             Selected element
           </button>
         </div>
+        <span className={`hidden text-[11px] font-medium tabular-nums sm:inline-flex ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>
+          rev {doc.revision} · {Object.keys(doc.elements).length} nodes
+        </span>
         <button
           type="button"
           onClick={apply}
           disabled={!dirty}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className={`ml-auto cursor-pointer rounded-md px-3 py-1 text-sm font-semibold ${dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-400'}`}
+          className={`ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed ${dirty ? 'bg-[#7868E6] text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] hover:bg-[#6354D9]' : darkMode ? 'bg-white/10 text-[#6B6A68]' : 'bg-[#E7E5E0] text-[#9A9996]'}`}
         >
-          Apply
+          <span>Apply</span>
+          {dirty && <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[10px]">↗</span>}
         </button>
       </div>
 
       {(localError || lastErrors.length > 0) && (
-        <div role="alert" className={`border-b px-3 py-2 text-xs ${darkMode ? 'border-red-900 bg-red-900/20 text-red-300' : 'border-red-200 bg-red-50 text-red-700'}`}>
-          {localError && <p className="font-mono">{localError}</p>}
+        <div
+          role="alert"
+          className={`mx-3 mt-3 rounded-2xl border px-4 py-3 text-xs leading-5 ${darkMode ? 'border-[#E85D4A]/20 bg-[#E85D4A]/10 text-[#FF9B8F]' : 'border-[#E85D4A]/20 bg-[#FFEDEA] text-[#B42318]'}`}
+        >
+          {localError && <p className="font-mono font-medium">{localError}</p>}
           {lastErrors.slice(0, 3).map((error, i) => (
             <p key={i} className="font-mono">
-              {error.code}: {error.message}
+              <span className="font-bold">{error.code}:</span> {error.message}
             </p>
           ))}
         </div>
       )}
 
       <div
-        className="min-h-0 flex-1 overflow-auto"
+        className={`m-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border p-1.5 ${darkMode ? 'border-white/10 bg-white/[0.04]' : 'border-[#E7E5E0] bg-[#0E0E10]/[0.04]'}`}
         data-testid="code-editor"
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -113,21 +124,26 @@ export function CodePanel() {
           }
         }}
       >
-        <CodeMirror
-          value={displayed}
-          height="100%"
-          theme={darkMode ? 'dark' : 'light'}
-          extensions={[json()]}
-          onChange={(value) => {
-            setText(value);
-            setDirty(value !== currentJson);
-          }}
-          basicSetup={{ foldGutter: true }}
-        />
+        <div
+          className={`flex min-h-0 flex-1 overflow-auto rounded-[14px] border ${darkMode ? 'border-white/10 bg-[#0E0E10]' : 'border-[#E7E5E0] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'}`}
+        >
+          <CodeMirror
+            value={displayed}
+            height="100%"
+            theme={darkMode ? 'dark' : 'light'}
+            extensions={[json()]}
+            onChange={(value) => {
+              setText(value);
+              setDirty(value !== currentJson);
+            }}
+            basicSetup={{ foldGutter: true }}
+            className="flex-1 [&_.cm-editor]:rounded-[14px] [&_.cm-scroller]:rounded-[14px]"
+          />
+        </div>
       </div>
 
-      <p className={`border-t px-3 py-1.5 text-[11px] ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
-        Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press Ctrl/Cmd+Enter or click Apply.
+      <p className={`border-t px-4 py-2.5 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-[#1E1E20] text-[#6B6A68]' : 'border-[#E7E5E0] bg-white text-[#9A9996]'}`}>
+        Edits apply through the same validated command pipeline as the canvas. Invalid code is rejected and the last valid state is preserved. Press <span className="font-medium text-[#7868E6]">Ctrl/Cmd+Enter</span> or click Apply.
       </p>
     </div>
   );

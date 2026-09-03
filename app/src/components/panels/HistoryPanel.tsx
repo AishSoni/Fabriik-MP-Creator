@@ -3,18 +3,11 @@ import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import type { RevisionEntry } from '../../types/commands';
 
-const SOURCE_STYLES: Record<string, string> = {
-  canvas: 'bg-slate-100 text-slate-700',
-  code: 'bg-amber-100 text-amber-700',
-  ai: 'bg-violet-100 text-violet-700',
-  restore: 'bg-emerald-100 text-emerald-700',
-};
-
-const SOURCE_STYLES_DARK: Record<string, string> = {
-  canvas: 'bg-slate-700 text-slate-300',
-  code: 'bg-amber-900/40 text-amber-300',
-  ai: 'bg-violet-900/40 text-violet-300',
-  restore: 'bg-emerald-900/40 text-emerald-300',
+const SOURCE_BADGE: Record<string, string> = {
+  canvas: 'bg-[#E7E5E0] text-[#3A3938] dark:bg-white/10 dark:text-[#9A9996]',
+  code: 'bg-[#FCE8C3] text-[#8A5A00] dark:bg-amber-500/15 dark:text-amber-200',
+  ai: 'bg-[#ECE9FF] text-[#6354D9] dark:bg-[#7868E6]/20 dark:text-[#A99CFF]',
+  restore: 'bg-[#D1F0E6] text-[#0E7A5B] dark:bg-emerald-500/15 dark:text-emerald-200',
 };
 
 export function HistoryPanel() {
@@ -32,52 +25,69 @@ export function HistoryPanel() {
     return all.filter((entry) => selectedIds.includes(entry.elementId));
   }, [history, filterSelected, selectedIds]);
 
-  const sourceStyles = darkMode ? SOURCE_STYLES_DARK : SOURCE_STYLES;
-
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className={`flex shrink-0 items-center justify-between border-b px-3 py-2 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-        <span className={`text-xs font-semibold uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Revisions</span>
-        <label className={`flex items-center gap-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+      <div
+        className={`flex shrink-0 items-center justify-between gap-3 border-b px-3.5 py-3 ${darkMode ? 'border-white/10 bg-[#141416]' : 'border-[#E7E5E0] bg-[#FDFBF7]'}`}
+      >
+        <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-[#9A9996]' : 'text-[#6B6A68]'}`}>Revisions</span>
+        <label
+          className={`flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${filterSelected ? (darkMode ? 'border-[#7868E6] bg-[#7868E6] text-white' : 'border-[#7868E6] bg-[#7868E6] text-white') : darkMode ? 'border-white/10 bg-white/5 text-[#9A9996] hover:bg-white/10' : 'border-[#E7E5E0] bg-white text-[#6B6A68] hover:bg-[#FDFBF7]'} ${selectedIds.length === 0 ? 'opacity-50' : ''}`}
+          title={selectedIds.length === 0 ? 'Select an element to filter' : undefined}
+        >
           <input
             type="checkbox"
             checked={filterSelected}
             disabled={selectedIds.length === 0}
             onChange={(e) => setFilterSelected(e.target.checked)}
-            className={darkMode ? 'accent-blue-500' : ''}
+            className="sr-only"
           />
+          <span className={`h-2 w-2 rounded-full ${filterSelected ? 'bg-white' : 'bg-[#9A9996]'}`} />
           Selected only
         </label>
       </div>
       {entries.length === 0 && (
-        <p className={`p-4 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>No revisions yet. Edits appear here and can be restored per element.</p>
+        <div className="p-6">
+          <div
+            className={`rounded-[20px] border border-dashed p-6 text-center text-sm leading-6 ${darkMode ? 'border-white/10 bg-white/[0.04] text-[#9A9996]' : 'border-[#E7E5E0] bg-white text-[#6B6A68]'}`}
+          >
+            No revisions yet. Edits appear here and can be restored per element.
+          </div>
+        </div>
       )}
-      <ul className={`min-h-0 flex-1 divide-y overflow-y-auto overscroll-contain ${darkMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
+      <ul className={`min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3 ${darkMode ? 'bg-[#141416]' : 'bg-[#FDFBF7]'}`}>
         {entries.map((entry) => (
-          <li key={entry.id} className="flex items-start gap-2 px-3 py-2 text-sm">
+          <li
+            key={entry.id}
+            className={`group flex items-start gap-3 rounded-[18px] border p-3 transition-all duration-200 ${darkMode ? 'border-white/10 bg-[#1E1E20] hover:border-white/15 hover:bg-[#262629]' : 'border-[#E7E5E0] bg-white shadow-[0_1px_2px_rgba(22,22,24,0.06)] hover:shadow-[0_4px_16px_rgba(22,22,24,0.08)] hover:border-[#D9D6D1]'}`}
+          >
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${sourceStyles[entry.source] ?? ''}`}>
-                  {entry.source}
-                </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${SOURCE_BADGE[entry.source] ?? 'bg-[#E7E5E0] text-[#6B6A68]'}`}>{entry.source}</span>
                 <button
                   type="button"
                   onClick={() => selectOnly(entry.elementId)}
-                  className={`cursor-pointer truncate font-mono text-xs hover:underline ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}
+                  className={`cursor-pointer truncate rounded-full px-2 py-1 font-mono text-xs font-medium transition-colors ${darkMode ? 'bg-white/5 text-[#A99CFF] hover:bg-[#7868E6] hover:text-white' : 'bg-[#F3EFE8] text-[#6354D9] hover:bg-[#0E0E10] hover:text-white'}`}
                   title="Select this element"
                 >
                   {entry.elementId}
                 </button>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${darkMode ? 'bg-white/5 text-[#9A9996]' : 'bg-[#FDFBF7] text-[#6B6A68] border border-[#E7E5E0]'}`}>
+                  rev {entry.baseRevision}
+                </span>
               </div>
-              <div className={`mt-0.5 truncate text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                {entry.label} · scope: <span className="font-medium">{entry.scope}</span> · rev {entry.baseRevision}
+              <div className={`mt-2 truncate text-xs leading-5 ${darkMode ? 'text-[#9A9996]' : 'text-[#3A3938]'}`}>
+                <span className="font-medium">{entry.label}</span>
+                <span className="mx-1.5 opacity-40">·</span>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${darkMode ? 'bg-white/5 text-[#E7E5E0]' : 'bg-[#0E0E10] text-white'}`}>{entry.scope}</span>
               </div>
+              <div className={`mt-1 text-[11px] tabular-nums ${darkMode ? 'text-[#6B6A68]' : 'text-[#9A9996]'}`}>{new Date(entry.timestamp).toLocaleString()}</div>
             </div>
             <button
               type="button"
               onClick={() => restore(entry)}
               aria-label={`Restore ${entry.elementId} ${entry.label}`}
-              className={`cursor-pointer rounded border px-2 py-1 text-xs font-medium ${darkMode ? 'border-slate-600 text-slate-300 hover:border-blue-500 hover:text-blue-400' : 'border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-700'}`}
+              className={`shrink-0 cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${darkMode ? 'bg-[#FDFBF7] text-[#0E0E10] hover:bg-white' : 'bg-[#0E0E10] text-white hover:bg-[#1A1A1E] shadow-sm'}`}
             >
               Restore
             </button>
