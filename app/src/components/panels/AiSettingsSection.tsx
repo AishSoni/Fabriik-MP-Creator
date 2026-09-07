@@ -210,29 +210,33 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
             </label>
           </div>
 
-          <label className="flex flex-col gap-1">
-            <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>API key</span>
-            <input
-              aria-label="API key"
-              type="password"
-              autoComplete="off"
-              value={draft}
-              placeholder={savedKey ? `Saved ${maskKey(savedKey)}` : 'Paste your API key'}
-              onChange={(e) => setDraft(e.target.value)}
-              className={inputClass}
-            />
-          </label>
+          {provider.requiresKey && (
+            <label className="flex flex-col gap-1">
+              <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>API key</span>
+              <input
+                aria-label="API key"
+                type="password"
+                autoComplete="off"
+                value={draft}
+                placeholder={savedKey ? `Saved ${maskKey(savedKey)}` : 'Paste your API key'}
+                onChange={(e) => setDraft(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={draft.trim().length === 0}
-              onClick={() => void saveKey()}
-              className={`cursor-pointer rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'bg-stone hover:bg-stone' : ''}`}
-            >
-              Save key
-            </button>
-            {savedKey && (
+            {provider.requiresKey && (
+              <button
+                type="button"
+                disabled={draft.trim().length === 0}
+                onClick={() => void saveKey()}
+                className={`cursor-pointer rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-40 ${darkMode ? 'bg-stone hover:bg-stone' : ''}`}
+              >
+                Save key
+              </button>
+            )}
+            {provider.requiresKey && savedKey && (
               <button
                 type="button"
                 onClick={() => void store().forgetKey(effective)}
@@ -251,20 +255,28 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
             </button>
           </div>
 
-          <label className={`flex items-center gap-2 text-xs ${darkMode ? 'text-stone' : 'text-ink'}`}>
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => {
-                setRemember(e.target.checked);
-                if (e.target.checked) void chooseRemember();
-                else setRememberHint(null);
-              }}
-              className="h-4 w-4 cursor-pointer accent-[#7868E6]"
-            />
-            Remember this key
-          </label>
-          {rememberHint && <p className={`text-[11px] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>{rememberHint}</p>}
+          {provider.requiresKey ? (
+            <>
+              <label className={`flex items-center gap-2 text-xs ${darkMode ? 'text-stone' : 'text-ink'}`}>
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => {
+                    setRemember(e.target.checked);
+                    if (e.target.checked) void chooseRemember();
+                    else setRememberHint(null);
+                  }}
+                  className="h-4 w-4 cursor-pointer accent-[#7868E6]"
+                />
+                Remember this key
+              </label>
+              {rememberHint && <p className={`text-[11px] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>{rememberHint}</p>}
+            </>
+          ) : (
+            <p className={`text-[11px] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>
+              No API key needed. This provider runs locally on your machine.
+            </p>
+          )}
 
           {vaultUi === 'create' && (
             <div className={`rounded-2xl border p-3 ${darkMode ? 'border-white/10 bg-surface-dark' : 'border-stone bg-paper'}`}>

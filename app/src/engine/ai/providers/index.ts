@@ -1,10 +1,18 @@
 import { geminiProvider } from './gemini';
+import { openAiProvider } from './openai';
+import { openRouterProvider } from './openrouter';
+import { anthropicProvider } from './anthropic';
+import { ollamaProvider } from './ollama';
 import type { LlmProvider, ProviderId } from './types';
 
 export const DEFAULT_PROVIDER_ID: ProviderId = 'gemini';
 
 const registry: Partial<Record<ProviderId, LlmProvider>> = {
   gemini: geminiProvider,
+  openai: openAiProvider,
+  openrouter: openRouterProvider,
+  anthropic: anthropicProvider,
+  ollama: ollamaProvider,
 };
 
 const overrides = new Map<ProviderId, LlmProvider>();

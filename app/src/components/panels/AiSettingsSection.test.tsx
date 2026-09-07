@@ -260,6 +260,20 @@ describe('AiSettingsSection', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Connection failed: API key not valid');
   });
 
+  it('local providers hide key entry and stay testable without a key', async () => {
+    const user = userEvent.setup();
+    useAiSettingsStore.setState({ mode: 'byok' });
+    render(<AiSettingsSection darkMode={false} />);
+
+    await user.selectOptions(screen.getByLabelText('AI provider'), 'ollama');
+    expect(useAiSettingsStore.getState().providerId).toBe('ollama');
+    expect(useAiSettingsStore.getState().modelId).toBe('llama3.2');
+    expect(screen.queryByLabelText('API key')).toBeNull();
+    expect(screen.queryByLabelText('Remember this key')).toBeNull();
+    expect(screen.getByText(/no API key needed/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Test connection' })).toBeEnabled();
+  });
+
   it('renders the privacy caption and spend-limit hints', () => {
     useAiSettingsStore.setState({ mode: 'byok' });
     const { container } = render(<AiSettingsSection darkMode={false} />);
