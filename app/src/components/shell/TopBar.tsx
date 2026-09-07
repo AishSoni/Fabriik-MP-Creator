@@ -27,6 +27,10 @@ export function TopBar() {
   const setCompareOpen = useEditorStore((s) => s.setCompareOpen);
   const setToastMessage = useEditorStore((s) => s.setToastMessage);
   const resetDoc = useTemplateStore((s) => s.resetDoc);
+  const undo = useTemplateStore((s) => s.undo);
+  const redo = useTemplateStore((s) => s.redo);
+  const canUndo = useTemplateStore((s) => s.past.length > 0);
+  const canRedo = useTemplateStore((s) => s.future.length > 0);
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
   const doc = useTemplateStore((s) => s.doc);
@@ -382,6 +386,46 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={undo}
+          disabled={!canUndo}
+          aria-label="Undo last change"
+          title="Undo (Ctrl+Z / Cmd+Z)"
+          aria-keyshortcuts="Control+z Meta+z"
+          data-testid="undo-button"
+          className={cn(
+            'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+            darkMode
+              ? 'border-ink-muted bg-surface-dark-raised text-paper hover:bg-surface-dark-muted'
+              : 'border-stone bg-surface text-ink hover:bg-paper',
+          )}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path d="M5 3L2.5 5.5 5 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 5.5h5a3 3 0 0 1 0 6H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={redo}
+          disabled={!canRedo}
+          aria-label="Redo last undone change"
+          title="Redo (Ctrl+R / Cmd+R)"
+          aria-keyshortcuts="Control+r Meta+r"
+          data-testid="redo-button"
+          className={cn(
+            'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+            darkMode
+              ? 'border-ink-muted bg-surface-dark-raised text-paper hover:bg-surface-dark-muted'
+              : 'border-stone bg-surface text-ink hover:bg-paper',
+          )}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path d="M9 3l2.5 2.5L9 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M11 5.5H6a3 3 0 0 0 0 6h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={() => {

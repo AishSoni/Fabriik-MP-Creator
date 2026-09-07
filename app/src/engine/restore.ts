@@ -193,3 +193,26 @@ export function restoreRevision(doc: TemplateDoc, entry: RevisionEntry): Restore
   return { doc: nextDoc, revision: restoreEntry };
 }
 
+/**
+ * Invert a group of revision entries (e.g. everything one undo step created)
+ * by restoring them in reverse order, threading the document through.
+ *
+ * Each successful inversion appends a brand-new revision entry — history is
+ * append-only and never shrinks. Entries that can no longer be inverted
+ * (missing element) are skipped, leaving the rest applied.
+ */
+export function invertRevisionGroup(
+  doc: TemplateDoc,
+  entries: RevisionEntry[],
+): { doc: TemplateDoc; revisions: RevisionEntry[] } {
+  let current = doc;
+  const revisions: RevisionEntry[] = [];
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    const result = restoreRevision(current, entries[i]);
+    if (!result.revision) continue;
+    current = result.doc;
+    revisions.push(result.revision);
+  }
+  return { doc: current, revisions };
+}
+

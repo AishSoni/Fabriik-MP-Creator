@@ -12,6 +12,7 @@ import { Toast } from './Toast';
 import { CompareView } from '../compare/CompareView';
 import { cn } from '../../lib/cn';
 import { editorTabVariants } from '../../lib/variants';
+import { useUndoRedoKeys } from '../../lib/useUndoRedoKeys';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
   { id: 'properties', label: 'Properties' },
@@ -26,6 +27,7 @@ export function EditorShell() {
   const setRightPanelTab = useEditorStore((s) => s.setRightPanelTab);
   const selectionKey = useEditorStore((s) => s.selectedIds.join('|'));
   const darkMode = useEditorStore((s) => s.darkMode);
+  useUndoRedoKeys();
 
   return (
     <div

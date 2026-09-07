@@ -3,8 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { EditCommand, HistoryLog, RevisionEntry } from '../types/commands';
 import type { TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
-import { commitCommand } from '../engine/commit';
-import { restoreRevision } from '../engine/restore';
+import { commitCommand, appendRevisions } from '../engine/commit';
+import { restoreRevision, invertRevisionGroup } from '../engine/restore';
 import {
   validateCommand,
   templateDocSchema,
@@ -16,14 +16,29 @@ import { diffDocs } from '../engine/diffCommands';
 import { createEditorialTemplate } from '../template/editorialTemplate';
 import { getTemplateById } from '../template';
 
+/**
+ * One atomic undo step. `doc` is the document before the step (fallback for
+ * revision-less steps such as a template rename); `revisions` are the history
+ * entries the step appended. Undo/redo invert those entries, so the history
+ * log itself is append-only and never shrinks.
+ */
+interface UndoStep {
+  doc: TemplateDoc;
+  revisions: RevisionEntry[];
+}
+
 interface TemplateState {
   doc: TemplateDoc;
   history: HistoryLog;
+  past: UndoStep[];
+  future: UndoStep[];
   lastErrors: CommandError[];
   activeTemplateId: string;
   dispatch: (command: EditCommand) => CommandError[];
   dispatchMany: (commands: EditCommand[]) => CommandError[];
   restore: (entry: RevisionEntry) => void;
+  undo: () => void;
+  redo: () => void;
   replaceDoc: (doc: unknown) => CommandError[];
   importDoc: (doc: unknown) => CommandError[] | null;
   loadTemplate: (templateId: string) => CommandError[] | null;
@@ -33,29 +48,51 @@ interface TemplateState {
 const initialHistory: HistoryLog = {};
 const FALLBACK_TEMPLATE_ID = 'tpl-editorial-v1';
 
+/** Maximum number of undo steps kept in memory and persisted. */
+export const MAX_UNDO_STEPS = 50;
+
+function pushSnapshot(
+  past: UndoStep[],
+  snapshot: UndoStep,
+): UndoStep[] {
+  return [...past, snapshot].slice(-MAX_UNDO_STEPS);
+}
+
 export const useTemplateStore = create<TemplateState>()(
   persist(
     (set, get) => ({
       doc: createEditorialTemplate(),
       history: initialHistory,
+      past: [],
+      future: [],
       lastErrors: [],
       activeTemplateId: FALLBACK_TEMPLATE_ID,
 
       dispatch: (command) => {
-        const { doc, history } = get();
+        const { doc, history, past } = get();
         const errors = validateCommand(doc, command);
         if (errors.length > 0) {
           set({ lastErrors: errors });
           return errors;
         }
         const result = commitCommand(doc, history, command);
-        set({ doc: result.doc, history: result.history, lastErrors: [] });
+        set({
+          doc: result.doc,
+          history: result.history,
+          past: pushSnapshot(past, { doc, revisions: result.revisions }),
+          future: [],
+          lastErrors: [],
+        });
         return [];
       },
 
       dispatchMany: (commands) => {
-        let currentDoc = get().doc;
-        let currentHistory = get().history;
+        if (commands.length === 0) return [];
+        const { doc, history, past } = get();
+        const snapshotDoc = doc;
+        const allRevisions: RevisionEntry[] = [];
+        let currentDoc = doc;
+        let currentHistory = history;
         for (const rawCommand of commands) {
           const command = { ...rawCommand, baseRevision: currentDoc.revision } as EditCommand;
           const errors = validateCommand(currentDoc, command);
@@ -66,13 +103,20 @@ export const useTemplateStore = create<TemplateState>()(
           const result = commitCommand(currentDoc, currentHistory, command);
           currentDoc = result.doc;
           currentHistory = result.history;
+          allRevisions.push(...result.revisions);
         }
-        set({ doc: currentDoc, history: currentHistory, lastErrors: [] });
+        set({
+          doc: currentDoc,
+          history: currentHistory,
+          past: pushSnapshot(past, { doc: snapshotDoc, revisions: allRevisions }),
+          future: [],
+          lastErrors: [],
+        });
         return [];
       },
 
       restore: (entry) => {
-        const { doc, history } = get();
+        const { doc, history, past } = get();
         const result = restoreRevision(doc, entry);
         if (!result.revision) {
           set({
@@ -87,7 +131,58 @@ export const useTemplateStore = create<TemplateState>()(
         }
         set({
           doc: result.doc,
-          history: { ...history, [entry.elementId]: [...(history[entry.elementId] ?? []), result.revision] },
+          history: appendRevisions(history, [result.revision]),
+          past: pushSnapshot(past, { doc, revisions: [result.revision] }),
+          future: [],
+          lastErrors: [],
+        });
+      },
+
+      undo: () => {
+        const { doc, history, past, future } = get();
+        if (past.length === 0) return;
+        const step = past[past.length - 1];
+        const remaining = past.slice(0, -1);
+        if (step.revisions.length === 0) {
+          // Revision-less step (e.g. template rename): fall back to the
+          // snapshot without touching the append-only history.
+          set({
+            doc: { ...step.doc, revision: doc.revision + 1 },
+            past: remaining,
+            future: [{ doc, revisions: [] }, ...future].slice(-MAX_UNDO_STEPS),
+            lastErrors: [],
+          });
+          return;
+        }
+        const result = invertRevisionGroup(doc, step.revisions);
+        set({
+          doc: result.doc,
+          history: appendRevisions(history, result.revisions),
+          past: remaining,
+          future: [{ doc, revisions: result.revisions }, ...future].slice(-MAX_UNDO_STEPS),
+          lastErrors: [],
+        });
+      },
+
+      redo: () => {
+        const { doc, history, past, future } = get();
+        if (future.length === 0) return;
+        const [step, ...rest] = future;
+        if (step.revisions.length === 0) {
+          set({
+            doc: { ...step.doc, revision: doc.revision + 1 },
+            past: pushSnapshot(past, { doc, revisions: [] }),
+            future: rest,
+            lastErrors: [],
+          });
+          return;
+        }
+        const result = invertRevisionGroup(doc, step.revisions);
+        set({
+          doc: result.doc,
+          history: appendRevisions(history, result.revisions),
+          past: pushSnapshot(past, { doc, revisions: result.revisions }),
+          future: rest,
           lastErrors: [],
         });
       },
@@ -132,7 +227,18 @@ export const useTemplateStore = create<TemplateState>()(
         }
         const result = get().dispatchMany(commands);
         if (result.length === 0 && normalized.templateName !== get().doc.templateName) {
-          set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
+          if (commands.length === 0) {
+            // Name-only change with no diff commands: still a single undoable step.
+            const { doc, past } = get();
+            set({
+              doc: { ...doc, templateName: normalized.templateName },
+              past: pushSnapshot(past, { doc, revisions: [] }),
+              future: [],
+            });
+          } else {
+            // Fold the rename into the same undo step pushed by dispatchMany.
+            set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
+          }
         }
         return result;
       },
@@ -170,7 +276,9 @@ export const useTemplateStore = create<TemplateState>()(
         }
         set({
           doc: normalized,
-          history: initialHistory,
+          history: {},
+          past: [],
+          future: [],
           activeTemplateId: normalized.templateId,
           lastErrors: [],
         });
@@ -191,7 +299,9 @@ export const useTemplateStore = create<TemplateState>()(
         }
         set({
           doc: definition.create(),
-          history: initialHistory,
+          history: {},
+          past: [],
+          future: [],
           activeTemplateId: definition.id,
           lastErrors: [],
         });
@@ -201,24 +311,38 @@ export const useTemplateStore = create<TemplateState>()(
       resetDoc: () => {
         set({
           doc: (getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!).create(),
-          history: initialHistory,
+          history: {},
+          past: [],
+          future: [],
           lastErrors: [],
         });
       },
     }),
     {
       name: 'fabriik-template-v1',
-      version: 2,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         doc: state.doc,
         history: state.history,
+        past: state.past,
+        future: state.future,
         activeTemplateId: state.activeTemplateId,
       }),
       migrate: (persisted, version) => {
-        const data = persisted as { doc?: TemplateDoc; activeTemplateId?: string } & Record<string, unknown>;
+        const data = persisted as {
+          doc?: TemplateDoc;
+          activeTemplateId?: string;
+          past?: UndoStep[];
+          future?: UndoStep[];
+        } & Record<string, unknown>;
         if ((version ?? 1) < 2 && !data.activeTemplateId) {
           data.activeTemplateId = data.doc?.templateId ?? FALLBACK_TEMPLATE_ID;
+        }
+        if ((version ?? 1) < 4) {
+          // Undo stack shape changed (append-only revision groups); drop stale stacks.
+          data.past = [];
+          data.future = [];
         }
         return data as typeof persisted;
       },
@@ -229,6 +353,8 @@ export const useTemplateStore = create<TemplateState>()(
             ...current,
             doc: createEditorialTemplate(),
             history: initialHistory,
+            past: [],
+            future: [],
             activeTemplateId: FALLBACK_TEMPLATE_ID,
             lastErrors: [
               {
