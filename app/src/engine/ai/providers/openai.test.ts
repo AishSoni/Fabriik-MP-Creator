@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AI_OUTPUT_JSON_SCHEMA } from '../outputSchema';
-import { OPENAI_ENDPOINT, createOpenAiProvider, openAiProvider } from './openai';
+import { OPENAI_ENDPOINT, OPENAI_MODELS_ENDPOINT, createOpenAiProvider, openAiProvider } from './openai';
 import { ProviderError } from './types';
 
 const okResponse = (body: unknown, status = 200) =>
@@ -141,6 +141,40 @@ describe('OpenAI provider (spec ai-byok §6)', () => {
     await expect(
       provider.complete({ model: 'm', apiKey: null, system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
     ).rejects.toMatchObject({ code: 'auth' });
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('OpenAI listModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('queries the models endpoint with a bearer header and maps data ids', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { data: [{ id: 'gpt-4o-mini' }, { id: 'gpt-4o' }, { id: 42 }, {}] });
+    const provider = createOpenAiProvider(fetchImpl);
+    const models = await provider.listModels({ apiKey: 'test-key' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(OPENAI_MODELS_ENDPOINT);
+    expect(calls[0].init.method).toBe('GET');
+    expect(calls[0].url).not.toContain('test-key');
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer test-key');
+    expect(models).toEqual(['gpt-4o-mini', 'gpt-4o']);
+  });
+
+  it('maps 401 to auth and fetch rejections to network', async () => {
+    const unauthorized = createOpenAiProvider(makeFetch(401, {}).fetchImpl);
+    await expect(unauthorized.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'auth' });
+    const failing = (async () => {
+      throw new TypeError('fetch failed');
+    }) as typeof fetch;
+    await expect(createOpenAiProvider(failing).listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'network' });
+  });
+
+  it('rejects with auth before any network call when no key is set', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { data: [] });
+    const provider = createOpenAiProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'auth' });
     expect(calls).toHaveLength(0);
   });
 });

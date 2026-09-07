@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AI_OUTPUT_JSON_SCHEMA } from '../outputSchema';
-import { OLLAMA_ENDPOINT, createOllamaProvider, ollamaProvider } from './ollama';
+import { OLLAMA_ENDPOINT, OLLAMA_MODELS_ENDPOINT, createOllamaProvider, ollamaProvider } from './ollama';
 import { ProviderError } from './types';
 
 const okResponse = (body: unknown, status = 200) =>
@@ -123,5 +123,44 @@ describe('Ollama provider (spec ai-byok §6)', () => {
     await expect(
       provider.complete({ model: 'llama3.2', apiKey: null, system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
     ).rejects.toMatchObject({ code: 'network' });
+  });
+});
+
+describe('Ollama listModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('queries /api/tags without auth headers and maps model names', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { models: [{ name: 'llama3.2' }, { name: 'qwen2.5' }, { name: 9 }] });
+    const provider = createOllamaProvider(fetchImpl);
+    const models = await provider.listModels({ apiKey: null });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(OLLAMA_MODELS_ENDPOINT);
+    expect(calls[0].init.method).toBe('GET');
+    const headers = (calls[0].init.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+    expect(headers['x-api-key']).toBeUndefined();
+    expect(models).toEqual(['llama3.2', 'qwen2.5']);
+  });
+
+  it('maps 404 to a network error with the status and 429 to rate-limit', async () => {
+    const missing = createOllamaProvider(makeFetch(404, {}).fetchImpl);
+    await expect(missing.listModels({ apiKey: null })).rejects.toSatisfy((error: unknown) => {
+      expect(error).toBeInstanceOf(ProviderError);
+      expect((error as ProviderError).code).toBe('network');
+      expect((error as ProviderError).message).toContain('404');
+      return true;
+    });
+    const limited = createOllamaProvider(makeFetch(429, {}).fetchImpl);
+    await expect(limited.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'rate-limit' });
+  });
+
+  it('maps fetch rejections to a network error', async () => {
+    const fetchImpl = (async () => {
+      throw new TypeError('fetch failed');
+    }) as typeof fetch;
+    const provider = createOllamaProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'network' });
   });
 });

@@ -31,6 +31,7 @@ function fakeProvider(
       calls.push(request);
       return respond();
     },
+    listModels: async () => ['fake-flash'],
   };
   return { provider, calls };
 }

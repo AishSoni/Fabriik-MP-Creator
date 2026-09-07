@@ -159,3 +159,58 @@ describe('Gemini provider (spec ai-byok §6)', () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe('Gemini listModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('queries the model list with the key in a header, never in the URL', async () => {
+    const { fetchImpl, calls } = makeFetch(200, {
+      models: [
+        { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-2.5-pro', supportedGenerationMethods: ['generateContent', 'countTokens'] },
+        { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+        { supportedGenerationMethods: ['generateContent'] },
+      ],
+    });
+    const provider = createGeminiProvider(fetchImpl);
+    const models = await provider.listModels({ apiKey: 'test-key' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(GEMINI_ENDPOINT);
+    expect(calls[0].init.method).toBe('GET');
+    expect(calls[0].url).not.toContain('test-key');
+    expect((calls[0].init.headers as Record<string, string>)['x-goog-api-key']).toBe('test-key');
+    expect(models).toEqual(['gemini-2.5-flash', 'gemini-2.5-pro']);
+  });
+
+  it('forwards the abort signal', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { models: [] });
+    const provider = createGeminiProvider(fetchImpl);
+    const controller = new AbortController();
+    await provider.listModels({ apiKey: 'k', signal: controller.signal });
+    expect(calls[0].init.signal).toBe(controller.signal);
+  });
+
+  it('maps 401 to auth and 429 to rate-limit', async () => {
+    const unauthorized = createGeminiProvider(makeFetch(401, {}).fetchImpl);
+    await expect(unauthorized.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'auth' });
+    const limited = createGeminiProvider(makeFetch(429, {}).fetchImpl);
+    await expect(limited.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'rate-limit' });
+  });
+
+  it('maps fetch rejections to a network error', async () => {
+    const fetchImpl = (async () => {
+      throw new TypeError('fetch failed');
+    }) as typeof fetch;
+    const provider = createGeminiProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'network' });
+  });
+
+  it('rejects with auth before any network call when no key is set', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { models: [] });
+    const provider = createGeminiProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'auth' });
+    expect(calls).toHaveLength(0);
+  });
+});

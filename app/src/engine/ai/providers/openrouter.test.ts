@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AI_OUTPUT_JSON_SCHEMA } from '../outputSchema';
-import { OPENROUTER_ENDPOINT, createOpenRouterProvider, openRouterProvider } from './openrouter';
+import { OPENROUTER_ENDPOINT, OPENROUTER_MODELS_ENDPOINT, createOpenRouterProvider, openRouterProvider } from './openrouter';
 import { ProviderError } from './types';
 
 const okResponse = (body: unknown, status = 200) =>
@@ -141,6 +141,42 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
     await expect(
       provider.complete({ model: 'm', apiKey: null, system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
     ).rejects.toMatchObject({ code: 'auth' });
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('OpenRouter listModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('queries the models endpoint with a bearer header and maps data ids', async () => {
+    const { fetchImpl, calls } = makeFetch(200, {
+      data: [{ id: 'openai/gpt-4o-mini' }, { id: 'google/gemini-2.5-flash' }, { id: null }],
+    });
+    const provider = createOpenRouterProvider(fetchImpl);
+    const models = await provider.listModels({ apiKey: 'test-key' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(OPENROUTER_MODELS_ENDPOINT);
+    expect(calls[0].init.method).toBe('GET');
+    expect(calls[0].url).not.toContain('test-key');
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer test-key');
+    expect(models).toEqual(['openai/gpt-4o-mini', 'google/gemini-2.5-flash']);
+  });
+
+  it('maps 401 to auth and fetch rejections to network', async () => {
+    const unauthorized = createOpenRouterProvider(makeFetch(401, {}).fetchImpl);
+    await expect(unauthorized.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'auth' });
+    const failing = (async () => {
+      throw new TypeError('fetch failed');
+    }) as typeof fetch;
+    await expect(createOpenRouterProvider(failing).listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'network' });
+  });
+
+  it('rejects with auth before any network call when no key is set', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { data: [] });
+    const provider = createOpenRouterProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'auth' });
     expect(calls).toHaveLength(0);
   });
 });

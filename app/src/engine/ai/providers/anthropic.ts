@@ -1,7 +1,9 @@
 import type { LlmCompleteRequest, LlmCompleteResult, LlmProvider, ProviderErrorCode } from './types';
 import { ProviderError } from './types';
+import { createModelsLister, extractDataModelIds } from './openaiCompatible';
 
 export const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
+export const ANTHROPIC_MODELS_ENDPOINT = 'https://api.anthropic.com/v1/models';
 
 const STATUS_CODES: Record<number, ProviderErrorCode> = { 401: 'auth', 403: 'auth', 429: 'rate-limit' };
 
@@ -67,6 +69,23 @@ export function createAnthropicProvider(fetchImpl: typeof fetch = fetch): LlmPro
         .join('');
       return { text };
     },
+    listModels: createModelsLister(
+      {
+        label: 'Anthropic',
+        modelsEndpoint: ANTHROPIC_MODELS_ENDPOINT,
+        requiresKey: true,
+        buildHeaders: (apiKey) =>
+          apiKey
+            ? {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true',
+              }
+            : {},
+        extractModels: extractDataModelIds,
+      },
+      fetchImpl,
+    ),
   };
 }
 

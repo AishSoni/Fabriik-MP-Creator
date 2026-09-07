@@ -1,7 +1,9 @@
 import type { LlmCompleteRequest, LlmCompleteResult, LlmProvider, ProviderErrorCode } from './types';
 import { ProviderError } from './types';
+import { createModelsLister } from './openaiCompatible';
 
 export const OLLAMA_ENDPOINT = 'http://localhost:11434/api/chat';
+export const OLLAMA_MODELS_ENDPOINT = 'http://localhost:11434/api/tags';
 
 const STATUS_CODES: Record<number, ProviderErrorCode> = { 401: 'auth', 403: 'auth', 429: 'rate-limit' };
 
@@ -59,6 +61,22 @@ export function createOllamaProvider(fetchImpl: typeof fetch = fetch): LlmProvid
       const content = payload.message?.content;
       return { text: typeof content === 'string' ? content : '' };
     },
+    listModels: createModelsLister(
+      {
+        label: 'Ollama',
+        modelsEndpoint: OLLAMA_MODELS_ENDPOINT,
+        requiresKey: false,
+        buildHeaders: () => ({}),
+        extractModels: (payload) => {
+          const models = (payload as { models?: { name?: unknown }[] } | null)?.models;
+          if (!Array.isArray(models)) return [];
+          return models
+            .filter((entry): entry is { name: string } => typeof entry?.name === 'string' && entry.name.length > 0)
+            .map((entry) => entry.name);
+        },
+      },
+      fetchImpl,
+    ),
   };
 }
 

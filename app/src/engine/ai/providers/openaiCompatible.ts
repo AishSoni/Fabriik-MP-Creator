@@ -1,4 +1,4 @@
-import type { LlmCompleteRequest, LlmCompleteResult, LlmProvider, ProviderErrorCode } from './types';
+import type { LlmCompleteRequest, LlmCompleteResult, LlmListModelsRequest, LlmProvider, ProviderErrorCode } from './types';
 import { ProviderError } from './types';
 
 const STATUS_CODES: Record<number, ProviderErrorCode> = { 401: 'auth', 403: 'auth', 429: 'rate-limit' };
@@ -85,5 +85,59 @@ export function createChatCompletionsProvider(config: ChatCompletionsProviderCon
 
       return { text: extractChatCompletionsText(payload) };
     },
+  };
+}
+
+export function extractDataModelIds(payload: unknown): string[] {
+  const data = (payload as { data?: { id?: unknown }[] } | null)?.data;
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((entry): entry is { id: string } => typeof entry?.id === 'string' && entry.id.length > 0)
+    .map((entry) => entry.id);
+}
+
+export interface ModelsListerConfig {
+  label: string;
+  modelsEndpoint: string;
+  requiresKey: boolean;
+  buildHeaders(apiKey: string | null): Record<string, string>;
+  extractModels(payload: unknown): string[];
+}
+
+export function createModelsLister(config: ModelsListerConfig, fetchImpl: typeof fetch = fetch) {
+  return async function listModels(request: LlmListModelsRequest): Promise<readonly string[]> {
+    if (config.requiresKey && !request.apiKey) {
+      throw new ProviderError('auth', `${config.label} requires an API key. Add one in AI settings.`);
+    }
+
+    let response: Response;
+    try {
+      response = await fetchImpl(config.modelsEndpoint, {
+        method: 'GET',
+        headers: config.buildHeaders(request.apiKey),
+        signal: request.signal,
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? `: ${error.message}` : '';
+      throw new ProviderError('network', `${config.label} model list request failed${detail}`);
+    }
+
+    if (!response.ok) {
+      const code = STATUS_CODES[response.status] ?? 'network';
+      throw new ProviderError(
+        code,
+        `${config.label} model list request failed with status ${response.status} ${response.statusText}`.trim(),
+      );
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      const detail = error instanceof Error ? `: ${error.message}` : '';
+      throw new ProviderError('network', `${config.label} model list response was not valid JSON${detail}`);
+    }
+
+    return config.extractModels(payload);
   };
 }

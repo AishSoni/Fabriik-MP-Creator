@@ -1,5 +1,6 @@
 import type { LlmCompleteRequest, LlmCompleteResult, LlmProvider, ProviderErrorCode } from './types';
 import { ProviderError } from './types';
+import { createModelsLister } from './openaiCompatible';
 
 export const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -66,6 +67,28 @@ export function createGeminiProvider(fetchImpl: typeof fetch = fetch): LlmProvid
         .join('');
       return { text };
     },
+    listModels: createModelsLister(
+      {
+        label: 'Gemini',
+        modelsEndpoint: GEMINI_ENDPOINT,
+        requiresKey: true,
+        buildHeaders: (apiKey) => (apiKey ? { 'x-goog-api-key': apiKey } : {}),
+        extractModels: (payload) => {
+          const models = (payload as { models?: { name?: unknown; supportedGenerationMethods?: unknown }[] } | null)?.models;
+          if (!Array.isArray(models)) return [];
+          return models
+            .filter(
+              (entry): entry is { name: string; supportedGenerationMethods: string[] } =>
+                typeof entry?.name === 'string' &&
+                Array.isArray(entry.supportedGenerationMethods) &&
+                entry.supportedGenerationMethods.includes('generateContent'),
+            )
+            .map((entry) => entry.name.replace(/^models\//, ''))
+            .filter((id) => id.length > 0);
+        },
+      },
+      fetchImpl,
+    ),
   };
 }
 

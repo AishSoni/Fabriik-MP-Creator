@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AI_OUTPUT_JSON_SCHEMA } from '../outputSchema';
-import { ANTHROPIC_ENDPOINT, anthropicProvider, createAnthropicProvider } from './anthropic';
+import { ANTHROPIC_ENDPOINT, ANTHROPIC_MODELS_ENDPOINT, anthropicProvider, createAnthropicProvider } from './anthropic';
 import { ProviderError } from './types';
 
 const okResponse = (body: unknown, status = 200) =>
@@ -160,6 +160,43 @@ describe('Anthropic provider (spec ai-byok §6)', () => {
     await expect(
       provider.complete({ model: 'm', apiKey: null, system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
     ).rejects.toMatchObject({ code: 'auth' });
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('Anthropic listModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('queries the models endpoint with anthropic headers and maps data ids', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { data: [{ id: 'claude-sonnet-4-5' }, { id: 'claude-haiku-4-5' }] });
+    const provider = createAnthropicProvider(fetchImpl);
+    const models = await provider.listModels({ apiKey: 'test-key' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(ANTHROPIC_MODELS_ENDPOINT);
+    expect(calls[0].init.method).toBe('GET');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers['x-api-key']).toBe('test-key');
+    expect(headers['anthropic-version']).toBe('2023-06-01');
+    expect(headers['anthropic-dangerous-direct-browser-access']).toBe('true');
+    expect(headers.Authorization).toBeUndefined();
+    expect(models).toEqual(['claude-sonnet-4-5', 'claude-haiku-4-5']);
+  });
+
+  it('maps 429 to rate-limit and fetch rejections to network', async () => {
+    const limited = createAnthropicProvider(makeFetch(429, {}).fetchImpl);
+    await expect(limited.listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'rate-limit' });
+    const failing = (async () => {
+      throw new TypeError('fetch failed');
+    }) as typeof fetch;
+    await expect(createAnthropicProvider(failing).listModels({ apiKey: 'k' })).rejects.toMatchObject({ code: 'network' });
+  });
+
+  it('rejects with auth before any network call when no key is set', async () => {
+    const { fetchImpl, calls } = makeFetch(200, { data: [] });
+    const provider = createAnthropicProvider(fetchImpl);
+    await expect(provider.listModels({ apiKey: null })).rejects.toMatchObject({ code: 'auth' });
     expect(calls).toHaveLength(0);
   });
 });

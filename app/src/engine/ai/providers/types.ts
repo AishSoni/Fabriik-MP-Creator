@@ -25,6 +25,11 @@ export interface LlmCompleteResult {
   text: string;
 }
 
+export interface LlmListModelsRequest {
+  apiKey: string | null;
+  signal?: AbortSignal;
+}
+
 export interface LlmProvider {
   id: ProviderId;
   label: string;
@@ -32,4 +37,5 @@ export interface LlmProvider {
   defaultModel: string;
   models: readonly string[];
   complete(request: LlmCompleteRequest): Promise<LlmCompleteResult>;
+  listModels(request: LlmListModelsRequest): Promise<readonly string[]>;
 }

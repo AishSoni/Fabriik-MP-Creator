@@ -16,6 +16,7 @@ const fakeProvider: LlmProvider = {
   defaultModel: 'fake-model',
   models: ['fake-model'],
   complete: async () => ({ text: '' }),
+  listModels: async () => ['fake-model'],
 };
 
 describe('LLM provider factory (approved design: registry + test overrides)', () => {
