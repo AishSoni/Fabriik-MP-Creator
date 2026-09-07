@@ -20,7 +20,11 @@ export type DemoErrorCode =
   | 'unsupported-instruction'
   | 'unselected-target'
   | 'forbidden-field'
-  | 'stale-revision';
+  | 'stale-revision'
+  | 'provider-auth'
+  | 'provider-rate-limit'
+  | 'provider-network'
+  | 'provider-parse';
 
 export interface DemoError {
   code: DemoErrorCode;

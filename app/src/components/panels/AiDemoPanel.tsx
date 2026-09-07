@@ -1,17 +1,11 @@
 import { useMemo, useState } from 'react';
-import { runDemoEngine } from '../../engine/ai/scenarioEngine';
+import { demoProposalEngine } from '../../engine/ai/demoEngine';
 import { groupExamples } from '../../engine/ai/exampleCatalog';
 import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import { useReviewStore } from '../../store/reviewStore';
-import type { Proposal, DemoError } from '../../types/proposal';
-
-const ERROR_TITLES: Record<DemoError['code'], string> = {
-  'unsupported-instruction': 'Unsupported instruction',
-  'unselected-target': 'Target outside selection',
-  'forbidden-field': 'Forbidden field',
-  'stale-revision': 'Stale revision',
-};
+import { ERROR_TITLES } from './errorTitles';
+import type { Proposal } from '../../types/proposal';
 
 export function AiDemoPanel() {
   const doc = useTemplateStore((s) => s.doc);
@@ -26,14 +20,20 @@ export function AiDemoPanel() {
   const rejectAllPending = useReviewStore((s) => s.rejectAllPending);
 
   const [instruction, setInstruction] = useState('Rewrite the text to be more exciting');
+  const [running, setRunning] = useState(false);
   const exampleGroups = useMemo(
     () => groupExamples(undefined, selectedIds.length),
     [selectedIds.length],
   );
 
-  const run = () => {
-    const result = runDemoEngine({ instruction, selectedIds, scope: editScope }, doc);
-    setPendingResult(result);
+  const run = async () => {
+    setRunning(true);
+    try {
+      const result = await demoProposalEngine.run({ instruction, selectedIds, scope: editScope }, doc);
+      setPendingResult(result);
+    } finally {
+      setRunning(false);
+    }
   };
 
   const proposals = pendingResult?.proposals ?? [];
@@ -74,10 +74,10 @@ export function AiDemoPanel() {
       <button
         type="button"
         onClick={run}
-        disabled={selectedIds.length === 0 || instruction.trim().length === 0}
+        disabled={running || selectedIds.length === 0 || instruction.trim().length === 0}
         className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-accent-strong hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-surface/10 disabled:text-muted' : 'disabled:bg-stone disabled:text-muted-dark'}`}
       >
-        <span>Run deterministic demo</span>
+        <span>{running ? 'Working…' : 'Run deterministic demo'}</span>
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
       </button>
 
