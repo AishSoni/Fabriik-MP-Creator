@@ -72,7 +72,10 @@ export function createGeminiProvider(fetchImpl: typeof fetch = fetch): LlmProvid
         label: 'Gemini',
         modelsEndpoint: GEMINI_ENDPOINT,
         requiresKey: true,
-        buildHeaders: (apiKey) => (apiKey ? { 'x-goog-api-key': apiKey } : {}),
+        buildHeaders: (apiKey): Record<string, string> => {
+          if (!apiKey) return {};
+          return { 'x-goog-api-key': apiKey };
+        },
         extractModels: (payload) => {
           const models = (payload as { models?: { name?: unknown; supportedGenerationMethods?: unknown }[] } | null)?.models;
           if (!Array.isArray(models)) return [];

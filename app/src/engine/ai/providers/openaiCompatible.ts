@@ -33,7 +33,10 @@ export interface ChatCompletionsProviderConfig {
   models: readonly string[];
 }
 
-export function createChatCompletionsProvider(config: ChatCompletionsProviderConfig, fetchImpl: typeof fetch = fetch): LlmProvider {
+export function createChatCompletionsProvider(
+  config: ChatCompletionsProviderConfig,
+  fetchImpl: typeof fetch = fetch,
+): Omit<LlmProvider, 'listModels'> {
   return {
     id: config.id,
     label: config.label,

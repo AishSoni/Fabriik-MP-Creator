@@ -4,6 +4,7 @@ import { ProviderError } from '../../engine/ai/providers/types';
 import type { ProviderId } from '../../engine/ai/providers/types';
 import { maskKey } from '../../lib/keyMask';
 import { useAiSettingsStore } from '../../store/aiSettingsStore';
+import { ModelPicker } from './ModelPicker';
 
 type VaultUi = 'idle' | 'create' | 'unlock-remember' | 'unlock-startup';
 
@@ -193,21 +194,17 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Model</span>
-              <select
-                aria-label="AI model"
-                value={modelId ?? provider.defaultModel}
-                onChange={(e) => store().setModel(e.target.value)}
-                className={inputClass}
-              >
-                {provider.models.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <ModelPicker
+                providerId={effective}
+                fallbackModels={provider.models}
+                currentModel={modelId ?? provider.defaultModel}
+                apiKey={provider.requiresKey ? savedKey : null}
+                onSelect={(model) => store().setModel(model)}
+                darkMode={darkMode}
+              />
+            </div>
           </div>
 
           {provider.requiresKey && (
@@ -365,36 +362,6 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
           <p className={`text-[11px] leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>
             Your key is stored only in this browser (session-only by default) and sent directly to the provider — never to our servers.
           </p>
-
-          <div className={`rounded-2xl border p-3 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark text-muted-dark' : 'border-stone bg-paper text-muted'}`}>
-            <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-stone' : 'text-ink'}`}>Spend-limit hints</p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-4">
-              <li>
-                Google AI Studio: use an API-restricted key —{' '}
-                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-accent underline">
-                  aistudio.google.com/apikey
-                </a>
-              </li>
-              <li>
-                OpenAI: set a project budget limit —{' '}
-                <a href="https://platform.openai.com/account/limits" target="_blank" rel="noreferrer" className="text-accent underline">
-                  platform.openai.com
-                </a>
-              </li>
-              <li>
-                OpenRouter: set a per-key spend limit —{' '}
-                <a href="https://openrouter.ai/docs" target="_blank" rel="noreferrer" className="text-accent underline">
-                  openrouter.ai
-                </a>
-              </li>
-              <li>
-                Anthropic: set console spend caps —{' '}
-                <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-accent underline">
-                  console.anthropic.com
-                </a>
-              </li>
-            </ul>
-          </div>
 
           {testStatus && (
             <p role="status" className={`text-[11px] font-medium ${testStatus.startsWith('Connection OK') ? 'text-[#0E7A5B]' : 'text-[#B42318]'}`}>

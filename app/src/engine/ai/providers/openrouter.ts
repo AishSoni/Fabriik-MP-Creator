@@ -22,7 +22,10 @@ export function createOpenRouterProvider(fetchImpl: typeof fetch = fetch): LlmPr
         label: 'OpenRouter',
         modelsEndpoint: OPENROUTER_MODELS_ENDPOINT,
         requiresKey: true,
-        buildHeaders: (apiKey) => (apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        buildHeaders: (apiKey): Record<string, string> => {
+          if (!apiKey) return {};
+          return { Authorization: `Bearer ${apiKey}` };
+        },
         extractModels: extractDataModelIds,
       },
       fetchImpl,

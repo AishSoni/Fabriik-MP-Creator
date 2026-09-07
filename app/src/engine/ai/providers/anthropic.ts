@@ -74,14 +74,14 @@ export function createAnthropicProvider(fetchImpl: typeof fetch = fetch): LlmPro
         label: 'Anthropic',
         modelsEndpoint: ANTHROPIC_MODELS_ENDPOINT,
         requiresKey: true,
-        buildHeaders: (apiKey) =>
-          apiKey
-            ? {
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true',
-              }
-            : {},
+        buildHeaders: (apiKey): Record<string, string> => {
+          if (!apiKey) return {};
+          return {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          };
+        },
         extractModels: extractDataModelIds,
       },
       fetchImpl,

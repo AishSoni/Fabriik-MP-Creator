@@ -1,14 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AiDemoPanel } from './components/panels/AiDemoPanel';
-import { HistoryPanel } from './components/panels/HistoryPanel';
-import { useTemplateStore } from './store/templateStore';
-import { useEditorStore } from './store/editorStore';
-import { useReviewStore } from './store/reviewStore';
-import { useAiSettingsStore } from './store/aiSettingsStore';
-import { clearLlmProviderOverrides, setLlmProviderOverride } from './engine/ai/providers';
-import { ProviderError } from './engine/ai/providers/types';
+import { AiPanel } from './AiPanel';
+import { useTemplateStore } from '../../store/templateStore';
+import { useEditorStore } from '../../store/editorStore';
+import { useReviewStore } from '../../store/reviewStore';
+import { useAiSettingsStore } from '../../store/aiSettingsStore';
+import { clearLlmProviderOverrides, setLlmProviderOverride } from '../../engine/ai/providers';
+import { ProviderError } from '../../engine/ai/providers/types';
 
 const BYOK_FIXTURE = JSON.stringify({
   proposals: [
@@ -28,6 +27,7 @@ function fakeProvider(complete: () => Promise<{ text: string }>) {
     defaultModel: 'gemini-2.5-flash',
     models: ['gemini-2.5-flash'],
     complete,
+    listModels: async () => ['gemini-2.5-flash'],
   };
 }
 
@@ -46,6 +46,11 @@ function resetAiSettings() {
   });
 }
 
+function seedByokMode() {
+  useAiSettingsStore.setState({ mode: 'byok', providerId: 'gemini', modelId: null });
+  useAiSettingsStore.getState().setKey('gemini', 'AIzaTestKey123456');
+}
+
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
@@ -60,11 +65,11 @@ afterEach(() => {
   clearLlmProviderOverrides();
 });
 
-describe('AiDemoPanel', () => {
+describe('AiPanel', () => {
   it('runs a demo from example chips and accepts one proposal independently', async () => {
     const user = userEvent.setup();
     useEditorStore.getState().setSelection(['feature-1-title', 'feature-2-title']);
-    render(<AiDemoPanel />);
+    render(<AiPanel />);
 
     await user.click(screen.getByRole('button', { name: 'Autofill Bold everything selected' }));
     await user.click(screen.getByRole('button', { name: /Run deterministic demo/i }));
@@ -83,7 +88,7 @@ describe('AiDemoPanel', () => {
   it('shows an explicit error card for unsupported instructions', async () => {
     const user = userEvent.setup();
     useEditorStore.getState().selectOnly('hero-heading');
-    render(<AiDemoPanel />);
+    render(<AiPanel />);
     const instructionBox = screen.getByLabelText('AI instruction');
     await user.clear(instructionBox);
     await user.type(instructionBox, 'Tell me a joke about pixels');
@@ -92,16 +97,15 @@ describe('AiDemoPanel', () => {
   });
 });
 
-describe('AiDemoPanel BYOK mode', () => {
+describe('AiPanel BYOK mode', () => {
   it('routes BYOK mode through the provider and surfaces proposals', async () => {
     const user = userEvent.setup();
     setLlmProviderOverride('gemini', fakeProvider(async () => ({ text: BYOK_FIXTURE })));
-    useAiSettingsStore.setState({ mode: 'byok', providerId: 'gemini', modelId: null });
-    useAiSettingsStore.getState().setKey('gemini', 'AIzaTestKey123456');
+    seedByokMode();
     useEditorStore.getState().selectOnly('hero-heading');
-    render(<AiDemoPanel />);
+    render(<AiPanel />);
 
-    await user.click(screen.getByRole('button', { name: /Run AI \(bring your own key\)/i }));
+    await user.click(screen.getByRole('button', { name: 'Run AI' }));
 
     await screen.findByText('Powered by your own key');
     const result = useReviewStore.getState().pendingResult;
@@ -118,48 +122,35 @@ describe('AiDemoPanel BYOK mode', () => {
         throw new ProviderError('auth', 'API key not valid');
       }),
     );
-    useAiSettingsStore.setState({ mode: 'byok', providerId: 'gemini', modelId: null });
-    useAiSettingsStore.getState().setKey('gemini', 'AIzaTestKey123456');
+    seedByokMode();
     useEditorStore.getState().selectOnly('hero-heading');
-    render(<AiDemoPanel />);
+    render(<AiPanel />);
 
-    await user.click(screen.getByRole('button', { name: /Run AI \(bring your own key\)/i }));
+    await user.click(screen.getByRole('button', { name: 'Run AI' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Provider rejected your key');
   });
-});
 
-describe('HistoryPanel', () => {
-  it('lists revisions per element and restores without touching siblings', async () => {
-    const user = userEvent.setup();
-    useTemplateStore.getState().dispatch({
-      kind: 'set-style',
-      source: 'canvas',
-      targetIds: ['hero-heading'],
-      scope: 'all',
-      baseRevision: 0,
-      stylePatch: { fontSize: 99 },
-    });
-    useTemplateStore.getState().dispatch({
-      kind: 'set-content',
-      source: 'ai',
-      targetIds: ['footer-text'],
-      scope: 'all',
-      baseRevision: useTemplateStore.getState().doc.revision,
-      content: { text: 'changed footer' },
-    });
+  it('hides the examples gallery in BYOK mode and labels the run button "Run AI"', () => {
+    seedByokMode();
+    useEditorStore.getState().selectOnly('hero-heading');
+    render(<AiPanel />);
 
-    render(<HistoryPanel />);
-    expect(screen.getAllByRole('button', { name: /Restore hero-heading/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('example-gallery')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run AI' })).toBeInTheDocument();
+  });
 
-    await user.click(screen.getAllByRole('button', { name: /Restore hero-heading/ })[0]);
+  it('shows spend-limit hints at the bottom of the panel only in BYOK mode', () => {
+    const demo = render(<AiPanel />);
+    expect(screen.queryByText(/Spend-limit hints/i)).not.toBeInTheDocument();
+    demo.unmount();
 
-    expect(useTemplateStore.getState().doc.elements['hero-heading'].style.base.fontSize).toBe(48);
-    expect((useTemplateStore.getState().doc.elements['footer-text'].content.base as { text: string }).text).toBe(
-      'changed footer',
-    );
-    expect(useTemplateStore.getState().history['hero-heading']).toHaveLength(2);
-    expect(useTemplateStore.getState().history['hero-heading'][1].kind).toBe('restore');
+    seedByokMode();
+    const byok = render(<AiPanel />);
+    const root = byok.container.firstElementChild as HTMLElement;
+    expect(screen.getByText(/Spend-limit hints/i)).toBeInTheDocument();
+    expect(root.lastElementChild?.textContent).toContain('Spend-limit hints');
+    expect(root.lastElementChild?.textContent).toContain('platform.openai.com');
   });
 });

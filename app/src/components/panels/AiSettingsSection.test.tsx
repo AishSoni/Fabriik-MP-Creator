@@ -65,23 +65,139 @@ describe('AiSettingsSection', () => {
     expect(screen.getByLabelText('API key')).toBeInTheDocument();
   });
 
-  it('lists registry providers, defaults the model, and persists model choice', async () => {
+  it('model picker queries the provider, supports search, and persists the selection', async () => {
     const user = userEvent.setup();
     useAiSettingsStore.setState({ mode: 'byok' });
+    let listCalls = 0;
+    setLlmProviderOverride('gemini', {
+      id: 'gemini',
+      label: 'Google Gemini',
+      requiresKey: true,
+      defaultModel: 'gemini-2.5-flash',
+      models: ['gemini-2.5-flash'],
+      complete: async () => ({ text: 'OK' }),
+      listModels: async () => {
+        listCalls += 1;
+        return ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+      },
+    });
     render(<AiSettingsSection darkMode={false} />);
 
-    for (const provider of listProviders()) {
-      expect(screen.getByRole('option', { name: provider.label })).toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: 'AI model' });
+    expect(trigger).toHaveTextContent('gemini-2.5-flash');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(trigger);
+    expect(screen.getByRole('listbox', { name: 'AI model options' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'gemini-2.5-pro' })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Search models'), 'pro');
+    expect(screen.queryByRole('option', { name: 'gemini-2.0-flash' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'gemini-2.5-pro' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('option', { name: 'gemini-2.5-pro' }));
+    expect(useAiSettingsStore.getState().modelId).toBe('gemini-2.5-pro');
+    expect(screen.queryByRole('listbox', { name: 'AI model options' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'AI model' })).toHaveTextContent('gemini-2.5-pro');
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    expect(await screen.findByRole('option', { name: 'gemini-2.5-flash' })).toBeInTheDocument();
+    expect(listCalls).toBe(1);
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox', { name: 'AI model options' })).toBeNull();
+  });
+
+  it('switching provider resets the model and updates the picker label', async () => {
+    const user = userEvent.setup();
+    useAiSettingsStore.setState({ mode: 'byok' });
+    setLlmProviderOverride('gemini', {
+      id: 'gemini',
+      label: 'Google Gemini',
+      requiresKey: true,
+      defaultModel: 'gemini-2.5-flash',
+      models: ['gemini-2.5-flash'],
+      complete: async () => ({ text: 'OK' }),
+      listModels: async () => ['gemini-2.5-flash', 'gemini-2.5-pro'],
+    });
+    render(<AiSettingsSection darkMode={false} />);
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    await user.click(await screen.findByRole('option', { name: 'gemini-2.5-pro' }));
+    expect(useAiSettingsStore.getState().modelId).toBe('gemini-2.5-pro');
+
+    await user.selectOptions(screen.getByLabelText('AI provider'), 'openai');
+    expect(useAiSettingsStore.getState().providerId).toBe('openai');
+    expect(useAiSettingsStore.getState().modelId).toBe('gpt-4o-mini');
+    expect(screen.getByRole('button', { name: 'AI model' })).toHaveTextContent('gpt-4o-mini');
+  });
+
+  it('falls back to built-in models when the model list query fails', async () => {
+    const user = userEvent.setup();
+    useAiSettingsStore.setState({ mode: 'byok' });
+    setLlmProviderOverride('gemini', {
+      id: 'gemini',
+      label: 'Google Gemini',
+      requiresKey: true,
+      defaultModel: 'gemini-2.5-flash',
+      models: ['gemini-2.5-flash'],
+      complete: async () => ({ text: 'OK' }),
+      listModels: async () => {
+        throw new ProviderError('network', 'offline');
+      },
+    });
+    render(<AiSettingsSection darkMode={false} />);
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Could not load the model list — showing built-in defaults.',
+    );
+    for (const model of listProviders().find((p) => p.id === 'gemini')?.models ?? []) {
+      expect(screen.getByRole('option', { name: model })).toBeInTheDocument();
     }
-    const modelSelect = screen.getByLabelText('AI model') as HTMLSelectElement;
-    expect(modelSelect.value).toBe('gemini-2.5-flash');
+  });
 
-    await user.selectOptions(modelSelect, 'gemini-2.0-flash');
-    expect(useAiSettingsStore.getState().modelId).toBe('gemini-2.0-flash');
+  it('shows a loading state while the model list is in flight', async () => {
+    const user = userEvent.setup();
+    useAiSettingsStore.setState({ mode: 'byok' });
+    setLlmProviderOverride('gemini', {
+      id: 'gemini',
+      label: 'Google Gemini',
+      requiresKey: true,
+      defaultModel: 'gemini-2.5-flash',
+      models: ['gemini-2.5-flash'],
+      complete: async () => ({ text: 'OK' }),
+      listModels: () => new Promise(() => {}),
+    });
+    render(<AiSettingsSection darkMode={false} />);
 
-    await user.selectOptions(screen.getByLabelText('AI provider'), 'gemini');
-    expect(useAiSettingsStore.getState().providerId).toBe('gemini');
-    expect(useAiSettingsStore.getState().modelId).toBe('gemini-2.5-flash');
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    expect(await screen.findByText('Loading models…')).toBeInTheDocument();
+  });
+
+  it('queries local providers for models without an API key', async () => {
+    const user = userEvent.setup();
+    useAiSettingsStore.setState({ mode: 'byok' });
+    let receivedKey: string | null | undefined = 'sentinel';
+    setLlmProviderOverride('ollama', {
+      id: 'ollama',
+      label: 'Ollama (local)',
+      requiresKey: false,
+      defaultModel: 'llama3.2',
+      models: ['llama3.2'],
+      complete: async () => ({ text: 'OK' }),
+      listModels: async ({ apiKey }) => {
+        receivedKey = apiKey;
+        return ['llama3.2:latest'];
+      },
+    });
+    render(<AiSettingsSection darkMode={false} />);
+
+    await user.selectOptions(screen.getByLabelText('AI provider'), 'ollama');
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+
+    expect(await screen.findByRole('option', { name: 'llama3.2:latest' })).toBeInTheDocument();
+    expect(receivedKey).toBeNull();
   });
 
   it('saves a key, masks its display, and never renders the raw key', async () => {
@@ -233,6 +349,7 @@ describe('AiSettingsSection', () => {
       defaultModel: 'gemini-2.5-flash',
       models: ['gemini-2.5-flash'],
       complete: async () => ({ text: 'OK' }),
+      listModels: async () => ['gemini-2.5-flash'],
     });
     render(<AiSettingsSection darkMode={false} />);
 
@@ -253,6 +370,7 @@ describe('AiSettingsSection', () => {
       complete: async () => {
         throw new ProviderError('auth', 'API key not valid');
       },
+      listModels: async () => ['gemini-2.5-flash'],
     });
     render(<AiSettingsSection darkMode={false} />);
 
@@ -274,12 +392,12 @@ describe('AiSettingsSection', () => {
     expect(screen.getByRole('button', { name: 'Test connection' })).toBeEnabled();
   });
 
-  it('renders the privacy caption and spend-limit hints', () => {
+  it('renders the privacy caption', () => {
     useAiSettingsStore.setState({ mode: 'byok' });
     const { container } = render(<AiSettingsSection darkMode={false} />);
 
     expect(container.textContent).toContain('stored only in this browser');
     expect(container.textContent).toContain('never to our servers');
-    expect(screen.getByText(/Spend-limit hints/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Spend-limit hints/i)).toBeNull();
   });
 });

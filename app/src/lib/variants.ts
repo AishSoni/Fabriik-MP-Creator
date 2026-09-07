@@ -98,7 +98,7 @@ export const historyBadgeVariants = cva(
   },
 );
 
-// Card shell used by PropertiesPanel, AiDemoPanel, History entries
+// Card shell used by PropertiesPanel, AiPanel, History entries
 export const cardVariants = cva('rounded-[20px] border', {
   variants: {
     tone: {

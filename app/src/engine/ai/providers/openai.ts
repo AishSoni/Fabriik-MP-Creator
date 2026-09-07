@@ -22,7 +22,10 @@ export function createOpenAiProvider(fetchImpl: typeof fetch = fetch): LlmProvid
         label: 'OpenAI',
         modelsEndpoint: OPENAI_MODELS_ENDPOINT,
         requiresKey: true,
-        buildHeaders: (apiKey) => (apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        buildHeaders: (apiKey): Record<string, string> => {
+          if (!apiKey) return {};
+          return { Authorization: `Bearer ${apiKey}` };
+        },
         extractModels: extractDataModelIds,
       },
       fetchImpl,

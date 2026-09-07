@@ -11,7 +11,7 @@ import { ERROR_TITLES } from './errorTitles';
 import { AiSettingsSection } from './AiSettingsSection';
 import type { Proposal } from '../../types/proposal';
 
-export function AiDemoPanel() {
+export function AiPanel() {
   const doc = useTemplateStore((s) => s.doc);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const editScope = useEditorStore((s) => s.editScope);
@@ -99,54 +99,56 @@ export function AiDemoPanel() {
         disabled={running || selectedIds.length === 0 || instruction.trim().length === 0}
         className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-accent-strong hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-surface/10 disabled:text-muted' : 'disabled:bg-stone disabled:text-muted-dark'}`}
       >
-        <span>{running ? 'Working…' : mode === 'byok' ? 'Run AI (bring your own key)' : 'Run deterministic demo'}</span>
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
+        <span>{running ? 'Working…' : mode === 'byok' ? 'Run AI' : 'Run deterministic demo'}</span>
+        <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
       </button>
 
-      <div
-        className={`rounded-[20px] border p-3.5 ${darkMode ? 'border-white/10 bg-surface-dark-raised' : 'border-stone bg-surface shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]'}`}
-        data-testid="example-gallery"
-      >
-        <div className={`flex items-baseline justify-between gap-2 text-xs font-semibold ${darkMode ? 'text-stone' : 'text-ink'}`}>
-          <span>Examples</span>
-          <span className={`text-[11px] font-normal ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>click to autofill</span>
-        </div>
-        {selectedIds.length > 1 && (
-          <p className="mt-1 text-[11px] font-medium text-accent">Multi-element picks shown first</p>
-        )}
-        {exampleGroups.map((group) => (
-          <div key={group.category} className="mt-3">
-            <div className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>{group.label}</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {group.items.map((example) => (
-                <button
-                  key={example.instruction}
-                  type="button"
-                  onClick={() => setInstruction(example.instruction)}
-                  aria-label={`Autofill ${example.description}`}
-                  title={
-                    example.category === 'multi-element' && selectedIds.length < 2
-                      ? 'Select at least two elements first'
-                      : example.instruction
-                  }
-                  disabled={example.category === 'multi-element' && selectedIds.length < 2}
-                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7868E6]/30 disabled:cursor-not-allowed disabled:opacity-40 ${
-                    instruction === example.instruction
-                      ? darkMode
-                        ? 'border-[#A99CFF] bg-accent/20 text-stone shadow-sm'
-                        : 'border-accent bg-accent-soft text-accent-strong shadow-sm'
-                      : darkMode
-                        ? 'border-white/10 bg-surface-dark text-muted-dark hover:border-accent/40 hover:text-stone'
-                        : 'border-stone bg-paper text-muted-strong hover:border-accent/40 hover:bg-surface hover:text-ink'
-                  }`}
-                >
-                  {example.description}
-                </button>
-              ))}
-            </div>
+      {mode === 'demo' && (
+        <div
+          className={`rounded-[20px] border p-3.5 ${darkMode ? 'border-white/10 bg-surface-dark-raised' : 'border-stone bg-surface shadow-[0_1px_2px_rgba(22,22,24,0.06),0_12px_32px_rgba(22,22,24,0.06)]'}`}
+          data-testid="example-gallery"
+        >
+          <div className={`flex items-baseline justify-between gap-2 text-xs font-semibold ${darkMode ? 'text-stone' : 'text-ink'}`}>
+            <span>Examples</span>
+            <span className={`text-[11px] font-normal ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>click to autofill</span>
           </div>
-        ))}
-      </div>
+          {selectedIds.length > 1 && (
+            <p className="mt-1 text-[11px] font-medium text-accent">Multi-element picks shown first</p>
+          )}
+          {exampleGroups.map((group) => (
+            <div key={group.category} className="mt-3">
+              <div className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>{group.label}</div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {group.items.map((example) => (
+                  <button
+                    key={example.instruction}
+                    type="button"
+                    onClick={() => setInstruction(example.instruction)}
+                    aria-label={`Autofill ${example.description}`}
+                    title={
+                      example.category === 'multi-element' && selectedIds.length < 2
+                        ? 'Select at least two elements first'
+                        : example.instruction
+                    }
+                    disabled={example.category === 'multi-element' && selectedIds.length < 2}
+                    className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7868E6]/30 disabled:cursor-not-allowed disabled:opacity-40 ${
+                      instruction === example.instruction
+                        ? darkMode
+                          ? 'border-[#A99CFF] bg-accent/20 text-stone shadow-sm'
+                          : 'border-accent bg-accent-soft text-accent-strong shadow-sm'
+                        : darkMode
+                          ? 'border-white/10 bg-surface-dark text-muted-dark hover:border-accent/40 hover:text-stone'
+                          : 'border-stone bg-paper text-muted-strong hover:border-accent/40 hover:bg-surface hover:text-ink'
+                    }`}
+                  >
+                    {example.description}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {pendingResult?.error && (
         <div
@@ -196,6 +198,38 @@ export function AiDemoPanel() {
               darkMode={darkMode}
             />
           ))}
+        </div>
+      )}
+
+      {mode === 'byok' && (
+        <div className={`rounded-2xl border p-3 text-[11px] leading-5 ${darkMode ? 'border-white/10 bg-surface-dark text-muted-dark' : 'border-stone bg-paper text-muted'}`}>
+          <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-stone' : 'text-ink'}`}>Spend-limit hints</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4">
+            <li>
+              Google AI Studio: use an API-restricted key —{' '}
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-accent underline">
+                aistudio.google.com/apikey
+              </a>
+            </li>
+            <li>
+              OpenAI: set a project budget limit —{' '}
+              <a href="https://platform.openai.com/account/limits" target="_blank" rel="noreferrer" className="text-accent underline">
+                platform.openai.com
+              </a>
+            </li>
+            <li>
+              OpenRouter: set a per-key spend limit —{' '}
+              <a href="https://openrouter.ai/docs" target="_blank" rel="noreferrer" className="text-accent underline">
+                openrouter.ai
+              </a>
+            </li>
+            <li>
+              Anthropic: set console spend caps —{' '}
+              <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-accent underline">
+                console.anthropic.com
+              </a>
+            </li>
+          </ul>
         </div>
       )}
     </div>

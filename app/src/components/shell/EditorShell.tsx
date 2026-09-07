@@ -6,7 +6,7 @@ import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { useEditorStore, type RightPanelTab } from '../../store/editorStore';
 import { CodePanel } from '../code/CodePanel';
 import { HistoryPanel } from '../panels/HistoryPanel';
-import { AiDemoPanel } from '../panels/AiDemoPanel';
+import { AiPanel } from '../panels/AiPanel';
 import { ErrorToasts } from './ErrorToasts';
 import { Toast } from './Toast';
 import { CompareView } from '../compare/CompareView';
@@ -15,7 +15,7 @@ import { editorTabVariants } from '../../lib/variants';
 
 const TABS: { id: RightPanelTab; label: string }[] = [
   { id: 'properties', label: 'Properties' },
-  { id: 'ai', label: 'AI Demo' },
+  { id: 'ai', label: 'AI' },
   { id: 'history', label: 'History' },
   { id: 'code', label: 'Code' },
 ];
@@ -94,7 +94,7 @@ export function EditorShell() {
             )}
           >
             {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
-            {rightPanelTab === 'ai' && <AiDemoPanel />}
+            {rightPanelTab === 'ai' && <AiPanel />}
             {rightPanelTab === 'history' && <HistoryPanel />}
             {rightPanelTab === 'code' && (
               <div className="p-5">
