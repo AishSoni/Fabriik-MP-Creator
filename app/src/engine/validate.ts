@@ -73,7 +73,7 @@ const scopedContentShape = {
   overrides: viewportRecord(elementContentSchema).optional(),
 };
 
-const templateElementSchema = z.strictObject({
+export const templateElementSchema = z.strictObject({
   id: z.string().min(1),
   type: elementTypeSchema,
   parentId: z.string().nullable(),
