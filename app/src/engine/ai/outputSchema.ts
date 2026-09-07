@@ -13,6 +13,8 @@ const elementContentSchema = z.union([
 
 const aiInsertElementSchema = templateElementSchema.extend({
   content: templateElementSchema.shape.content.optional(),
+  childIds: templateElementSchema.shape.childIds.default([]),
+  style: templateElementSchema.shape.style.default({ base: {} }),
 });
 
 export const aiCommandSchema = z.discriminatedUnion('kind', [
