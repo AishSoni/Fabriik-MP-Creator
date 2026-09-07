@@ -64,6 +64,7 @@ describe('OpenAI provider (spec ai-byok §6)', () => {
     expect(body.response_format.type).toBe('json_schema');
     expect(body.response_format.json_schema.name).toBe('ai_output');
     expect(body.response_format.json_schema.schema).toEqual(AI_OUTPUT_JSON_SCHEMA);
+    expect('provider' in body).toBe(false);
   });
 
   it('forwards the abort signal to fetch', async () => {

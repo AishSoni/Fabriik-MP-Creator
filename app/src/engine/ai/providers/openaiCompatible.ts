@@ -33,11 +33,25 @@ export interface ChatCompletionsProviderConfig {
   models: readonly string[];
   /**
    * Whether every model behind this endpoint supports `response_format: json_schema`.
-   * False for routers (OpenRouter) whose upstream models frequently reject the
-   * parameter with INVALID_REQUEST_BODY — the JSON-only system prompt plus
-   * parseProposals' schema gate remain the enforcement layer there.
+   * OpenAI does natively; for routers (OpenRouter) support is per-endpoint — see
+   * https://openrouter.ai/docs/guides/features/structured-outputs.
    */
   structuredOutputs: boolean;
+  /**
+   * OpenRouter-style provider routing preferences sent as the `provider` body
+   * field. Per the OpenRouter structured-outputs guide, `require_parameters:
+   * true` routes the request only to endpoints that support every parameter
+   * passed (including `response_format`), instead of failing on upstreams that
+   * lack structured-output support.
+   */
+  providerRouting?: Record<string, unknown>;
+  /**
+   * When true, a 400/404 on the structured attempt (no endpoint behind
+   * require_parameters supports the params, or an upstream still rejecting
+   * them) is retried once WITHOUT response_format and provider routing — the
+   * JSON-only system prompt plus parseProposals remain the enforcement layer.
+   */
+  retryWithoutStructuredOutputs?: boolean;
 }
 
 export function createChatCompletionsProvider(
@@ -56,14 +70,14 @@ export function createChatCompletionsProvider(
         throw new ProviderError('auth', `${config.label} requires an API key. Add one in AI settings.`);
       }
 
-      let response: Response;
-      try {
-        response = await fetchImpl(config.endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-          },
+      const attempt = async (structured: boolean): Promise<Response> => {
+        try {
+          return await fetchImpl(config.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+            },
             body: JSON.stringify({
               model,
               temperature: 0.2,
@@ -71,15 +85,22 @@ export function createChatCompletionsProvider(
                 { role: 'system', content: system },
                 { role: 'user', content: user },
               ],
-              ...(config.structuredOutputs
+              ...(structured && config.structuredOutputs
                 ? { response_format: { type: 'json_schema', json_schema: { name: 'ai_output', schema } } }
                 : {}),
+              ...(structured && config.providerRouting ? { provider: config.providerRouting } : {}),
             }),
-          signal,
-        });
-      } catch (error) {
-        const detail = error instanceof Error ? `: ${error.message}` : '';
-        throw new ProviderError('network', `${config.label} request failed${detail}`);
+            signal,
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? `: ${error.message}` : '';
+          throw new ProviderError('network', `${config.label} request failed${detail}`);
+        }
+      };
+
+      let response = await attempt(true);
+      if (!response.ok && config.retryWithoutStructuredOutputs && (response.status === 400 || response.status === 404)) {
+        response = await attempt(false);
       }
 
       if (!response.ok) {

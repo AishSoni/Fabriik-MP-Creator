@@ -34,7 +34,7 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
     expect(typeof openRouterProvider.complete).toBe('function');
   });
 
-  it('sends a chat-completions request with Bearer auth and NO structured output (router models vary in support)', async () => {
+  it('sends a chat-completions request with Bearer auth, structured output, and require_parameters routing', async () => {
     const { fetchImpl, calls } = makeFetch(200, openRouterTextResponse);
     const provider = createOpenRouterProvider(fetchImpl);
     const result = await provider.complete({
@@ -55,14 +55,66 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
       model: string;
       temperature: number;
       messages: { role: string; content: string }[];
-      response_format?: unknown;
+      response_format: { type: string; json_schema: { name: string; schema: unknown } };
+      provider: { require_parameters: boolean };
     };
     expect(body.model).toBe('openai/gpt-4o-mini');
     expect(body.temperature).toBe(0.2);
     expect(body.messages[0]).toEqual({ role: 'system', content: 'SYS' });
     expect(body.messages[1]).toEqual({ role: 'user', content: 'USER' });
-    expect('response_format' in body).toBe(false);
-    expect(body.response_format).toBeUndefined();
+    expect(body.response_format.type).toBe('json_schema');
+    expect(body.response_format.json_schema.name).toBe('ai_output');
+    expect(body.response_format.json_schema.schema).toEqual(AI_OUTPUT_JSON_SCHEMA);
+    expect(body.provider).toEqual({ require_parameters: true });
+  });
+
+  it('retries once without structured output when the router reports unsupported parameters', async () => {
+    const bodies: string[] = [];
+    const calls: RecordedCall[] = [];
+    let call = 0;
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init: init ?? {} });
+      bodies.push(String(init?.body));
+      call += 1;
+      return call === 1
+        ? okResponse({ error: { message: 'model features structured outputs not supported' } }, 400)
+        : okResponse(openRouterTextResponse, 200);
+    }) as typeof fetch;
+    const provider = createOpenRouterProvider(fetchImpl);
+    const result = await provider.complete({
+      model: 'inclusionai/ling-3.0-flash-sante:free',
+      apiKey: 'test-key',
+      system: 'SYS',
+      user: 'USER',
+      schema: AI_OUTPUT_JSON_SCHEMA,
+    });
+    expect(result).toEqual({ text: '{"proposals":[]}' });
+    expect(calls).toHaveLength(2);
+    const first = JSON.parse(bodies[0]) as { response_format?: unknown; provider?: unknown; model: string };
+    const second = JSON.parse(bodies[1]) as { response_format?: unknown; provider?: unknown; model: string };
+    expect(first.response_format).toBeDefined();
+    expect(first.provider).toEqual({ require_parameters: true });
+    expect('response_format' in second).toBe(false);
+    expect('provider' in second).toBe(false);
+    expect(second.model).toBe('inclusionai/ling-3.0-flash-sante:free');
+  });
+
+  it('surfaces the router failure when the unstructured retry also fails', async () => {
+    let call = 0;
+    const fetchImpl = (async () => {
+      call += 1;
+      return okResponse({ error: { message: 'still unsupported' } }, 400);
+    }) as typeof fetch;
+    const provider = createOpenRouterProvider(fetchImpl);
+    await expect(
+      provider.complete({ model: 'm', apiKey: 'k', system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(error).toBeInstanceOf(ProviderError);
+      expect((error as ProviderError).code).toBe('network');
+      expect((error as ProviderError).message).toContain('400');
+      return true;
+    });
+    expect(call).toBe(2);
   });
 
   it('forwards the abort signal to fetch', async () => {
@@ -95,24 +147,26 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
 
   it('maps 401 and 403 to an auth error', async () => {
     for (const status of [401, 403]) {
-      const { fetchImpl } = makeFetch(status, { error: { message: 'bad key' } });
+      const { fetchImpl, calls } = makeFetch(status, { error: { message: 'bad key' } });
       const provider = createOpenRouterProvider(fetchImpl);
       await expect(
         provider.complete({ model: 'm', apiKey: 'k', system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
       ).rejects.toMatchObject({ code: 'auth', name: 'ProviderError' } satisfies Partial<ProviderError>);
+      expect(calls).toHaveLength(1);
     }
   });
 
   it('maps 429 to a rate-limit error', async () => {
-    const { fetchImpl } = makeFetch(429, { error: { message: 'quota' } });
+    const { fetchImpl, calls } = makeFetch(429, { error: { message: 'quota' } });
     const provider = createOpenRouterProvider(fetchImpl);
     await expect(
       provider.complete({ model: 'm', apiKey: 'k', system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
     ).rejects.toMatchObject({ code: 'rate-limit' });
+    expect(calls).toHaveLength(1);
   });
 
   it('maps other HTTP failures to a network error with the status in the message', async () => {
-    const { fetchImpl } = makeFetch(500, { error: { message: 'boom' } });
+    const { fetchImpl, calls } = makeFetch(500, { error: { message: 'boom' } });
     const provider = createOpenRouterProvider(fetchImpl);
     await expect(
       provider.complete({ model: 'm', apiKey: 'k', system: 's', user: 'u', schema: AI_OUTPUT_JSON_SCHEMA }),
@@ -122,6 +176,7 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
       expect((error as ProviderError).message).toContain('500');
       return true;
     });
+    expect(calls).toHaveLength(1);
   });
 
   it('maps fetch rejections to a network error', async () => {
