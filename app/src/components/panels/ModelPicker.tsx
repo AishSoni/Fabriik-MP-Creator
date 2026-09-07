@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createLlmProvider } from '../../engine/ai/providers';
 import { ProviderError } from '../../engine/ai/providers/types';
 import type { ProviderId } from '../../engine/ai/providers/types';
@@ -122,12 +123,13 @@ export function ModelPicker({
         <span aria-hidden="true" className="text-[10px]">▾</span>
       </button>
 
-      {open && (
-        <div
-          data-testid="model-picker-backdrop"
-          onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-        >
+      {open &&
+        createPortal(
+          <div
+            data-testid="model-picker-backdrop"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          >
           <div
             role="dialog"
             aria-label="Choose a model"
@@ -212,8 +214,9 @@ export function ModelPicker({
               )}
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

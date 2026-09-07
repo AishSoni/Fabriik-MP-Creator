@@ -90,6 +90,7 @@ describe('AiSettingsSection', () => {
 
     await user.click(trigger);
     expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeInTheDocument();
+    expect(screen.getByTestId('model-picker-backdrop').parentElement).toBe(document.body);
     expect(await screen.findByRole('option', { name: 'gemini-2.5-pro' })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Search models'), 'pro');
