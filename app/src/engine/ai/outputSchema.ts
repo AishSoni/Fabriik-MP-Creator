@@ -47,7 +47,7 @@ export const aiCommandSchema = z.discriminatedUnion('kind', [
 
 export type AiCommand = z.infer<typeof aiCommandSchema>;
 
-const proposalSideSchema = z.strictObject({
+export const proposalSideSchema = z.strictObject({
   content: elementContentSchema.optional(),
   style: stylePatchSchema.optional(),
 });

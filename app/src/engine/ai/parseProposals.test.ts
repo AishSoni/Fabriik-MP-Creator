@@ -192,4 +192,66 @@ describe('parseProposals (spec ai-byok §6, §10)', () => {
     });
     expect(() => parseProposals(unsafeHref, 'all')).toThrow(ProposalParseError);
   });
+
+  it('drops before/after sides sent as bare content instead of failing the whole response', () => {
+    const text = JSON.stringify({
+      proposals: [
+        {
+          targetId: 'masthead-deck',
+          explanation: 'Rewrote the deck copy.',
+          before: { text: 'Objects, rooms, and the tools we keep for decades.' },
+          after: { text: 'Objects that last. Rooms that ignite.' },
+          command: {
+            kind: 'set-content',
+            targetIds: ['masthead-deck'],
+            content: { text: 'Objects that last. Rooms that ignite.' },
+          },
+        },
+      ],
+    });
+    const raws = parseProposals(text, 'all');
+    expect(raws).toHaveLength(1);
+    expect(raws[0].before).toEqual({});
+    expect(raws[0].after).toEqual({});
+    expect(raws[0].command).toMatchObject({
+      kind: 'set-content',
+      targetIds: ['masthead-deck'],
+      content: { text: 'Objects that last. Rooms that ignite.' },
+    });
+  });
+
+  it('drops junk before/after sides with unknown keys without failing the payload', () => {
+    const text = JSON.stringify({
+      proposals: [
+        {
+          targetId: 'hero-heading',
+          explanation: 'bad sides',
+          before: { unexpected: 1 },
+          after: 'not even an object',
+          command: { kind: 'set-style', targetIds: ['hero-heading'], stylePatch: { fontWeight: 800 } },
+        },
+      ],
+    });
+    const raws = parseProposals(text, 'all');
+    expect(raws).toHaveLength(1);
+    expect(raws[0].before).toEqual({});
+    expect(raws[0].after).toEqual({});
+    expect(raws[0].command).toMatchObject({ kind: 'set-style', stylePatch: { fontWeight: 800 } });
+  });
+
+  it('tolerates unknown keys on a proposal instead of failing the payload', () => {
+    const text = JSON.stringify({
+      proposals: [
+        {
+          targetId: 'hero-heading',
+          explanation: 'extra metadata',
+          confidence: 0.9,
+          command: { kind: 'set-style', targetIds: ['hero-heading'], stylePatch: { fontWeight: 800 } },
+        },
+      ],
+    });
+    const raws = parseProposals(text, 'all');
+    expect(raws).toHaveLength(1);
+    expect(raws[0].explanation).toBe('extra metadata');
+  });
 });

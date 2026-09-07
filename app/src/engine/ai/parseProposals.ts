@@ -2,7 +2,7 @@ import type { ElementContent, ElementId, TemplateElement } from '../../types/tem
 import { defaultContentFor } from '../../types/template';
 import type { Scope } from '../../types/viewport';
 import type { RawProposal } from './buildProposals';
-import { aiOutputSchema, type AiCommand } from './outputSchema';
+import { aiOutputSchema, proposalSideSchema, type AiCommand } from './outputSchema';
 
 export class ProposalParseError extends Error {
   readonly code = 'provider-parse' as const;
@@ -22,7 +22,7 @@ export function parseProposals(text: string, scope: Scope): RawProposal[] {
     throw new ProposalParseError('Provider response was not valid JSON');
   }
 
-  const parsed = aiOutputSchema.safeParse(json);
+  const parsed = aiOutputSchema.safeParse(tolerateProposalShape(json));
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const detail = issue ? `${issue.path.join('.') || '(root)'}: ${issue.message}` : parsed.error.message;
@@ -36,6 +36,38 @@ export function parseProposals(text: string, scope: Scope): RawProposal[] {
     after: proposal.after ?? {},
     command: toCommand(proposal.command, scope),
   }));
+}
+
+const KNOWN_PROPOSAL_KEYS = ['targetId', 'explanation', 'before', 'after', 'command'] as const;
+
+/**
+ * Models routinely decorate proposals with extra keys or send before/after
+ * sides as bare content (`{text}`) instead of the `{content, style}` envelope.
+ * Both are cosmetic: the engine rebuilds sides from the live document for every
+ * mutation kind, so a malformed side is dropped rather than failing the whole
+ * response. Semantically required fields (targetId, explanation, command) are
+ * left for the strict schema to enforce.
+ */
+function tolerateProposalShape(output: unknown): unknown {
+  if (!output || typeof output !== 'object' || Array.isArray(output)) return output;
+  const { proposals } = output as { proposals?: unknown };
+  if (!Array.isArray(proposals)) return output;
+  return {
+    ...output,
+    proposals: proposals.map((proposal) => {
+      if (!proposal || typeof proposal !== 'object' || Array.isArray(proposal)) return proposal;
+      const record = proposal as Record<string, unknown>;
+      const normalized: Record<string, unknown> = {};
+      for (const key of KNOWN_PROPOSAL_KEYS) {
+        if (!(key in record)) continue;
+        if ((key === 'before' || key === 'after') && !proposalSideSchema.safeParse(record[key]).success) {
+          continue;
+        }
+        normalized[key] = record[key];
+      }
+      return normalized;
+    }),
+  };
 }
 
 function parseProviderJson(text: string): unknown {
