@@ -1,6 +1,7 @@
 import type { StyleProps, TemplateDoc } from '../types/template';
 import { getSubtreeIds, resolveElement, type ResolvedElement } from './resolve';
 import { styleToCssText } from './styleToCssText';
+import { isSafeUrl } from './urlSafety';
 
 export const TAILWIND_CDN_URL = 'https://cdn.tailwindcss.com';
 
@@ -185,14 +186,10 @@ function renderElement(
   }
 }
 
-const SAFE_HREF_SCHEME = /^(?:https?|mailto|tel):/i;
-
 export function safeHref(href: string): string {
   const trimmed = href.trim();
   if (trimmed === '') return '#';
-  const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(trimmed);
-  if (schemeMatch && !SAFE_HREF_SCHEME.test(trimmed)) return '#';
-  return trimmed;
+  return isSafeUrl(trimmed) ? trimmed : '#';
 }
 
 function safeSrc(src: string): string {

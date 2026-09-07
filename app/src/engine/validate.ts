@@ -4,6 +4,11 @@ import { defaultContentFor } from '../types/template';
 import type { EditCommand } from '../types/commands';
 import { STYLE_PROPS } from '../types/template';
 import { VIEWPORTS } from '../types/viewport';
+import { isSafeUrl } from './urlSafety';
+
+const safeUrlSchema = z
+  .string()
+  .refine(isSafeUrl, { message: 'URL must use https:, http:, mailto:, tel:, or be relative' });
 
 const viewportRecord = <T extends z.ZodType>(valueSchema: T) =>
   z.strictObject(
@@ -25,14 +30,14 @@ export const stylePatchSchema = z.strictObject(
 
 const linkSchema = z.strictObject({
   label: z.string().min(1),
-  href: z.string(),
+  href: safeUrlSchema,
 });
 
 export const elementContentSchemas = {
   heading: z.strictObject({ text: z.string() }),
   text: z.strictObject({ text: z.string() }),
-  button: z.strictObject({ label: z.string(), href: z.string() }),
-  image: z.strictObject({ src: z.string(), alt: z.string() }),
+  button: z.strictObject({ label: z.string(), href: safeUrlSchema }),
+  image: z.strictObject({ src: safeUrlSchema, alt: z.string() }),
   list: z.strictObject({ items: z.array(z.string()) }),
   nav: z.strictObject({ brand: z.string(), links: z.array(linkSchema) }),
   section: z.strictObject({}),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { validateCommand } from './validate';
+import { elementContentSchemas, templateDocSchema, validateCommand } from './validate';
 import type { EditCommand } from '../types/commands';
 
 const doc = () => createDefaultTemplate();
@@ -99,5 +99,68 @@ describe('validateCommand', () => {
       element,
     });
     expect(errors2.some((e) => e.code === 'id-collision')).toBe(true);
+  });
+});
+
+describe('document URL allowlist (spec ai-byok §8)', () => {
+  const contentCmd = (content: unknown): EditCommand =>
+    ({
+      ...base,
+      kind: 'set-content',
+      targetIds: ['hero-cta'],
+      baseRevision: 0,
+      content,
+    }) as unknown as EditCommand;
+
+  it('rejects javascript: href in button content', () => {
+    const errors = validateCommand(doc(), contentCmd({ label: 'Click', href: 'javascript:alert(1)' }));
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it('rejects data: src in image content', () => {
+    const errors = validateCommand(
+      doc(),
+      contentCmd({ src: 'data:image/svg+xml,<svg onload=alert(1)>', alt: 'x' }),
+    );
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it('rejects javascript: href in nav link content', () => {
+    const errors = validateCommand(
+      doc(),
+      contentCmd({ brand: 'Nav', links: [{ label: 'Evil', href: 'JAVASCRIPT:alert(1)' }] }),
+    );
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it('accepts safe schemes and relative URLs', () => {
+    const d = doc();
+    for (const href of ['https://fabriik.dev', 'http://localhost:4173', 'mailto:hi@x.dev', 'tel:+15550001111', '/pricing', '#about']) {
+      const errors = validateCommand(d, contentCmd({ label: 'Go', href }));
+      expect(errors.filter((e) => e.code === 'invalid-payload')).toEqual([]);
+    }
+    for (const src of ['https://cdn.example.com/a.png', '/local.png', 'images/pic.jpg']) {
+      expect(elementContentSchemas.image.safeParse({ src, alt: 'a' }).success).toBe(true);
+    }
+  });
+
+  it('blocks unsafe URLs at the template import gate', () => {
+    const evil = JSON.parse(JSON.stringify(doc())) as Record<string, unknown>;
+    const elements = evil.elements as Record<string, { content: { base: Record<string, unknown> } }>;
+    elements['top-nav'].content.base.links = [{ label: 'Evil', href: 'javascript:alert(1)' }];
+    expect(templateDocSchema.safeParse(evil).success).toBe(false);
+
+    const evilImage = JSON.parse(JSON.stringify(doc())) as { elements: Record<string, unknown> };
+    evilImage.elements['evil-image'] = {
+      id: 'evil-image',
+      type: 'image',
+      parentId: 'page-root',
+      childIds: [],
+      content: { base: { src: 'data:image/svg+xml,<svg onload=alert(1)>', alt: 'x' } },
+      style: { base: {} },
+    };
+    expect(templateDocSchema.safeParse(evilImage).success).toBe(false);
+
+    expect(templateDocSchema.safeParse(doc()).success).toBe(true);
   });
 });
