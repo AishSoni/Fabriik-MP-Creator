@@ -1,10 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createByokEngine } from '../../engine/ai/byokEngine';
 import { demoProposalEngine } from '../../engine/ai/demoEngine';
+import { DEFAULT_PROVIDER_ID } from '../../engine/ai/providers';
 import { groupExamples } from '../../engine/ai/exampleCatalog';
+import { useAiSettingsStore } from '../../store/aiSettingsStore';
 import { useTemplateStore } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
 import { useReviewStore } from '../../store/reviewStore';
 import { ERROR_TITLES } from './errorTitles';
+import { AiSettingsSection } from './AiSettingsSection';
 import type { Proposal } from '../../types/proposal';
 
 export function AiDemoPanel() {
@@ -18,6 +22,14 @@ export function AiDemoPanel() {
   const rejectProposal = useReviewStore((s) => s.rejectProposal);
   const acceptAllPending = useReviewStore((s) => s.acceptAllPending);
   const rejectAllPending = useReviewStore((s) => s.rejectAllPending);
+  const mode = useAiSettingsStore((s) => s.mode);
+  const providerId = useAiSettingsStore((s) => s.providerId);
+  const modelId = useAiSettingsStore((s) => s.modelId);
+  const keys = useAiSettingsStore((s) => s.keys);
+
+  useEffect(() => {
+    useAiSettingsStore.getState().hydrate();
+  }, []);
 
   const [instruction, setInstruction] = useState('Rewrite the text to be more exciting');
   const [running, setRunning] = useState(false);
@@ -29,7 +41,15 @@ export function AiDemoPanel() {
   const run = async () => {
     setRunning(true);
     try {
-      const result = await demoProposalEngine.run({ instruction, selectedIds, scope: editScope }, doc);
+      const engine =
+        mode === 'byok'
+          ? createByokEngine({
+              providerId: providerId ?? DEFAULT_PROVIDER_ID,
+              modelId,
+              apiKey: keys[providerId ?? DEFAULT_PROVIDER_ID] ?? null,
+            })
+          : demoProposalEngine;
+      const result = await engine.run({ instruction, selectedIds, scope: editScope }, doc);
       setPendingResult(result);
     } finally {
       setRunning(false);
@@ -44,6 +64,8 @@ export function AiDemoPanel() {
 
   return (
     <div className={`flex flex-col gap-4 p-4 text-sm animate-in ${darkMode ? 'text-stone' : 'text-ink'}`}>
+      <AiSettingsSection darkMode={darkMode} />
+
       <label className="flex flex-col gap-2">
         <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Instruction</span>
         <span className={`text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Describe the change for the selected elements. Deterministic, reviewable, reversible.</span>
@@ -77,7 +99,7 @@ export function AiDemoPanel() {
         disabled={running || selectedIds.length === 0 || instruction.trim().length === 0}
         className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(120,104,230,0.28)] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-accent-strong hover:shadow-[0_10px_28px_rgba(120,104,230,0.34)] active:scale-[0.98] disabled:cursor-not-allowed disabled:shadow-none ${darkMode ? 'disabled:bg-surface/10 disabled:text-muted' : 'disabled:bg-stone disabled:text-muted-dark'}`}
       >
-        <span>{running ? 'Working…' : 'Run deterministic demo'}</span>
+        <span>{running ? 'Working…' : mode === 'byok' ? 'Run AI (bring your own key)' : 'Run deterministic demo'}</span>
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface/15 text-xs transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
       </button>
 
