@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { createLlmProvider, DEFAULT_PROVIDER_ID, listProviders } from '../../engine/ai/providers';
-import { ProviderError } from '../../engine/ai/providers/types';
+import { DEFAULT_PROVIDER_ID, listProviders } from '../../engine/ai/providers';
 import type { ProviderId } from '../../engine/ai/providers/types';
 import { maskKey } from '../../lib/keyMask';
 import { useAiSettingsStore } from '../../store/aiSettingsStore';
@@ -25,7 +24,6 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
   const [passphrase, setPassphrase] = useState('');
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
   const [unlockPass, setUnlockPass] = useState('');
-  const [testStatus, setTestStatus] = useState<string | null>(null);
 
   const providers = listProviders();
   const effective = (providerId ?? DEFAULT_PROVIDER_ID) as ProviderId;
@@ -78,23 +76,6 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
       if (intent === 'remember') await state.rememberKey(effective);
       setUnlockPass('');
       setVaultUi('idle');
-    }
-  };
-
-  const testConnection = async () => {
-    setTestStatus(null);
-    try {
-      const target = createLlmProvider(effective);
-      await target.complete({
-        model: modelId ?? target.defaultModel,
-        apiKey: savedKey,
-        system: 'You are a connection test. Reply with OK.',
-        user: 'Reply with OK.',
-        schema: { type: 'object' },
-      });
-      setTestStatus('Connection OK.');
-    } catch (error) {
-      setTestStatus(error instanceof ProviderError ? `Connection failed: ${error.message}` : 'Connection failed.');
     }
   };
 
@@ -200,6 +181,7 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
                 providerId={effective}
                 fallbackModels={provider.models}
                 currentModel={modelId ?? provider.defaultModel}
+                requiresKey={provider.requiresKey}
                 apiKey={provider.requiresKey ? savedKey : null}
                 onSelect={(model) => store().setModel(model)}
                 darkMode={darkMode}
@@ -242,14 +224,6 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
                 Forget key
               </button>
             )}
-            <button
-              type="button"
-              disabled={provider.requiresKey && !savedKey}
-              onClick={() => void testConnection()}
-              className={`cursor-pointer rounded-full border border-accent bg-accent-soft px-4 py-1.5 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40`}
-            >
-              Test connection
-            </button>
           </div>
 
           {provider.requiresKey ? (
@@ -362,12 +336,6 @@ export function AiSettingsSection({ darkMode }: { darkMode: boolean }) {
           <p className={`text-[11px] leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>
             Your key is stored only in this browser (session-only by default) and sent directly to the provider — never to our servers.
           </p>
-
-          {testStatus && (
-            <p role="status" className={`text-[11px] font-medium ${testStatus.startsWith('Connection OK') ? 'text-[#0E7A5B]' : 'text-[#B42318]'}`}>
-              {testStatus}
-            </p>
-          )}
         </div>
       )}
     </section>

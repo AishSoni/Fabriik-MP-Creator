@@ -85,10 +85,11 @@ describe('AiSettingsSection', () => {
 
     const trigger = screen.getByRole('button', { name: 'AI model' });
     expect(trigger).toHaveTextContent('gemini-2.5-flash');
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(trigger);
-    expect(screen.getByRole('listbox', { name: 'AI model options' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeInTheDocument();
     expect(await screen.findByRole('option', { name: 'gemini-2.5-pro' })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Search models'), 'pro');
@@ -97,7 +98,7 @@ describe('AiSettingsSection', () => {
 
     await user.click(screen.getByRole('option', { name: 'gemini-2.5-pro' }));
     expect(useAiSettingsStore.getState().modelId).toBe('gemini-2.5-pro');
-    expect(screen.queryByRole('listbox', { name: 'AI model options' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Choose a model' })).toBeNull();
     expect(screen.getByRole('button', { name: 'AI model' })).toHaveTextContent('gemini-2.5-pro');
 
     await user.click(screen.getByRole('button', { name: 'AI model' }));
@@ -105,7 +106,12 @@ describe('AiSettingsSection', () => {
     expect(listCalls).toBe(1);
 
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox', { name: 'AI model options' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Choose a model' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    expect(await screen.findByRole('option', { name: 'gemini-2.5-flash' })).toBeInTheDocument();
+    await user.click(screen.getByTestId('model-picker-backdrop'));
+    expect(screen.queryByRole('dialog', { name: 'Choose a model' })).toBeNull();
   });
 
   it('switching provider resets the model and updates the picker label', async () => {
@@ -149,6 +155,7 @@ describe('AiSettingsSection', () => {
     render(<AiSettingsSection darkMode={false} />);
 
     await user.click(screen.getByRole('button', { name: 'AI model' }));
+    expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeInTheDocument();
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Could not load the model list — showing built-in defaults.',
     );
@@ -198,6 +205,9 @@ describe('AiSettingsSection', () => {
 
     expect(await screen.findByRole('option', { name: 'llama3.2:latest' })).toBeInTheDocument();
     expect(receivedKey).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Connection OK');
   });
 
   it('saves a key, masks its display, and never renders the raw key', async () => {
@@ -338,7 +348,7 @@ describe('AiSettingsSection', () => {
     expect(useAiSettingsStore.getState().keys.gemini).toBe(KEY);
   });
 
-  it('tests the connection against the selected provider', async () => {
+  it('tests the connection inside the model picker popup', async () => {
     const user = userEvent.setup();
     useAiSettingsStore.setState({ mode: 'byok' });
     useAiSettingsStore.getState().setKey('gemini', KEY);
@@ -353,11 +363,14 @@ describe('AiSettingsSection', () => {
     });
     render(<AiSettingsSection darkMode={false} />);
 
+    expect(screen.queryByRole('button', { name: 'Test connection' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
     await user.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Connection OK');
   });
 
-  it('reports connection failures from provider errors', async () => {
+  it('reports connection failures from provider errors inside the popup', async () => {
     const user = userEvent.setup();
     useAiSettingsStore.setState({ mode: 'byok' });
     useAiSettingsStore.getState().setKey('gemini', KEY);
@@ -374,6 +387,7 @@ describe('AiSettingsSection', () => {
     });
     render(<AiSettingsSection darkMode={false} />);
 
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
     await user.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Connection failed: API key not valid');
   });
@@ -389,7 +403,10 @@ describe('AiSettingsSection', () => {
     expect(screen.queryByLabelText('API key')).toBeNull();
     expect(screen.queryByLabelText('Remember this key')).toBeNull();
     expect(screen.getByText(/no API key needed/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Test connection' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'AI model' }));
+    const testButton = await screen.findByRole('button', { name: 'Test connection' });
+    expect(testButton).toBeEnabled();
   });
 
   it('renders the privacy caption', () => {
