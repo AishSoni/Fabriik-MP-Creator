@@ -34,7 +34,7 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
     expect(typeof openRouterProvider.complete).toBe('function');
   });
 
-  it('sends a chat-completions request with Bearer auth and structured output to the OpenRouter endpoint', async () => {
+  it('sends a chat-completions request with Bearer auth and NO structured output (router models vary in support)', async () => {
     const { fetchImpl, calls } = makeFetch(200, openRouterTextResponse);
     const provider = createOpenRouterProvider(fetchImpl);
     const result = await provider.complete({
@@ -55,15 +55,14 @@ describe('OpenRouter provider (spec ai-byok §6)', () => {
       model: string;
       temperature: number;
       messages: { role: string; content: string }[];
-      response_format: { type: string; json_schema: { name: string; schema: unknown } };
+      response_format?: unknown;
     };
     expect(body.model).toBe('openai/gpt-4o-mini');
     expect(body.temperature).toBe(0.2);
     expect(body.messages[0]).toEqual({ role: 'system', content: 'SYS' });
     expect(body.messages[1]).toEqual({ role: 'user', content: 'USER' });
-    expect(body.response_format.type).toBe('json_schema');
-    expect(body.response_format.json_schema.name).toBe('ai_output');
-    expect(body.response_format.json_schema.schema).toEqual(AI_OUTPUT_JSON_SCHEMA);
+    expect('response_format' in body).toBe(false);
+    expect(body.response_format).toBeUndefined();
   });
 
   it('forwards the abort signal to fetch', async () => {

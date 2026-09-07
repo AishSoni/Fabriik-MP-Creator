@@ -16,8 +16,9 @@ export class ProposalParseError extends Error {
 export function parseProposals(text: string, scope: Scope): RawProposal[] {
   let json: unknown;
   try {
-    json = JSON.parse(text);
-  } catch {
+    json = parseProviderJson(text);
+  } catch (error) {
+    if (error instanceof ProposalParseError) throw error;
     throw new ProposalParseError('Provider response was not valid JSON');
   }
 
@@ -35,6 +36,30 @@ export function parseProposals(text: string, scope: Scope): RawProposal[] {
     after: proposal.after ?? {},
     command: toCommand(proposal.command, scope),
   }));
+}
+
+function parseProviderJson(text: string): unknown {
+  const candidates = [text.trim(), extractFencedJson(text), extractOuterObject(text)];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // try the next candidate
+    }
+  }
+  throw new ProposalParseError('Provider response was not valid JSON');
+}
+
+function extractFencedJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return match ? (match[1] ?? '').trim() : '';
+}
+
+function extractOuterObject(text: string): string {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  return start >= 0 && end > start ? text.slice(start, end + 1) : '';
 }
 
 function toCommand(command: AiCommand, scope: Scope): RawProposal['command'] {

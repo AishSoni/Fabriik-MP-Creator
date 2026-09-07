@@ -31,6 +31,13 @@ export interface ChatCompletionsProviderConfig {
   requiresKey: boolean;
   defaultModel: string;
   models: readonly string[];
+  /**
+   * Whether every model behind this endpoint supports `response_format: json_schema`.
+   * False for routers (OpenRouter) whose upstream models frequently reject the
+   * parameter with INVALID_REQUEST_BODY — the JSON-only system prompt plus
+   * parseProposals' schema gate remain the enforcement layer there.
+   */
+  structuredOutputs: boolean;
 }
 
 export function createChatCompletionsProvider(
@@ -57,15 +64,17 @@ export function createChatCompletionsProvider(
             'Content-Type': 'application/json',
             ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
           },
-          body: JSON.stringify({
-            model,
-            temperature: 0.2,
-            messages: [
-              { role: 'system', content: system },
-              { role: 'user', content: user },
-            ],
-            response_format: { type: 'json_schema', json_schema: { name: 'ai_output', schema } },
-          }),
+            body: JSON.stringify({
+              model,
+              temperature: 0.2,
+              messages: [
+                { role: 'system', content: system },
+                { role: 'user', content: user },
+              ],
+              ...(config.structuredOutputs
+                ? { response_format: { type: 'json_schema', json_schema: { name: 'ai_output', schema } } }
+                : {}),
+            }),
           signal,
         });
       } catch (error) {

@@ -14,6 +14,7 @@ export function createOpenAiProvider(fetchImpl: typeof fetch = fetch): LlmProvid
         requiresKey: true,
         defaultModel: 'gpt-4o-mini',
         models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+        structuredOutputs: true,
       },
       fetchImpl,
     ),

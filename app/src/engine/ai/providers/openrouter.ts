@@ -14,6 +14,7 @@ export function createOpenRouterProvider(fetchImpl: typeof fetch = fetch): LlmPr
         requiresKey: true,
         defaultModel: 'openai/gpt-4o-mini',
         models: ['openai/gpt-4o-mini', 'anthropic/claude-sonnet-4.5', 'google/gemini-2.5-flash', 'meta-llama/llama-3.3-70b-instruct'],
+        structuredOutputs: false,
       },
       fetchImpl,
     ),
