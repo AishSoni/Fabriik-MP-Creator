@@ -789,3 +789,96 @@ describe('replaceYDoc', () => {
     expect(getHistoryYArray(a).length).toBe(0);
   });
 });
+
+describe('semantic invariant sweep', () => {
+  it('keeps template semantics valid across a full command sequence', () => {
+    const ydoc = makeYDoc();
+
+    const assertInvariants = (): void => {
+      expect(validateTemplateSemantics(projectDoc(ydoc))).toEqual([]);
+    };
+
+    assertInvariants();
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-content',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        baseRevision: 0,
+        content: { text: 'Sweep heading' },
+      },
+      authoritative({ commandId: 'cmd-sweep-1' }),
+    );
+    assertInvariants();
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-style',
+        source: 'ai',
+        targetIds: ['hero-heading', 'footer-text'],
+        scope: 'mobile',
+        baseRevision: 0,
+        stylePatch: { color: '#0a0a0a', fontSize: 14 },
+      },
+      authoritative({ commandId: 'cmd-sweep-2' }),
+    );
+    assertInvariants();
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'insert',
+        source: 'code',
+        targetIds: [],
+        scope: 'all',
+        baseRevision: 0,
+        parentId: 'hero-section',
+        index: 1,
+        element: {
+          id: 'sweep-badge',
+          type: 'text',
+          parentId: 'hero-section',
+          childIds: [],
+          content: { base: { text: 'Badge' } },
+          style: { base: {} },
+        },
+      },
+      authoritative({ commandId: 'cmd-sweep-3' }),
+    );
+    assertInvariants();
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'reorder',
+        source: 'canvas',
+        targetIds: ['hero-subtext'],
+        scope: 'all',
+        baseRevision: 0,
+        index: 0,
+      },
+      authoritative({ commandId: 'cmd-sweep-4' }),
+    );
+    assertInvariants();
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'remove',
+        source: 'canvas',
+        targetIds: ['sweep-badge'],
+        scope: 'all',
+        baseRevision: 0,
+      },
+      authoritative({ commandId: 'cmd-sweep-5' }),
+    );
+    assertInvariants();
+
+    replaceYDoc(ydoc, doc());
+    assertInvariants();
+  });
+});
