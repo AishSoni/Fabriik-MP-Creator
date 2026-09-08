@@ -1,11 +1,17 @@
 import * as Y from 'yjs';
+import type { RevisionEntry } from '../types/commands';
 import type {
+  ElementContent,
   ElementId,
+  ElementType,
+  NavContent,
   ScopedContent,
   ScopedStyle,
+  StyleProps,
   TemplateDoc,
   TemplateElement,
 } from '../types/template';
+import type { Viewport } from '../types/viewport';
 import { VIEWPORTS } from '../types/viewport';
 
 export const META_KEY = 'meta';
@@ -32,37 +38,97 @@ export const META_FIELDS = [TEMPLATE_ID_FIELD, TEMPLATE_NAME_FIELD, ROOT_ID_FIEL
 
 export const VIEWPORT_SCOPE_KEYS = VIEWPORTS;
 
-export function getMetaYMap(ydoc: Y.Doc): Y.Map<unknown> {
+export type NavLink = NavContent['links'][number];
+export type StyleLayerValue = StyleProps[keyof StyleProps];
+export type ContentLayerValue = string | string[] | NavLink[];
+export type LayerValue = StyleLayerValue | ContentLayerValue;
+
+export type YValueLayer<V extends LayerValue> = Y.Map<V>;
+export type YScopedLayer<V extends LayerValue> = Y.Map<YValueLayer<V> | Y.Map<YValueLayer<V>>>;
+
+export type YElementField =
+  | ElementId
+  | ElementType
+  | null
+  | Y.Array<ElementId>
+  | YScopedLayer<ContentLayerValue>
+  | YScopedLayer<StyleLayerValue>;
+
+export type YElement = Y.Map<YElementField>;
+
+export type HistoryEntry = Omit<RevisionEntry, 'baseRevision'> & {
+  serverSeq?: number;
+};
+
+export function getMetaYMap(ydoc: Y.Doc): Y.Map<string> {
   return ydoc.getMap(META_KEY);
 }
 
-export function getElementsYMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
+export function getElementsYMap(ydoc: Y.Doc): Y.Map<YElement> {
   return ydoc.getMap(ELEMENTS_KEY);
 }
 
-export function getHistoryYArray(ydoc: Y.Doc): Y.Array<unknown> {
+export function getHistoryYArray(ydoc: Y.Doc): Y.Array<HistoryEntry> {
   return ydoc.getArray(HISTORY_KEY);
 }
 
-export function getElementYMap(ydoc: Y.Doc, id: ElementId): Y.Map<unknown> | undefined {
+export function getElementYMap(ydoc: Y.Doc, id: ElementId): YElement | undefined {
   return getElementsYMap(ydoc).get(id);
 }
 
-function buildScopedLayerYMap(layers: {
-  base: object;
-  overrides?: object;
-}): Y.Map<unknown> {
-  const layer = new Y.Map<unknown>();
-  const base = new Y.Map<unknown>();
+export function readElementId(el: YElement): ElementId {
+  return el.get(ID_FIELD) as ElementId;
+}
+
+export function readElementType(el: YElement): ElementType {
+  return el.get(TYPE_FIELD) as ElementType;
+}
+
+export function readParentId(el: YElement): ElementId | null {
+  return (el.get(PARENT_ID_FIELD) as ElementId | null) ?? null;
+}
+
+export function readChildIdsYArray(el: YElement): Y.Array<ElementId> {
+  return el.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
+}
+
+export function readChildIds(el: YElement): ElementId[] {
+  return readChildIdsYArray(el).toArray();
+}
+
+export function readContentLayer(el: YElement): YScopedLayer<ContentLayerValue> {
+  return el.get(CONTENT_FIELD) as YScopedLayer<ContentLayerValue>;
+}
+
+export function readStyleLayer(el: YElement): YScopedLayer<StyleLayerValue> {
+  return el.get(STYLE_FIELD) as YScopedLayer<StyleLayerValue>;
+}
+
+export function readBaseLayer<V extends LayerValue>(scoped: YScopedLayer<V>): YValueLayer<V> {
+  return scoped.get(BASE_LAYER) as YValueLayer<V>;
+}
+
+export function readOverridesLayers<V extends LayerValue>(
+  scoped: YScopedLayer<V>,
+): Y.Map<YValueLayer<V>> | undefined {
+  return scoped.get(OVERRIDES_LAYER) as Y.Map<YValueLayer<V>> | undefined;
+}
+
+function buildScopedLayerYMap<V extends LayerValue>(layers: {
+  base: Record<string, V>;
+  overrides?: Record<string, Record<string, V>>;
+}): YScopedLayer<V> {
+  const layer = new Y.Map<YValueLayer<V> | Y.Map<YValueLayer<V>>>();
+  const base = new Y.Map<V>();
   for (const [key, value] of Object.entries(layers.base)) {
     base.set(key, value);
   }
   layer.set(BASE_LAYER, base);
   if (layers.overrides) {
-    const overrides = new Y.Map<Y.Map<unknown>>();
+    const overrides = new Y.Map<Y.Map<V>>();
     for (const [viewport, values] of Object.entries(layers.overrides)) {
-      const scoped = new Y.Map<unknown>();
-      for (const [key, value] of Object.entries(values as object)) {
+      const scoped = new Y.Map<V>();
+      for (const [key, value] of Object.entries(values)) {
         scoped.set(key, value);
       }
       overrides.set(viewport, scoped);
@@ -72,20 +138,26 @@ function buildScopedLayerYMap(layers: {
   return layer;
 }
 
-export function buildContentYMap(content: ScopedContent): Y.Map<unknown> {
-  return buildScopedLayerYMap(content);
+export function buildContentYMap(content: ScopedContent): YScopedLayer<ContentLayerValue> {
+  return buildScopedLayerYMap<ContentLayerValue>({
+    base: content.base as Record<string, ContentLayerValue>,
+    overrides: content.overrides as Record<string, Record<string, ContentLayerValue>> | undefined,
+  });
 }
 
-export function buildStyleYMap(style: ScopedStyle): Y.Map<unknown> {
-  return buildScopedLayerYMap(style);
+export function buildStyleYMap(style: ScopedStyle): YScopedLayer<StyleLayerValue> {
+  return buildScopedLayerYMap<StyleLayerValue>({
+    base: style.base as Record<string, StyleLayerValue>,
+    overrides: style.overrides as Record<string, Record<string, StyleLayerValue>> | undefined,
+  });
 }
 
-export function buildElementYMap(element: TemplateElement): Y.Map<unknown> {
-  const ymap = new Y.Map<unknown>();
+export function buildElementYMap(element: TemplateElement): YElement {
+  const ymap = new Y.Map<YElementField>();
   ymap.set(ID_FIELD, element.id);
   ymap.set(TYPE_FIELD, element.type);
   ymap.set(PARENT_ID_FIELD, element.parentId);
-  ymap.set(CHILD_IDS_FIELD, Y.Array.from(element.childIds));
+  ymap.set(CHILD_IDS_FIELD, Y.Array.from<ElementId>(element.childIds));
   ymap.set(CONTENT_FIELD, buildContentYMap(element.content));
   ymap.set(STYLE_FIELD, buildStyleYMap(element.style));
   return ymap;
@@ -113,35 +185,67 @@ export function initializeTemplateYDoc(ydoc: Y.Doc, doc: TemplateDoc): void {
   }, TRANSACTION_ORIGIN);
 }
 
-interface ScopedLayerProjection {
-  base: Record<string, unknown>;
-  overrides?: Record<string, Record<string, unknown>>;
+export interface ScopedLayerJson<V extends LayerValue> {
+  base: Record<string, V>;
+  overrides?: Record<string, Record<string, V>>;
 }
 
-function projectScopedLayer(raw: unknown): ScopedLayerProjection {
-  const layer = raw as Y.Map<unknown>;
-  const baseMap = layer.get(BASE_LAYER) as Y.Map<unknown>;
-  const base = baseMap.toJSON() as Record<string, unknown>;
-  const overridesMap = layer.get(OVERRIDES_LAYER) as Y.Map<Y.Map<unknown>> | undefined;
-  if (!overridesMap || overridesMap.size === 0) {
+export function projectScopedLayerJson<V extends LayerValue>(
+  scoped: YScopedLayer<V>,
+): ScopedLayerJson<V> {
+  const json: ScopedLayerJson<V> = { base: readBaseLayer(scoped).toJSON() };
+  const overridesLayers = readOverridesLayers(scoped);
+  if (!overridesLayers || overridesLayers.size === 0) {
+    return json;
+  }
+  const overrides: Record<string, Record<string, V>> = {};
+  overridesLayers.forEach((layer, viewport) => {
+    overrides[viewport] = layer.toJSON();
+  });
+  json.overrides = overrides;
+  return json;
+}
+
+function projectContentLayer(el: YElement): ScopedContent {
+  const json = projectScopedLayerJson(readContentLayer(el));
+  const base = json.base as ElementContent;
+  if (!json.overrides) {
     return { base };
   }
-  const overrides: Record<string, Record<string, unknown>> = {};
-  overridesMap.forEach((scoped, viewport) => {
-    overrides[viewport] = scoped.toJSON() as Record<string, unknown>;
-  });
+  const overrides: Partial<Record<Viewport, ElementContent>> = {};
+  for (const viewport of VIEWPORT_SCOPE_KEYS) {
+    const scopedJson = json.overrides[viewport];
+    if (scopedJson) {
+      overrides[viewport] = scopedJson as ElementContent;
+    }
+  }
   return { base, overrides };
 }
 
-export function projectElement(ymap: Y.Map<unknown>): TemplateElement {
-  const childIds = ymap.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
+function projectStyleLayer(el: YElement): ScopedStyle {
+  const json = projectScopedLayerJson(readStyleLayer(el));
+  const base = json.base as StyleProps;
+  if (!json.overrides) {
+    return { base };
+  }
+  const overrides: Partial<Record<Viewport, StyleProps>> = {};
+  for (const viewport of VIEWPORT_SCOPE_KEYS) {
+    const scopedJson = json.overrides[viewport];
+    if (scopedJson) {
+      overrides[viewport] = scopedJson as StyleProps;
+    }
+  }
+  return { base, overrides };
+}
+
+export function projectElement(el: YElement): TemplateElement {
   return {
-    id: ymap.get(ID_FIELD) as ElementId,
-    type: ymap.get(TYPE_FIELD) as TemplateElement['type'],
-    parentId: (ymap.get(PARENT_ID_FIELD) as ElementId | null | undefined) ?? null,
-    childIds: childIds.toArray(),
-    content: projectScopedLayer(ymap.get(CONTENT_FIELD)) as unknown as ScopedContent,
-    style: projectScopedLayer(ymap.get(STYLE_FIELD)) as unknown as ScopedStyle,
+    id: readElementId(el),
+    type: readElementType(el),
+    parentId: readParentId(el),
+    childIds: readChildIds(el),
+    content: projectContentLayer(el),
+    style: projectStyleLayer(el),
   };
 }
 
@@ -149,8 +253,8 @@ export function projectDoc(ydoc: Y.Doc): TemplateDoc {
   const meta = getMetaYMap(ydoc);
   const elements = getElementsYMap(ydoc);
   const projected: Record<ElementId, TemplateElement> = {};
-  elements.forEach((ymap, id) => {
-    projected[id] = projectElement(ymap);
+  elements.forEach((el, id) => {
+    projected[id] = projectElement(el);
   });
   return {
     templateId: meta.get(TEMPLATE_ID_FIELD) as string,

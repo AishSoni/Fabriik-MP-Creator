@@ -19,6 +19,12 @@ import {
   getMetaYMap,
   initializeTemplateYDoc,
   projectDoc,
+  readBaseLayer,
+  readChildIds,
+  readChildIdsYArray,
+  readContentLayer,
+  readOverridesLayers,
+  readStyleLayer,
 } from './schema';
 
 const doc = (): TemplateDoc => createDefaultTemplate();
@@ -29,12 +35,12 @@ const ydocOf = (d: TemplateDoc = doc()): Y.Doc => {
   return ydoc;
 };
 
-const bound = (build: () => Y.Map<unknown>): Y.Map<unknown> => {
+const bound = <T>(build: () => T): T => {
   const ydoc = new Y.Doc();
   ydoc.transact(() => {
     ydoc.getMap('tmp').set('e', build());
   });
-  return ydoc.getMap('tmp').get('e') as Y.Map<unknown>;
+  return ydoc.getMap('tmp').get('e') as T;
 };
 
 describe('schema constants', () => {
@@ -57,28 +63,27 @@ describe('builders', () => {
     expect(ymap.get('type')).toBe('heading');
     expect(ymap.get('parentId')).toBe('hero-section');
 
-    const childIds = ymap.get('childIds');
-    expect(childIds).toBeInstanceOf(Y.Array);
-    expect((childIds as Y.Array<string>).toArray()).toEqual([]);
+    expect(readChildIdsYArray(ymap)).toBeInstanceOf(Y.Array);
+    expect(readChildIds(ymap)).toEqual([]);
 
-    const content = ymap.get('content');
+    const content = readContentLayer(ymap);
     expect(content).toBeInstanceOf(Y.Map);
-    const contentBase = (content as Y.Map<unknown>).get(BASE_LAYER);
+    const contentBase = readBaseLayer(content);
     expect(contentBase).toBeInstanceOf(Y.Map);
-    expect((contentBase as Y.Map<unknown>).toJSON()).toEqual(source.content.base);
-    expect((content as Y.Map<unknown>).get(OVERRIDES_LAYER)).toBeUndefined();
+    expect(contentBase.toJSON()).toEqual(source.content.base);
+    expect(readOverridesLayers(content)).toBeUndefined();
 
-    const style = ymap.get('style');
+    const style = readStyleLayer(ymap);
     expect(style).toBeInstanceOf(Y.Map);
-    const styleBase = (style as Y.Map<unknown>).get(BASE_LAYER);
+    const styleBase = readBaseLayer(style);
     expect(styleBase).toBeInstanceOf(Y.Map);
-    expect((styleBase as Y.Map<unknown>).toJSON()).toEqual(source.style.base);
+    expect(styleBase.toJSON()).toEqual(source.style.base);
 
-    const styleOverrides = (style as Y.Map<unknown>).get(OVERRIDES_LAYER);
+    const styleOverrides = readOverridesLayers(style);
     expect(styleOverrides).toBeInstanceOf(Y.Map);
-    const tablet = (styleOverrides as Y.Map<unknown>).get('tablet');
+    const tablet = styleOverrides?.get('tablet');
     expect(tablet).toBeInstanceOf(Y.Map);
-    expect((tablet as Y.Map<unknown>).toJSON()).toEqual({ fontSize: 40 });
+    expect(tablet?.toJSON()).toEqual({ fontSize: 40 });
   });
 
   it('buildElementYMap returns fresh instances on every call', () => {
@@ -86,27 +91,25 @@ describe('builders', () => {
     const a = bound(() => buildElementYMap(source));
     const b = bound(() => buildElementYMap(source));
     expect(a).not.toBe(b);
-    expect((a.get('content') as Y.Map<unknown>).get(BASE_LAYER)).not.toBe(
-      (b.get('content') as Y.Map<unknown>).get(BASE_LAYER),
-    );
+    expect(readBaseLayer(readContentLayer(a))).not.toBe(readBaseLayer(readContentLayer(b)));
   });
 
   it('buildContentYMap omits overrides when absent and keeps empty bases', () => {
     const ymap = bound(() => buildContentYMap({ base: {} }));
-    expect((ymap.get(BASE_LAYER) as Y.Map<unknown>).size).toBe(0);
-    expect(ymap.get(OVERRIDES_LAYER)).toBeUndefined();
+    expect(readBaseLayer(ymap).size).toBe(0);
+    expect(readOverridesLayers(ymap)).toBeUndefined();
   });
 
   it('round-trips nested arrays and object arrays inside content', () => {
     const nav = doc().elements['top-nav'];
     const ymap = bound(() => buildElementYMap(nav));
-    const base = ((ymap.get('content') as Y.Map<unknown>).get(BASE_LAYER) as Y.Map<unknown>).toJSON();
+    const base = readBaseLayer(readContentLayer(ymap)).toJSON();
     expect(base).toEqual(nav.content.base);
   });
 
   it('writes undefined-valued entries verbatim in style layers', () => {
     const ymap = bound(() => buildStyleYMap({ base: { color: undefined, fontSize: 12 } }));
-    const base = ymap.get(BASE_LAYER) as Y.Map<unknown>;
+    const base = readBaseLayer(ymap);
     expect(base.has('color')).toBe(true);
     expect(base.get('color')).toBeUndefined();
     expect(base.get('fontSize')).toBe(12);
@@ -139,8 +142,8 @@ describe('initializeTemplateYDoc', () => {
 
   it('runs inside a single transaction tagged with the adapter origin', () => {
     const ydoc = new Y.Doc();
-    const updates: unknown[] = [];
-    let observedOrigin: unknown = null;
+    const updates: Uint8Array[] = [];
+    let observedOrigin: string | undefined;
     ydoc.on('update', (update: Uint8Array) => updates.push(update));
     ydoc.on('afterTransaction', (transaction: Y.Transaction) => {
       observedOrigin = transaction.origin;

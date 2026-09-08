@@ -1,7 +1,6 @@
 import * as Y from 'yjs';
 import type {
   EditCommand,
-  RevisionEntry,
   RevisionKind,
   StyleSnapshot,
 } from '../types/commands';
@@ -9,13 +8,8 @@ import type { ElementContent, ElementId, TemplateDoc, TemplateElement } from '..
 import { isViewport } from '../types/viewport';
 import type { Scope } from '../types/viewport';
 import {
-  BASE_LAYER,
-  CHILD_IDS_FIELD,
-  CONTENT_FIELD,
   OVERRIDES_LAYER,
-  PARENT_ID_FIELD,
   ROOT_ID_FIELD,
-  STYLE_FIELD,
   TEMPLATE_ID_FIELD,
   TEMPLATE_NAME_FIELD,
   TRANSACTION_ORIGIN,
@@ -24,11 +18,22 @@ import {
   getHistoryYArray,
   getMetaYMap,
   projectElement,
+  readBaseLayer,
+  readChildIdsYArray,
+  readContentLayer,
+  readOverridesLayers,
+  readParentId,
+  readStyleLayer,
+  type ContentLayerValue,
+  type HistoryEntry,
+  type LayerValue,
+  type StyleLayerValue,
+  type YElement,
+  type YScopedLayer,
+  type YValueLayer,
 } from './schema';
 
-export type CollabRevisionEntry = Omit<RevisionEntry, 'baseRevision'> & {
-  serverSeq?: number;
-};
+export type CollabRevisionEntry = HistoryEntry;
 
 export interface ApplyOptions {
   origin: 'optimistic' | 'authoritative';
@@ -51,7 +56,7 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function nullifyStyle(record: Record<string, number | string | undefined>): StyleSnapshot {
+function nullifyStyle(record: Record<string, StyleLayerValue>): StyleSnapshot {
   return Object.fromEntries(
     Object.entries(record).map(([key, value]) => [key, value === undefined ? null : value]),
   );
@@ -80,33 +85,38 @@ function describe(command: EditCommand, kind: RevisionKind): string {
   }
 }
 
-function resolveScopedLayer(layerMap: Y.Map<unknown>, scope: Scope): Y.Map<unknown> {
+function resolveScopedLayer<V extends LayerValue>(
+  scoped: YScopedLayer<V>,
+  scope: Scope,
+): YValueLayer<V> {
   if (!isViewport(scope)) {
-    return layerMap.get(BASE_LAYER) as Y.Map<unknown>;
+    return readBaseLayer(scoped);
   }
-  const overrides = layerMap.get(OVERRIDES_LAYER) as Y.Map<Y.Map<unknown>> | undefined;
+  const overrides = readOverridesLayers(scoped);
   const existing = overrides?.get(scope);
   if (existing) return existing;
-  const created = new Y.Map<unknown>();
+  const created = new Y.Map<V>();
   if (overrides) {
     overrides.set(scope, created);
   } else {
-    const fresh = new Y.Map<Y.Map<unknown>>();
+    const fresh = new Y.Map<Y.Map<V>>();
     fresh.set(scope, created);
-    layerMap.set(OVERRIDES_LAYER, fresh);
+    scoped.set(OVERRIDES_LAYER, fresh);
   }
   return created;
 }
 
-function readScopedLayer(layerMap: Y.Map<unknown>, scope: Scope): unknown {
+function readScopedLayer<V extends LayerValue>(
+  scoped: YScopedLayer<V>,
+  scope: Scope,
+): Record<string, V> | undefined {
   if (!isViewport(scope)) {
-    return (layerMap.get(BASE_LAYER) as Y.Map<unknown>).toJSON();
+    return readBaseLayer(scoped).toJSON();
   }
-  const overrides = layerMap.get(OVERRIDES_LAYER) as Y.Map<Y.Map<unknown>> | undefined;
-  return overrides?.get(scope)?.toJSON();
+  return readOverridesLayers(scoped)?.get(scope)?.toJSON();
 }
 
-function getSubtreeYIds(elements: Y.Map<Y.Map<unknown>>, rootId: ElementId): ElementId[] {
+function getSubtreeYIds(elements: Y.Map<YElement>, rootId: ElementId): ElementId[] {
   const ids: ElementId[] = [];
   const stack: ElementId[] = [rootId];
   while (stack.length > 0) {
@@ -115,8 +125,7 @@ function getSubtreeYIds(elements: Y.Map<Y.Map<unknown>>, rootId: ElementId): Ele
     const ymap = elements.get(current);
     if (!ymap) continue;
     ids.push(current);
-    const childIds = ymap.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
-    const children = childIds.toArray();
+    const children = readChildIdsYArray(ymap).toArray();
     for (let i = children.length - 1; i >= 0; i--) {
       stack.push(children[i]);
     }
@@ -153,10 +162,11 @@ export function applyCommandToYDoc(
         const id = command.targetIds[0];
         const ymap = elements.get(id);
         if (!ymap) break;
-        const contentMap = ymap.get(CONTENT_FIELD) as Y.Map<unknown>;
-        const before = readScopedLayer(contentMap, command.scope) as ElementContent | undefined;
-        const layer = resolveScopedLayer(contentMap, command.scope);
-        for (const [key, value] of Object.entries(command.content)) {
+        const contentLayer = readContentLayer(ymap);
+        const beforeLayer = readScopedLayer(contentLayer, command.scope);
+        const layer = resolveScopedLayer(contentLayer, command.scope);
+        const patch = command.content as Record<string, ContentLayerValue>;
+        for (const [key, value] of Object.entries(patch)) {
           layer.set(key, cloneJson(value));
         }
         record({
@@ -165,8 +175,8 @@ export function applyCommandToYDoc(
           source: command.source,
           kind,
           label,
-          before: { content: cloneJson(before) },
-          after: { content: cloneJson(layer.toJSON()) },
+          before: { content: cloneJson(beforeLayer) as ElementContent | undefined },
+          after: { content: cloneJson(layer.toJSON()) as ElementContent },
         });
         changed.add(id);
         break;
@@ -175,12 +185,13 @@ export function applyCommandToYDoc(
         for (const id of command.targetIds) {
           const ymap = elements.get(id);
           if (!ymap) continue;
-          const styleMap = ymap.get(STYLE_FIELD) as Y.Map<unknown>;
-          const layer = resolveScopedLayer(styleMap, command.scope);
-          const before: Record<string, number | string | undefined> = {};
-          const after: Record<string, number | string | undefined> = {};
-          for (const [key, value] of Object.entries(command.stylePatch)) {
-            before[key] = layer.get(key) as number | string | undefined;
+          const styleLayer = readStyleLayer(ymap);
+          const layer = resolveScopedLayer(styleLayer, command.scope);
+          const patch = command.stylePatch as Record<string, StyleLayerValue>;
+          const before: Record<string, StyleLayerValue> = {};
+          const after: Record<string, StyleLayerValue> = {};
+          for (const [key, value] of Object.entries(patch)) {
+            before[key] = layer.get(key);
             layer.set(key, value);
             after[key] = value;
           }
@@ -201,11 +212,11 @@ export function applyCommandToYDoc(
         const id = command.targetIds[0];
         const ymap = elements.get(id);
         if (!ymap) break;
-        const parentId = ymap.get(PARENT_ID_FIELD) as ElementId | null;
+        const parentId = readParentId(ymap);
         if (!parentId) break;
         const parent = elements.get(parentId);
         if (!parent) break;
-        const childIds = parent.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
+        const childIds = readChildIdsYArray(parent);
         const currentIndex = childIds.toArray().indexOf(id);
         if (currentIndex === -1) break;
         const clamped = Math.max(0, Math.min(command.index, childIds.length - 1));
@@ -233,7 +244,7 @@ export function applyCommandToYDoc(
       case 'insert': {
         const parent = elements.get(command.parentId);
         if (!parent) break;
-        const childIds = parent.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
+        const childIds = readChildIdsYArray(parent);
         const index = Math.max(0, Math.min(command.index, childIds.length));
         const element: TemplateElement = { ...command.element, parentId: command.parentId };
         childIds.insert(index, [element.id]);
@@ -256,17 +267,17 @@ export function applyCommandToYDoc(
         for (const id of command.targetIds) {
           const ymap = elements.get(id);
           if (!ymap) continue;
-          const parentId = ymap.get(PARENT_ID_FIELD) as ElementId | null;
+          const parentId = readParentId(ymap);
           if (!parentId) continue;
           const parent = elements.get(parentId);
           if (!parent) continue;
-          const childIds = parent.get(CHILD_IDS_FIELD) as Y.Array<ElementId>;
+          const childIds = readChildIdsYArray(parent);
           const index = childIds.toArray().indexOf(id);
           if (index === -1) continue;
           const subtreeIds = getSubtreeYIds(elements, id);
           const removedSubtree = subtreeIds
             .map((subId) => elements.get(subId))
-            .filter((sub): sub is Y.Map<unknown> => Boolean(sub))
+            .filter((sub): sub is YElement => Boolean(sub))
             .map((sub) => projectElement(sub));
           childIds.delete(index, 1);
           for (const subId of subtreeIds) {

@@ -506,7 +506,7 @@ describe('atomicity and transaction origin', () => {
 
   it('tags transactions with the adapter origin', () => {
     const ydoc = makeYDoc();
-    let observedOrigin: unknown = null;
+    let observedOrigin: string | undefined;
     ydoc.on('afterTransaction', (transaction: Y.Transaction) => {
       observedOrigin = transaction.origin;
     });
