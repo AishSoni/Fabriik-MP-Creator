@@ -7,11 +7,13 @@ import type { TemplateDoc, TemplateElement } from '../types/template';
 import {
   HISTORY_KEY,
   TRANSACTION_ORIGIN,
+  getHistoryYArray,
   initializeTemplateYDoc,
   projectDoc,
 } from './schema';
-import { applyCommandToYDoc } from './commandAdapter';
+import { applyCommandToYDoc, replaceYDoc } from './commandAdapter';
 import type { ApplyOptions, CollabRevisionEntry } from './commandAdapter';
+import { validateTemplateSemantics } from '../engine/validate';
 
 const doc = (): TemplateDoc => createDefaultTemplate();
 
@@ -574,5 +576,216 @@ describe('atomicity and transaction origin', () => {
       authoritative(),
     );
     expect(removeResult.changedElementIds).toEqual(['tracked-insert', 'hero-section']);
+  });
+});
+
+const makePairedDocs = (): [Y.Doc, Y.Doc] => {
+  const base = new Y.Doc();
+  initializeTemplateYDoc(base, doc());
+  const seed = Y.encodeStateAsUpdate(base);
+  const a = new Y.Doc();
+  const b = new Y.Doc();
+  Y.applyUpdate(a, seed);
+  Y.applyUpdate(b, seed);
+  return [a, b];
+};
+
+const syncPair = (a: Y.Doc, b: Y.Doc, rounds = 2): void => {
+  for (let i = 0; i < rounds; i += 1) {
+    const svA = Y.encodeStateVector(a);
+    const svB = Y.encodeStateVector(b);
+    Y.applyUpdate(a, Y.encodeStateAsUpdate(b, svA));
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a, svB));
+  }
+};
+
+describe('convergence', () => {
+
+  const optimistic = (commandId: string): ApplyOptions => ({
+    origin: 'optimistic',
+    commandId,
+    now: fixedNow,
+  });
+
+  const styleCommand = (color: string): EditCommand => ({
+    kind: 'set-style',
+    source: 'canvas',
+    targetIds: ['hero-heading'],
+    scope: 'all',
+    baseRevision: 0,
+    stylePatch: { color },
+  });
+
+  const contentCommand = (text: string): EditCommand => ({
+    kind: 'set-content',
+    source: 'code',
+    targetIds: ['footer-text'],
+    scope: 'all',
+    baseRevision: 0,
+    content: { text },
+  });
+
+  it('converges when the same commands are applied in different orders', () => {
+    const [a, b] = makePairedDocs();
+
+    applyCommandToYDoc(a, styleCommand('#111111'), optimistic('cmd-a1'));
+    applyCommandToYDoc(a, contentCommand('From A'), optimistic('cmd-a2'));
+    applyCommandToYDoc(b, contentCommand('From A'), optimistic('cmd-b1'));
+    applyCommandToYDoc(b, styleCommand('#111111'), optimistic('cmd-b2'));
+
+    syncPair(a, b);
+
+    expect(projectDoc(a)).toEqual(projectDoc(b));
+  });
+
+  it('merges disjoint edits so both survive', () => {
+    const [a, b] = makePairedDocs();
+
+    applyCommandToYDoc(a, styleCommand('#101010'), optimistic('cmd-a1'));
+    applyCommandToYDoc(b, contentCommand('Disjoint footer'), optimistic('cmd-b1'));
+
+    syncPair(a, b);
+
+    const projected = projectDoc(a);
+    expect(projected).toEqual(projectDoc(b));
+    expect(projected.elements['hero-heading'].style.base.color).toBe('#101010');
+    expect(projected.elements['footer-text'].content.base).toEqual({ text: 'Disjoint footer' });
+  });
+
+  it('resolves concurrent same-key writes to one shared winner', () => {
+    const [a, b] = makePairedDocs();
+
+    applyCommandToYDoc(a, styleCommand('#111111'), optimistic('cmd-a1'));
+    applyCommandToYDoc(b, styleCommand('#222222'), optimistic('cmd-b1'));
+
+    syncPair(a, b);
+
+    const projectedA = projectDoc(a);
+    expect(projectedA).toEqual(projectDoc(b));
+    const winner = projectedA.elements['hero-heading'].style.base.color;
+    expect(['#111111', '#222222']).toContain(winner);
+  });
+
+  it('lets a post-sync write deterministically win the next round', () => {
+    const [a, b] = makePairedDocs();
+
+    applyCommandToYDoc(a, styleCommand('#111111'), optimistic('cmd-a1'));
+    applyCommandToYDoc(b, styleCommand('#222222'), optimistic('cmd-b1'));
+    syncPair(a, b);
+
+    applyCommandToYDoc(b, styleCommand('#333333'), optimistic('cmd-b2'));
+    syncPair(a, b);
+
+    const projectedA = projectDoc(a);
+    expect(projectedA).toEqual(projectDoc(b));
+    expect(projectedA.elements['hero-heading'].style.base.color).toBe('#333333');
+  });
+
+  it('survives a concurrent reorder and remove without throwing or diverging', () => {
+    const [a, b] = makePairedDocs();
+
+    const reorder: EditCommand = {
+      kind: 'reorder',
+      source: 'canvas',
+      targetIds: ['hero-subtext'],
+      scope: 'all',
+      baseRevision: 0,
+      index: 0,
+    };
+    const remove: EditCommand = {
+      kind: 'remove',
+      source: 'canvas',
+      targetIds: ['hero-subtext'],
+      scope: 'all',
+      baseRevision: 0,
+    };
+
+    expect(() => {
+      applyCommandToYDoc(a, reorder, optimistic('cmd-a1'));
+      applyCommandToYDoc(b, remove, optimistic('cmd-b1'));
+      syncPair(a, b);
+    }).not.toThrow();
+
+    expect(projectDoc(a)).toEqual(projectDoc(b));
+  });
+});
+
+describe('replaceYDoc', () => {
+  const replacedDoc = (): TemplateDoc => ({
+    templateId: 'tpl-replaced-v1',
+    templateName: 'Replaced Template',
+    revision: 7,
+    rootId: 'replaced-root',
+    elements: {
+      'replaced-root': {
+        id: 'replaced-root',
+        type: 'section',
+        parentId: null,
+        childIds: ['replaced-heading'],
+        content: { base: {} },
+        style: { base: {} },
+      },
+      'replaced-heading': {
+        id: 'replaced-heading',
+        type: 'heading',
+        parentId: 'replaced-root',
+        childIds: [],
+        content: { base: { text: 'Fresh heading' } },
+        style: { base: { fontSize: '40px' } },
+      },
+    },
+  });
+
+  const seedHistory = (ydoc: Y.Doc): void => {
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-content',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        baseRevision: 0,
+        content: { text: 'Seeded' },
+      },
+      authoritative(),
+    );
+  };
+
+  it('rebuilds elements and meta in one transaction and clears history', () => {
+    const ydoc = makeYDoc();
+    seedHistory(ydoc);
+    expect(getHistoryYArray(ydoc).length).toBeGreaterThan(0);
+
+    let ticks = 0;
+    ydoc.on('afterTransaction', () => {
+      ticks += 1;
+    });
+
+    const result = replaceYDoc(ydoc, replacedDoc());
+
+    expect(ticks).toBe(1);
+    expect(getHistoryYArray(ydoc).length).toBe(0);
+    expect(result.entries).toEqual([]);
+    expect(result.changedElementIds).toEqual(['replaced-root', 'replaced-heading']);
+
+    const projected = projectDoc(ydoc);
+    expect(stripDoc(projected)).toEqual(stripDoc(replacedDoc()));
+    expect(validateTemplateSemantics(projected)).toEqual([]);
+  });
+
+  it('propagates the swap to a synced peer, clearing peer history too', () => {
+    const [a, b] = makePairedDocs();
+    seedHistory(a);
+    seedHistory(b);
+
+    syncPair(a, b);
+
+    replaceYDoc(a, replacedDoc());
+    syncPair(a, b);
+
+    expect(projectDoc(b)).toEqual(projectDoc(a));
+    expect(stripDoc(projectDoc(b))).toEqual(stripDoc(replacedDoc()));
+    expect(getHistoryYArray(b).length).toBe(0);
+    expect(getHistoryYArray(a).length).toBe(0);
   });
 });
