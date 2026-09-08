@@ -731,7 +731,7 @@ describe('replaceYDoc', () => {
         parentId: 'replaced-root',
         childIds: [],
         content: { base: { text: 'Fresh heading' } },
-        style: { base: { fontSize: '40px' } },
+        style: { base: { fontSize: 40 } },
       },
     },
   });

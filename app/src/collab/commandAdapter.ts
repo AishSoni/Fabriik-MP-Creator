@@ -5,7 +5,7 @@ import type {
   RevisionKind,
   StyleSnapshot,
 } from '../types/commands';
-import type { ElementContent, ElementId, TemplateElement } from '../types/template';
+import type { ElementContent, ElementId, TemplateDoc, TemplateElement } from '../types/template';
 import { isViewport } from '../types/viewport';
 import type { Scope } from '../types/viewport';
 import {
@@ -14,11 +14,15 @@ import {
   CONTENT_FIELD,
   OVERRIDES_LAYER,
   PARENT_ID_FIELD,
+  ROOT_ID_FIELD,
   STYLE_FIELD,
+  TEMPLATE_ID_FIELD,
+  TEMPLATE_NAME_FIELD,
   TRANSACTION_ORIGIN,
   buildElementYMap,
   getElementsYMap,
   getHistoryYArray,
+  getMetaYMap,
   projectElement,
 } from './schema';
 
@@ -297,3 +301,25 @@ export function applyCommandToYDoc(
 
   return { entries, changedElementIds: [...changed] };
 }
+
+export const replaceYDoc = (ydoc: Y.Doc, nextDoc: TemplateDoc): ApplyResult => {
+  const entries: CollabRevisionEntry[] = [];
+  const changedElementIds: ElementId[] = [];
+  ydoc.transact(() => {
+    const elements = getElementsYMap(ydoc);
+    for (const existingId of [...elements.keys()]) {
+      elements.delete(existingId);
+    }
+    const history = getHistoryYArray(ydoc);
+    history.delete(0, history.length);
+    const meta = getMetaYMap(ydoc);
+    meta.set(TEMPLATE_ID_FIELD, nextDoc.templateId);
+    meta.set(TEMPLATE_NAME_FIELD, nextDoc.templateName);
+    meta.set(ROOT_ID_FIELD, nextDoc.rootId);
+    for (const element of Object.values(nextDoc.elements)) {
+      elements.set(element.id, buildElementYMap(element));
+    }
+    changedElementIds.push(...Object.keys(nextDoc.elements));
+  }, TRANSACTION_ORIGIN);
+  return { entries, changedElementIds };
+};
