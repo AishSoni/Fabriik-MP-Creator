@@ -108,6 +108,8 @@ export function initializeTemplateYDoc(ydoc: Y.Doc, doc: TemplateDoc): void {
     for (const element of Object.values(doc.elements)) {
       elements.set(element.id, buildElementYMap(element));
     }
+
+    getHistoryYArray(ydoc);
   }, TRANSACTION_ORIGIN);
 }
 
