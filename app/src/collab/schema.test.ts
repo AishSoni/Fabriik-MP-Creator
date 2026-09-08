@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { validateTemplateSemantics } from '../engine/validate';
@@ -29,6 +29,14 @@ const ydocOf = (d: TemplateDoc = doc()): Y.Doc => {
   return ydoc;
 };
 
+const bound = (build: () => Y.Map<unknown>): Y.Map<unknown> => {
+  const ydoc = new Y.Doc();
+  ydoc.transact(() => {
+    ydoc.getMap('tmp').set('e', build());
+  });
+  return ydoc.getMap('tmp').get('e') as Y.Map<unknown>;
+};
+
 describe('schema constants', () => {
   it('exposes the canonical Y.Doc paths and origin tag', () => {
     expect(META_KEY).toBe('meta');
@@ -43,7 +51,7 @@ describe('schema constants', () => {
 describe('builders', () => {
   it('buildElementYMap stores plain fields, a Y.Array for childIds, and nested layer maps', () => {
     const source: TemplateElement = doc().elements['hero-heading'];
-    const ymap = buildElementYMap(source);
+    const ymap = bound(() => buildElementYMap(source));
 
     expect(ymap.get('id')).toBe('hero-heading');
     expect(ymap.get('type')).toBe('heading');
@@ -57,7 +65,7 @@ describe('builders', () => {
     expect(content).toBeInstanceOf(Y.Map);
     const contentBase = (content as Y.Map<unknown>).get(BASE_LAYER);
     expect(contentBase).toBeInstanceOf(Y.Map);
-    expect((contentBase as Y.Map<unknown>).toJSON()).toEqual({ text: source.content.base.text });
+    expect((contentBase as Y.Map<unknown>).toJSON()).toEqual(source.content.base);
     expect((content as Y.Map<unknown>).get(OVERRIDES_LAYER)).toBeUndefined();
 
     const style = ymap.get('style');
@@ -75,23 +83,29 @@ describe('builders', () => {
 
   it('buildElementYMap returns fresh instances on every call', () => {
     const source = doc().elements['hero-heading'];
-    const a = buildElementYMap(source);
-    const b = buildElementYMap(source);
+    const a = bound(() => buildElementYMap(source));
+    const b = bound(() => buildElementYMap(source));
     expect(a).not.toBe(b);
     expect((a.get('content') as Y.Map<unknown>).get(BASE_LAYER)).not.toBe(
       (b.get('content') as Y.Map<unknown>).get(BASE_LAYER),
     );
   });
 
+  it('buildContentYMap omits overrides when absent and keeps empty bases', () => {
+    const ymap = bound(() => buildContentYMap({ base: {} }));
+    expect((ymap.get(BASE_LAYER) as Y.Map<unknown>).size).toBe(0);
+    expect(ymap.get(OVERRIDES_LAYER)).toBeUndefined();
+  });
+
   it('round-trips nested arrays and object arrays inside content', () => {
     const nav = doc().elements['top-nav'];
-    const ymap = buildElementYMap(nav);
+    const ymap = bound(() => buildElementYMap(nav));
     const base = ((ymap.get('content') as Y.Map<unknown>).get(BASE_LAYER) as Y.Map<unknown>).toJSON();
     expect(base).toEqual(nav.content.base);
   });
 
   it('writes undefined-valued entries verbatim in style layers', () => {
-    const ymap = buildStyleYMap({ base: { color: undefined, fontSize: 12 } });
+    const ymap = bound(() => buildStyleYMap({ base: { color: undefined, fontSize: 12 } }));
     const base = ymap.get(BASE_LAYER) as Y.Map<unknown>;
     expect(base.has('color')).toBe(true);
     expect(base.get('color')).toBeUndefined();
