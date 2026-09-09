@@ -32,6 +32,8 @@ import {
   bindTemplatePersistence,
   seedTemplateYdoc,
 } from '../collab/persistence';
+import { newCommandId } from '../collab/ids';
+import { TemplateRoomProvider } from '../collab/provider';
 
 /**
  * History entries move through two shapes during the migration: legacy
@@ -93,13 +95,6 @@ const legacyLog = (log: AnyHistoryLog): HistoryLog =>
     Object.entries(log).map(([id, list]) => [id, list.filter(isLegacyEntry)]),
   );
 
-function newCommandId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `cmd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
-}
-
 function historyFromYdoc(ydoc: Y.Doc): AnyHistoryLog {
   const log: AnyHistoryLog = {};
   for (const entry of getHistoryYArray(ydoc).toArray()) {
@@ -122,7 +117,7 @@ let persistenceReady: Promise<void> = Promise.resolve();
 function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
   if (projector) return projector;
   const created = createTemplateProjector();
-  if (isYdocPipeline()) {
+  if (isYdocPipeline() || isRoomActive()) {
     const bound = bindTemplatePersistence(created.ydoc, DEFAULT_YDOC_DB_NAME, {
       seedDoc: () => useTemplateStore.getState().doc,
       migrateLegacy: true,
@@ -165,6 +160,47 @@ type YApplyResult =
   | { ok: true; before: TemplateDoc; entries: CollabRevisionEntry[] }
   | { ok: false; errors: CommandError[] };
 
+let roomProvider: TemplateRoomProvider | null = null;
+
+export function isRoomActive(): boolean {
+  return roomProvider !== null;
+}
+
+export function getRoomProvider(): TemplateRoomProvider | null {
+  return roomProvider;
+}
+
+export function attachRoomProvider(
+  host: string,
+  room: string,
+  options: { role: 'create' | 'join'; party?: string },
+): TemplateRoomProvider {
+  if (roomProvider) return roomProvider;
+  const ydoc = getTemplateYdoc();
+  if (options.role === 'join') {
+    replaceYDoc(ydoc, {
+      templateId: 'tpl-empty',
+      templateName: 'Untitled',
+      revision: 0,
+      rootId: 'page-root',
+      elements: {},
+    });
+  }
+  const provider = new TemplateRoomProvider(host, room, ydoc, {
+    connect: true,
+    uploadLocal: options.role === 'create',
+    party: options.party,
+  });
+  roomProvider = provider;
+  return provider;
+}
+
+export function detachRoomProvider(): void {
+  if (!roomProvider) return;
+  roomProvider.destroy();
+  roomProvider = null;
+}
+
 /**
  * Validates commands against the live projection (dry-run on an immer
  * scratch doc so a failing sequence leaves the Y.Doc untouched), then
@@ -183,6 +219,12 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
     const errors = validateCommand(scratch, candidate);
     if (errors.length > 0) return { ok: false, errors };
     scratch = applyCommand(scratch, candidate).doc;
+  }
+  if (roomProvider) {
+    for (const raw of commands) {
+      roomProvider.dispatch({ ...raw, baseRevision: before.revision } as EditCommand);
+    }
+    return { ok: true, before, entries: [] };
   }
   const entries: CollabRevisionEntry[] = [];
   for (const raw of commands) {
@@ -207,7 +249,7 @@ export const useTemplateStore = create<TemplateState>()(
       activeTemplateId: FALLBACK_TEMPLATE_ID,
 
       dispatch: (command) => {
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const result = applyToYdoc([command]);
           if (!result.ok) {
             set({ lastErrors: result.errors });
@@ -242,7 +284,7 @@ export const useTemplateStore = create<TemplateState>()(
 
       dispatchMany: (commands) => {
         if (commands.length === 0) return [];
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const result = applyToYdoc(commands);
           if (!result.ok) {
             set({ lastErrors: result.errors });
@@ -286,7 +328,7 @@ export const useTemplateStore = create<TemplateState>()(
       },
 
       restore: (entry) => {
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const inverse = commandsFromRevision(projectDoc(getTemplateYdoc()), entry);
           if (inverse.length === 0) {
             set({
@@ -342,7 +384,15 @@ export const useTemplateStore = create<TemplateState>()(
         if (past.length === 0) return;
         const step = past[past.length - 1];
         const remaining = past.slice(0, -1);
-        if (isYdocPipeline()) {
+        if (isRoomActive()) {
+          set({
+            lastErrors: [
+              { code: 'invalid-target', message: 'Undo is unavailable while sharing a room (P3)' },
+            ],
+          });
+          return;
+        }
+        if (isYdocPipeline() || isRoomActive()) {
           const ydoc = getTemplateYdoc();
           const current = projectDoc(ydoc);
           if (step.revisions.length === 0) {
@@ -402,7 +452,15 @@ export const useTemplateStore = create<TemplateState>()(
         const { doc, history, past, future } = get();
         if (future.length === 0) return;
         const [step, ...rest] = future;
-        if (isYdocPipeline()) {
+        if (isRoomActive()) {
+          set({
+            lastErrors: [
+              { code: 'invalid-target', message: 'Redo is unavailable while sharing a room (P3)' },
+            ],
+          });
+          return;
+        }
+        if (isYdocPipeline() || isRoomActive()) {
           const ydoc = getTemplateYdoc();
           const current = projectDoc(ydoc);
           if (step.revisions.length === 0) {
@@ -543,7 +601,7 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: semanticErrors });
           return semanticErrors;
         }
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, normalized);
           set({
@@ -579,7 +637,7 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: errors });
           return errors;
         }
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, definition.create());
           set({
@@ -607,7 +665,7 @@ export const useTemplateStore = create<TemplateState>()(
         const fresh = (
           getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!
         ).create();
-        if (isYdocPipeline()) {
+        if (isYdocPipeline() || isRoomActive()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, fresh);
           set({

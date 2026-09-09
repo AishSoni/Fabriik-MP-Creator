@@ -36,7 +36,7 @@ import {
 export type CollabRevisionEntry = HistoryEntry;
 
 export interface ApplyOptions {
-  origin: 'optimistic' | 'authoritative';
+  origin: 'optimistic' | 'authoritative' | 'room-optimistic';
   commandId: string;
   serverSeq?: number;
   now?: () => number;
