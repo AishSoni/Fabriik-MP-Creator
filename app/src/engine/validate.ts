@@ -114,7 +114,7 @@ export function normalizeTemplateDoc(raw: z.infer<typeof templateDocSchema>): Te
 export const editCommandSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('set-content'),
-    source: z.enum(['canvas', 'code', 'ai']),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.tuple([z.string().min(1)]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),
@@ -122,7 +122,7 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('set-style'),
-    source: z.enum(['canvas', 'code', 'ai']),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),
@@ -130,7 +130,7 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('reorder'),
-    source: z.enum(['canvas', 'code', 'ai']),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.tuple([z.string().min(1)]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),
@@ -138,7 +138,7 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('insert'),
-    source: z.enum(['canvas', 'code', 'ai']),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string()).max(0),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),
@@ -148,7 +148,7 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('remove'),
-    source: z.enum(['canvas', 'code', 'ai']),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),

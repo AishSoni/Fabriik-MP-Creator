@@ -137,7 +137,7 @@ describe('commandsFromRevision', () => {
         targetIds: ['hero-eyebrow'],
         scope: 'all',
         baseRevision: 0,
-        stylePatch: { fontSize: undefined },
+        stylePatch: { fontSize: undefined, color: '#111111' },
       },
       {
         kind: 'set-style',
