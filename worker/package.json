@@ -1,0 +1,26 @@
+{
+  "name": "fabriik-worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -b",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "lib0": "^0.2.117",
+    "partyserver": "^0.5.10",
+    "y-partyserver": "^2.2.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "oxlint": "^1.79.0",
+    "typescript": "~6.0.2",
+    "wrangler": "4.105.0"
+  }
+}

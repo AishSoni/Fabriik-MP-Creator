@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fabriik-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_als"],
+  "durable_objects": {
+    "bindings": [{ "name": "doc", "class_name": "TemplateDocDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TemplateDocDO"] }],
+  "alias": { "@app/*": "../app/src/*" },
+  "observability": { "enabled": true }
+}
