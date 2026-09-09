@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 import { createDefaultTemplate } from '@app/template/defaultTemplate';
 import { getHistoryYArray, initializeTemplateYDoc, projectDoc } from '@app/collab/schema';
 import { decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
-import { createDedupeSet, decideCommandFrame, processCommand } from './docLoop';
+import { createDedupeSet, decideCommandFrame, dedupeFromEntries, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
 import type { DocLoopState } from './docLoop';
 
 const makeState = (): DocLoopState => {
@@ -153,5 +153,63 @@ describe('doc loop: full wire path', () => {
     });
     run(state, setStyle('cmd-2'));
     expect(observed).toBeGreaterThan(0);
+  });
+});
+
+describe('doc loop meta persistence', () => {
+  it('round-trips state meta through serialize/parse', () => {
+    const state = makeState();
+    run(state, setStyle('cmd-1'));
+    run(state, setStyle('cmd-2'));
+    const parsed = parseDocLoopMeta(JSON.parse(serializeDocLoopMeta(state)));
+    expect(parsed).toEqual({ serverSeq: 2, dedupe: [['cmd-1', 1], ['cmd-2', 2]] });
+  });
+
+  it('returns null for malformed meta', () => {
+    expect(parseDocLoopMeta(null)).toBeNull();
+    expect(parseDocLoopMeta('junk')).toBeNull();
+    expect(parseDocLoopMeta({})).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: -1, dedupe: [] })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1.5, dedupe: [] })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1, dedupe: 'nope' })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1, dedupe: [['a']] })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1, dedupe: [[1, 2]] })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1, dedupe: [['', 2]] })).toBeNull();
+    expect(parseDocLoopMeta({ serverSeq: 1, dedupe: [['a', -3]] })).toBeNull();
+  });
+
+  it('rebuilds a dedupe set from persisted entries', () => {
+    const seen = dedupeFromEntries([['a', 1], ['b', 2]]);
+    expect(seen.get('a')).toBe(1);
+    expect(seen.get('b')).toBe(2);
+    expect(seen.entries()).toEqual([['a', 1], ['b', 2]]);
+  });
+
+  it('respects capacity when rebuilding from entries', () => {
+    const seen = dedupeFromEntries([['a', 1], ['b', 2], ['c', 3]], 2);
+    expect(seen.get('a')).toBeUndefined();
+    expect(seen.entries()).toEqual([['b', 2], ['c', 3]]);
+  });
+
+  it('hydrated state re-acks duplicates with original seq and continues seq numbering', () => {
+    const state = makeState();
+    expect(run(state, setStyle('cmd-1'))).toMatchObject({ serverSeq: 1 });
+    expect(run(state, setStyle('cmd-2'))).toMatchObject({ serverSeq: 2 });
+    const meta = parseDocLoopMeta(JSON.parse(serializeDocLoopMeta(state)));
+    expect(meta).not.toBeNull();
+    if (!meta) throw new Error('unreachable');
+    const snapshot = Y.encodeStateAsUpdate(state.ydoc);
+    const wokeDoc = new Y.Doc();
+    Y.applyUpdate(wokeDoc, snapshot);
+    const wokeState: DocLoopState = {
+      ydoc: wokeDoc,
+      serverSeq: meta.serverSeq,
+      seen: dedupeFromEntries(meta.dedupe),
+    };
+    expect(getHistoryYArray(wokeState.ydoc).length).toBe(2);
+    expect(run(wokeState, setStyle('cmd-1'))).toEqual({ v: 1, type: 'ack', commandId: 'cmd-1', serverSeq: 1 });
+    expect(getHistoryYArray(wokeState.ydoc).length).toBe(2);
+    expect(run(wokeState, setStyle('cmd-3'))).toMatchObject({ serverSeq: 3 });
+    expect(getHistoryYArray(wokeState.ydoc).length).toBe(3);
   });
 });

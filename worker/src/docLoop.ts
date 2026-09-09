@@ -37,6 +37,40 @@ export interface DocLoopState {
   seen: DedupeSet;
 }
 
+export interface DocLoopMeta {
+  serverSeq: number;
+  dedupe: [string, number][];
+}
+
+export function serializeDocLoopMeta(state: DocLoopState): string {
+  return JSON.stringify({ serverSeq: state.serverSeq, dedupe: state.seen.entries() });
+}
+
+function isNonNegativeInt(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+export function parseDocLoopMeta(raw: unknown): DocLoopMeta | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const candidate = raw as { serverSeq?: unknown; dedupe?: unknown };
+  if (!isNonNegativeInt(candidate.serverSeq)) return null;
+  if (!Array.isArray(candidate.dedupe)) return null;
+  const dedupe: [string, number][] = [];
+  for (const entry of candidate.dedupe) {
+    if (!Array.isArray(entry) || entry.length !== 2) return null;
+    const [id, seq] = entry;
+    if (typeof id !== 'string' || id.length === 0 || !isNonNegativeInt(seq)) return null;
+    dedupe.push([id, seq]);
+  }
+  return { serverSeq: candidate.serverSeq, dedupe };
+}
+
+export function dedupeFromEntries(entries: [string, number][], capacity?: number): DedupeSet {
+  const seen = createDedupeSet(capacity);
+  for (const [id, seq] of entries) seen.add(id, seq);
+  return seen;
+}
+
 export type CommandDecision =
   | { action: 'drop' }
   | { action: 'reject'; commandId: string; errors: CommandError[] }

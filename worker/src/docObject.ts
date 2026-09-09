@@ -3,10 +3,12 @@ import { YServer } from 'y-partyserver';
 import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
-import { createDedupeSet, decideCommandFrame, processCommand } from './docLoop';
-import type { DocLoopState } from './docLoop';
+import { decideCommandFrame, dedupeFromEntries, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
+import type { DocLoopMeta, DocLoopState } from './docLoop';
+import type { Env } from './env';
 
 export const SNAPSHOT_KEY = 'snapshot';
+export const META_KEY = 'meta';
 
 function toBytes(message: WSMessage): Uint8Array | null {
   if (typeof message === 'string') return null;
@@ -20,9 +22,23 @@ export class TemplateDocDO extends YServer {
   static options = { hibernate: true };
 
   #state: DocLoopState | null = null;
+  #loadedMeta: DocLoopMeta | null = null;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    (this.document as unknown as {
+      on(name: 'error', f: (err: unknown) => void): void;
+    }).on('error', (err: unknown) => {
+      console.error('[doc] document error event:', err instanceof Error ? err.stack : String(err));
+    });
+  }
 
   #ensureState(): DocLoopState {
-    this.#state ??= { ydoc: this.document, serverSeq: 0, seen: createDedupeSet() };
+    this.#state ??= {
+      ydoc: this.document,
+      serverSeq: this.#loadedMeta?.serverSeq ?? 0,
+      seen: dedupeFromEntries(this.#loadedMeta?.dedupe ?? []),
+    };
     return this.#state;
   }
 
@@ -34,7 +50,17 @@ export class TemplateDocDO extends YServer {
   }
 
   async onLoad(): Promise<Y.Doc | void> {
-    const snapshot = await this.ctx.storage.get<Uint8Array>(SNAPSHOT_KEY);
+    const [snapshot, meta] = await Promise.all([
+      this.ctx.storage.get<Uint8Array>(SNAPSHOT_KEY),
+      this.ctx.storage.get<string>(META_KEY),
+    ]);
+    if (typeof meta === 'string') {
+      try {
+        this.#loadedMeta = parseDocLoopMeta(JSON.parse(meta));
+      } catch {
+        this.#loadedMeta = null;
+      }
+    }
     if (!snapshot) return;
     const doc = new Y.Doc();
     Y.applyUpdate(doc, snapshot);
@@ -44,6 +70,9 @@ export class TemplateDocDO extends YServer {
   async onSave(): Promise<void> {
     const snapshot = Y.encodeStateAsUpdate(this.document);
     await this.ctx.storage.put(SNAPSHOT_KEY, snapshot);
+    if (this.#state) {
+      await this.ctx.storage.put(META_KEY, serializeDocLoopMeta(this.#state));
+    }
   }
 
   override handleMessage(connection: Connection, message: WSMessage): void {

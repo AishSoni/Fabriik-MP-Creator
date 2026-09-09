@@ -8,6 +8,12 @@
     "bindings": [{ "name": "doc", "class_name": "TemplateDocDO" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TemplateDocDO"] }],
-  "alias": { "@app/*": "../app/src/*" },
+  "alias": {
+    "@app/*": "../app/src/*",
+    "yjs": "./node_modules/yjs",
+    "y-protocols": "./node_modules/y-protocols",
+    "lib0": "./node_modules/lib0",
+    "zod": "./node_modules/zod"
+  },
   "observability": { "enabled": true }
 }
