@@ -26,9 +26,10 @@
     "react-dom": "^19.2.8",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.32",
     "zod": "^4.4.3",
-    "zustand": "^5.0.15",
-    "yjs": "^13.6.32"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
@@ -40,6 +41,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "eslint": "^9.18.0",
     "eslint-plugin-readable-tailwind": "^3.0.0",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "oxlint": "^1.79.0",
     "prettier": "^3.4.2",

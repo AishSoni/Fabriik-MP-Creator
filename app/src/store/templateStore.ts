@@ -27,6 +27,11 @@ import {
 } from '../collab/schema';
 import { applyCommandToYDoc, replaceYDoc, type CollabRevisionEntry } from '../collab/commandAdapter';
 import { commandsFromRevision } from '../collab/commands';
+import {
+  DEFAULT_YDOC_DB_NAME,
+  bindTemplatePersistence,
+  seedTemplateYdoc,
+} from '../collab/persistence';
 
 /**
  * History entries move through two shapes during the migration: legacy
@@ -112,11 +117,20 @@ function setTemplateNameOnYdoc(name: string): void {
 }
 
 let projector: TemplateProjector | null = null;
+let persistenceReady: Promise<void> = Promise.resolve();
 
 function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
   if (projector) return projector;
   const created = createTemplateProjector();
-  created.hydrate(seedDoc);
+  if (isYdocPipeline()) {
+    const bound = bindTemplatePersistence(created.ydoc, DEFAULT_YDOC_DB_NAME, {
+      seedDoc: () => useTemplateStore.getState().doc,
+      migrateLegacy: true,
+    });
+    persistenceReady = bound.ready;
+    void bound.ready.catch(() => {});
+  }
+  seedTemplateYdoc(created.ydoc, seedDoc);
   created.subscribe((doc) => {
     useTemplateStore.setState({
       doc,
@@ -127,6 +141,11 @@ function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
   return created;
 }
 
+/** Resolves once the Y.Doc persistence binding finished its initial sync (tests). */
+export function whenTemplatePersistenceReady(): Promise<void> {
+  return persistenceReady;
+}
+
 /** The app Y.Doc backing the Yjs pipeline (creates and hydrates it on demand). */
 export function getTemplateYdoc(): Y.Doc {
   return ensureProjector(useTemplateStore.getState().doc).ydoc;
@@ -134,6 +153,7 @@ export function getTemplateYdoc(): Y.Doc {
 
 /** Destroys the Y.Doc projector singleton (used on reloads and in tests). */
 export function resetYdocPipeline(): void {
+  persistenceReady = Promise.resolve();
   if (!projector) return;
   const ydoc = projector.ydoc;
   projector.destroy();
@@ -612,13 +632,16 @@ export const useTemplateStore = create<TemplateState>()(
       name: 'fabriik-template-v1',
       version: 4,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        doc: state.doc,
-        history: state.history,
-        past: state.past,
-        future: state.future,
-        activeTemplateId: state.activeTemplateId,
-      }),
+      partialize: (state) =>
+        isYdocPipeline()
+          ? {}
+          : {
+              doc: state.doc,
+              history: state.history,
+              past: state.past,
+              future: state.future,
+              activeTemplateId: state.activeTemplateId,
+            },
       migrate: (persisted, version) => {
         const data = persisted as {
           doc?: TemplateDoc;

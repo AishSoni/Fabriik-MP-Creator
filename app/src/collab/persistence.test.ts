@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { createEditorialTemplate } from '../template/defaultTemplate';
+import { createDefaultTemplate } from '../template/defaultTemplate';
 import { getTemplateById } from '../template';
 import { getHistoryYArray, projectDoc } from './schema';
 import { applyCommandToYDoc } from './commandAdapter';
@@ -33,7 +33,7 @@ const landing = (): TemplateDoc => {
   return definition.create();
 };
 
-const editorial = (): TemplateDoc => createEditorialTemplate();
+const editorial = (): TemplateDoc => createDefaultTemplate();
 
 const legacyKey = 'fabriik-template-v1';
 
@@ -53,7 +53,7 @@ const writeLegacyKey = (doc: TemplateDoc): void => {
   );
 };
 
-const styleHeroHeading = (ydoc: Y.Doc, color: string): void => {
+const styleHeroHeading = async (ydoc: Y.Doc, color: string): Promise<void> => {
   applyCommandToYDoc(
     ydoc,
     {
@@ -66,6 +66,7 @@ const styleHeroHeading = (ydoc: Y.Doc, color: string): void => {
     },
     { origin: 'authoritative', commandId: 'cmd-persist-1' },
   );
+  await flush();
 };
 
 const historyOf = (ydoc: Y.Doc): CollabRevisionEntry[] =>
@@ -93,7 +94,7 @@ describe('bindTemplatePersistence', () => {
     seedTemplateYdoc(ydocA, landing());
     await boundA.ready;
     expect(projectDoc(ydocA)).toEqual(landing());
-    styleHeroHeading(ydocA, '#101010');
+    await styleHeroHeading(ydocA, '#101010');
     expect(historyOf(ydocA)).toHaveLength(1);
 
     const ydocB = new Y.Doc();
@@ -148,7 +149,7 @@ describe('bindTemplatePersistence', () => {
     const boundA = bindTemplatePersistence(ydocA, name, { seedDoc: editorial });
     seedTemplateYdoc(ydocA, landing());
     await boundA.ready;
-    styleHeroHeading(ydocA, '#202020');
+    await styleHeroHeading(ydocA, '#202020');
 
     const ydocB = new Y.Doc();
     const boundB = bindTemplatePersistence(ydocB, name, {
