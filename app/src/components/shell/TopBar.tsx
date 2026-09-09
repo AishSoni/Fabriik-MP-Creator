@@ -6,6 +6,18 @@ import { getTemplateById } from '../../template';
 import { getChangedIds } from '../compare/CompareView';
 import { Dropdown } from './Dropdown';
 import { FileMenu } from './FileMenu';
+import {
+  attachRoomProvider,
+  detachRoomProvider,
+  isRoomActive,
+} from '../../store/templateStore';
+import {
+  clearRoomFromUrl,
+  getCollabHost,
+  newRoomId,
+  shareUrlFor,
+  writeRoomToUrl,
+} from '../../collab/room';
 import type { Scope, Viewport } from '../../types/viewport';
 import { cn } from '../../lib/cn';
 import { viewportPillVariants } from '../../lib/variants';
@@ -34,10 +46,16 @@ export function TopBar() {
   const activeTemplateId = useTemplateStore((s) => s.activeTemplateId);
   const loadTemplate = useTemplateStore((s) => s.loadTemplate);
   const doc = useTemplateStore((s) => s.doc);
+  const roomActive = useEditorStore((s) => s.roomActive);
+  const setRoomActive = useEditorStore((s) => s.setRoomActive);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
 
   const handleTemplateSwitch = (nextId: string) => {
+    if (roomActive) {
+      setToastMessage('Template switching is unavailable while sharing a room');
+      return;
+    }
     if (nextId === activeTemplateId) return;
     const definition = TEMPLATES.find((t) => t.id === nextId);
     if (!definition) return;
@@ -46,6 +64,25 @@ export function TopBar() {
     );
     if (!confirmed) return;
     loadTemplate(nextId);
+  };
+
+  const handleShare = () => {
+    if (isRoomActive()) {
+      if (!window.confirm('Leave the shared room? You will keep your current edits locally.')) return;
+      detachRoomProvider();
+      clearRoomFromUrl();
+      setRoomActive(false);
+      setToastMessage('Left the shared room');
+      return;
+    }
+    const room = newRoomId();
+    attachRoomProvider(getCollabHost(), room, { role: 'create' });
+    writeRoomToUrl(room);
+    setRoomActive(true);
+    void navigator.clipboard
+      ?.writeText(shareUrlFor(room))
+      ?.catch(() => {});
+    setToastMessage('Room created — invite link copied');
   };
 
   const scopeOptions: { id: Scope; label: string }[] = [
@@ -388,6 +425,28 @@ export function TopBar() {
       <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
+          onClick={handleShare}
+          data-testid="share-button"
+          title={roomActive ? 'Leave the shared room' : 'Share this template as a live room'}
+          className={cn(
+            'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]',
+            roomActive
+              ? 'border-accent bg-accent text-white shadow-[0_4px_12px_rgba(120,104,230,0.3)]'
+              : darkMode
+                ? 'border-ink-muted bg-surface-dark-raised text-paper hover:border-[#3A3A40] hover:bg-surface-dark-muted'
+                : 'border-stone bg-surface text-ink hover:border-stone-2 hover:bg-paper shadow-sm',
+          )}
+        >
+          <span
+            className={cn(
+              'h-1.5 w-1.5 rounded-full',
+              roomActive ? 'animate-pulse bg-white' : 'bg-emerald-500',
+            )}
+          />
+          {roomActive ? 'Sharing' : 'Share'}
+        </button>
+        <button
+          type="button"
           onClick={undo}
           disabled={!canUndo}
           aria-label="Undo last change"
@@ -488,6 +547,10 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => {
+            if (isRoomActive()) {
+              setToastMessage('Reset is unavailable while sharing a room');
+              return;
+            }
             if (window.confirm('Reset the template and all history to its original state?')) resetDoc();
           }}
           className={cn(

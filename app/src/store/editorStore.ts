@@ -12,6 +12,7 @@ interface EditorState {
   rightPanelTab: RightPanelTab;
   darkMode: boolean;
   isCompareOpen: boolean;
+  roomActive: boolean;
   toastMessage: string | null;
   setActiveViewport: (viewport: Viewport) => void;
   setEditScope: (scope: Scope) => void;
@@ -24,7 +25,7 @@ interface EditorState {
   setDarkMode: (darkMode: boolean) => void;
   setCompareOpen: (open: boolean) => void;
   setToastMessage: (message: string | null) => void;
-}
+  setRoomActive: (active: boolean) => void;}
 
 export const useEditorStore = create<EditorState>()(
   persist(
@@ -35,6 +36,7 @@ export const useEditorStore = create<EditorState>()(
       rightPanelTab: 'properties',
       darkMode: true,
       isCompareOpen: false,
+      roomActive: false,
       toastMessage: null,
       setActiveViewport: (activeViewport) => set({ activeViewport }),
       setEditScope: (editScope) => set({ editScope }),
@@ -52,6 +54,7 @@ export const useEditorStore = create<EditorState>()(
       setDarkMode: (darkMode) => set({ darkMode }),
       setCompareOpen: (isCompareOpen) => set({ isCompareOpen }),
       setToastMessage: (toastMessage) => set({ toastMessage }),
+      setRoomActive: (roomActive) => set({ roomActive }),
     }),
     {
       name: 'fabriik-editor-v1',

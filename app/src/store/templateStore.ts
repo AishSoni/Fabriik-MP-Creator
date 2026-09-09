@@ -34,6 +34,7 @@ import {
 } from '../collab/persistence';
 import { newCommandId } from '../collab/ids';
 import { TemplateRoomProvider } from '../collab/provider';
+import { resolveIdentityName } from '../collab/room';
 
 /**
  * History entries move through two shapes during the migration: legacy
@@ -191,6 +192,7 @@ export function attachRoomProvider(
     uploadLocal: options.role === 'create',
     party: options.party,
   });
+  provider.awareness.setLocalStateField('user', { name: resolveIdentityName() });
   roomProvider = provider;
   return provider;
 }

@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useEditorStore } from '../../store/editorStore';
-import { useTemplateStore } from '../../store/templateStore';
+import { useTemplateStore, isRoomActive } from '../../store/templateStore';
 import { exportTemplateJson, parseTemplateJson } from '../../engine/exportTemplate';
 import { exportHtml } from '../../engine/exportHtml';
 import { downloadFile, slugifyFileName } from '../../lib/download';
@@ -56,6 +56,14 @@ export function FileMenu() {
     const parsed = parseTemplateJson(text);
     if (!parsed.ok) {
       useTemplateStore.setState({ lastErrors: parsed.errors });
+      return;
+    }
+    if (isRoomActive()) {
+      useTemplateStore.setState({
+        lastErrors: [
+          { code: 'invalid-target', message: 'Import is unavailable while sharing a room (P3)' },
+        ],
+      });
       return;
     }
     close();
