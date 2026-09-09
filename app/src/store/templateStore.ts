@@ -19,11 +19,13 @@ import { getTemplateById } from '../template';
 import { isYdocPipeline } from '../collab/flag';
 import { createTemplateProjector, type TemplateProjector } from '../collab/project';
 import {
+  TEMPLATE_NAME_FIELD,
   getHistoryYArray,
+  getMetaYMap,
   initializeTemplateYDoc,
   projectDoc,
 } from '../collab/schema';
-import { applyCommandToYDoc, type CollabRevisionEntry } from '../collab/commandAdapter';
+import { applyCommandToYDoc, replaceYDoc, type CollabRevisionEntry } from '../collab/commandAdapter';
 import { commandsFromRevision } from '../collab/commands';
 
 /**
@@ -99,6 +101,14 @@ function historyFromYdoc(ydoc: Y.Doc): AnyHistoryLog {
     (log[entry.elementId] ??= []).push(entry);
   }
   return log;
+}
+
+/** Renames the template inside the Y doc meta so the projection stays in sync. */
+function setTemplateNameOnYdoc(name: string): void {
+  const ydoc = getTemplateYdoc();
+  ydoc.transact(() => {
+    getMetaYMap(ydoc).set(TEMPLATE_NAME_FIELD, name);
+  });
 }
 
 let projector: TemplateProjector | null = null;
@@ -467,6 +477,7 @@ export const useTemplateStore = create<TemplateState>()(
           if (commands.length === 0) {
             // Name-only change with no diff commands: still a single undoable step.
             const { doc, past } = get();
+            if (isYdocPipeline()) setTemplateNameOnYdoc(normalized.templateName);
             set({
               doc: { ...doc, templateName: normalized.templateName },
               past: pushSnapshot(past, { doc, revisions: [] }),
@@ -474,6 +485,7 @@ export const useTemplateStore = create<TemplateState>()(
             });
           } else {
             // Fold the rename into the same undo step pushed by dispatchMany.
+            if (isYdocPipeline()) setTemplateNameOnYdoc(normalized.templateName);
             set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
           }
         }
@@ -511,6 +523,19 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: semanticErrors });
           return semanticErrors;
         }
+        if (isYdocPipeline()) {
+          const ydoc = getTemplateYdoc();
+          replaceYDoc(ydoc, normalized);
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: [],
+            future: [],
+            activeTemplateId: normalized.templateId,
+            lastErrors: [],
+          });
+          return null;
+        }
         set({
           doc: normalized,
           history: {},
@@ -534,6 +559,19 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: errors });
           return errors;
         }
+        if (isYdocPipeline()) {
+          const ydoc = getTemplateYdoc();
+          replaceYDoc(ydoc, definition.create());
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: [],
+            future: [],
+            activeTemplateId: definition.id,
+            lastErrors: [],
+          });
+          return null;
+        }
         set({
           doc: definition.create(),
           history: {},
@@ -546,8 +584,23 @@ export const useTemplateStore = create<TemplateState>()(
       },
 
       resetDoc: () => {
+        const fresh = (
+          getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!
+        ).create();
+        if (isYdocPipeline()) {
+          const ydoc = getTemplateYdoc();
+          replaceYDoc(ydoc, fresh);
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: [],
+            future: [],
+            lastErrors: [],
+          });
+          return;
+        }
         set({
-          doc: (getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!).create(),
+          doc: fresh,
           history: {},
           past: [],
           future: [],
