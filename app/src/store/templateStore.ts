@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type * as Y from 'yjs';
 import type { EditCommand, HistoryLog, RevisionEntry } from '../types/commands';
-import type { TemplateDoc } from '../types/template';
+import type { ElementId, TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
-import { commitCommand, appendRevisions } from '../engine/commit';
+import { commitCommand, appendRevisions, applyCommand } from '../engine/commit';
 import { restoreRevision, invertRevisionGroup } from '../engine/restore';
 import {
   validateCommand,
@@ -15,6 +16,24 @@ import {
 import { diffDocs } from '../engine/diffCommands';
 import { createEditorialTemplate } from '../template/editorialTemplate';
 import { getTemplateById } from '../template';
+import { isYdocPipeline } from '../collab/flag';
+import { createTemplateProjector, type TemplateProjector } from '../collab/project';
+import {
+  getHistoryYArray,
+  initializeTemplateYDoc,
+  projectDoc,
+} from '../collab/schema';
+import { applyCommandToYDoc, type CollabRevisionEntry } from '../collab/commandAdapter';
+import { commandsFromRevision } from '../collab/commands';
+
+/**
+ * History entries move through two shapes during the migration: legacy
+ * RevisionEntry (immer pipeline, carries baseRevision) and CollabRevisionEntry
+ * (Yjs pipeline, no baseRevision, optional serverSeq). The store accepts both;
+ * legacy code paths narrow back via the `'baseRevision' in entry` guard.
+ */
+export type AnyRevisionEntry = RevisionEntry | CollabRevisionEntry;
+export type AnyHistoryLog = Record<ElementId, AnyRevisionEntry[]>;
 
 /**
  * One atomic undo step. `doc` is the document before the step (fallback for
@@ -24,19 +43,19 @@ import { getTemplateById } from '../template';
  */
 interface UndoStep {
   doc: TemplateDoc;
-  revisions: RevisionEntry[];
+  revisions: AnyRevisionEntry[];
 }
 
 interface TemplateState {
   doc: TemplateDoc;
-  history: HistoryLog;
+  history: AnyHistoryLog;
   past: UndoStep[];
   future: UndoStep[];
   lastErrors: CommandError[];
   activeTemplateId: string;
   dispatch: (command: EditCommand) => CommandError[];
   dispatchMany: (commands: EditCommand[]) => CommandError[];
-  restore: (entry: RevisionEntry) => void;
+  restore: (entry: AnyRevisionEntry) => void;
   undo: () => void;
   redo: () => void;
   replaceDoc: (doc: unknown) => CommandError[];
@@ -45,7 +64,7 @@ interface TemplateState {
   resetDoc: () => void;
 }
 
-const initialHistory: HistoryLog = {};
+const initialHistory: AnyHistoryLog = {};
 const FALLBACK_TEMPLATE_ID = 'tpl-editorial-v1';
 
 /** Maximum number of undo steps kept in memory and persisted. */
@@ -56,6 +75,95 @@ function pushSnapshot(
   snapshot: UndoStep,
 ): UndoStep[] {
   return [...past, snapshot].slice(-MAX_UNDO_STEPS);
+}
+
+const isLegacyEntry = (entry: AnyRevisionEntry): entry is RevisionEntry =>
+  'baseRevision' in entry;
+
+/** Narrow a mixed history log for the legacy immer pipeline (identity on legacy logs). */
+const legacyLog = (log: AnyHistoryLog): HistoryLog =>
+  Object.fromEntries(
+    Object.entries(log).map(([id, list]) => [id, list.filter(isLegacyEntry)]),
+  );
+
+function newCommandId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `cmd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function historyFromYdoc(ydoc: Y.Doc): AnyHistoryLog {
+  const log: AnyHistoryLog = {};
+  for (const entry of getHistoryYArray(ydoc).toArray()) {
+    (log[entry.elementId] ??= []).push(entry);
+  }
+  return log;
+}
+
+let projector: TemplateProjector | null = null;
+
+function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
+  if (projector) return projector;
+  const created = createTemplateProjector();
+  created.hydrate(seedDoc);
+  created.subscribe((doc) => {
+    useTemplateStore.setState({
+      doc,
+      history: historyFromYdoc(created.ydoc),
+    });
+  });
+  projector = created;
+  return created;
+}
+
+/** The app Y.Doc backing the Yjs pipeline (creates and hydrates it on demand). */
+export function getTemplateYdoc(): Y.Doc {
+  return ensureProjector(useTemplateStore.getState().doc).ydoc;
+}
+
+/** Destroys the Y.Doc projector singleton (used on reloads and in tests). */
+export function resetYdocPipeline(): void {
+  if (!projector) return;
+  const ydoc = projector.ydoc;
+  projector.destroy();
+  projector = null;
+  ydoc.destroy();
+}
+
+type YApplyResult =
+  | { ok: true; before: TemplateDoc; entries: CollabRevisionEntry[] }
+  | { ok: false; errors: CommandError[] };
+
+/**
+ * Validates commands against the live projection (dry-run on an immer
+ * scratch doc so a failing sequence leaves the Y.Doc untouched), then
+ * applies them all authoritatively. Returns the pre-apply projection and
+ * every history entry the batch appended.
+ */
+function applyToYdoc(commands: EditCommand[]): YApplyResult {
+  if (commands.length === 0) {
+    return { ok: true, before: projectDoc(getTemplateYdoc()), entries: [] };
+  }
+  const ydoc = getTemplateYdoc();
+  const before = projectDoc(ydoc);
+  let scratch = before;
+  for (const raw of commands) {
+    const candidate = { ...raw, baseRevision: scratch.revision };
+    const errors = validateCommand(scratch, candidate);
+    if (errors.length > 0) return { ok: false, errors };
+    scratch = applyCommand(scratch, candidate).doc;
+  }
+  const entries: CollabRevisionEntry[] = [];
+  for (const raw of commands) {
+    const stamped = { ...raw, baseRevision: before.revision };
+    const result = applyCommandToYDoc(ydoc, stamped, {
+      origin: 'authoritative',
+      commandId: newCommandId(),
+    });
+    entries.push(...result.entries);
+  }
+  return { ok: true, before, entries };
 }
 
 export const useTemplateStore = create<TemplateState>()(
@@ -69,13 +177,29 @@ export const useTemplateStore = create<TemplateState>()(
       activeTemplateId: FALLBACK_TEMPLATE_ID,
 
       dispatch: (command) => {
+        if (isYdocPipeline()) {
+          const result = applyToYdoc([command]);
+          if (!result.ok) {
+            set({ lastErrors: result.errors });
+            return result.errors;
+          }
+          const ydoc = getTemplateYdoc();
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
+            future: [],
+            lastErrors: [],
+          });
+          return [];
+        }
         const { doc, history, past } = get();
         const errors = validateCommand(doc, command);
         if (errors.length > 0) {
           set({ lastErrors: errors });
           return errors;
         }
-        const result = commitCommand(doc, history, command);
+        const result = commitCommand(doc, legacyLog(history), command);
         set({
           doc: result.doc,
           history: result.history,
@@ -88,11 +212,27 @@ export const useTemplateStore = create<TemplateState>()(
 
       dispatchMany: (commands) => {
         if (commands.length === 0) return [];
+        if (isYdocPipeline()) {
+          const result = applyToYdoc(commands);
+          if (!result.ok) {
+            set({ lastErrors: result.errors });
+            return result.errors;
+          }
+          const ydoc = getTemplateYdoc();
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
+            future: [],
+            lastErrors: [],
+          });
+          return [];
+        }
         const { doc, history, past } = get();
         const snapshotDoc = doc;
         const allRevisions: RevisionEntry[] = [];
         let currentDoc = doc;
-        let currentHistory = history;
+        let currentHistory: HistoryLog = legacyLog(history);
         for (const rawCommand of commands) {
           const command = { ...rawCommand, baseRevision: currentDoc.revision } as EditCommand;
           const errors = validateCommand(currentDoc, command);
@@ -116,6 +256,35 @@ export const useTemplateStore = create<TemplateState>()(
       },
 
       restore: (entry) => {
+        if (isYdocPipeline()) {
+          const inverse = commandsFromRevision(projectDoc(getTemplateYdoc()), entry);
+          if (inverse.length === 0) {
+            set({
+              lastErrors: [
+                {
+                  code: 'invalid-target',
+                  message: `cannot restore revision ${entry.id}: original location no longer exists`,
+                },
+              ],
+            });
+            return;
+          }
+          const result = applyToYdoc(inverse);
+          if (!result.ok) {
+            set({ lastErrors: result.errors });
+            return;
+          }
+          const ydoc = getTemplateYdoc();
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
+            future: [],
+            lastErrors: [],
+          });
+          return;
+        }
+        if (!isLegacyEntry(entry)) return;
         const { doc, history, past } = get();
         const result = restoreRevision(doc, entry);
         if (!result.revision) {
@@ -131,7 +300,7 @@ export const useTemplateStore = create<TemplateState>()(
         }
         set({
           doc: result.doc,
-          history: appendRevisions(history, [result.revision]),
+          history: appendRevisions(legacyLog(history), [result.revision]),
           past: pushSnapshot(past, { doc, revisions: [result.revision] }),
           future: [],
           lastErrors: [],
@@ -143,6 +312,40 @@ export const useTemplateStore = create<TemplateState>()(
         if (past.length === 0) return;
         const step = past[past.length - 1];
         const remaining = past.slice(0, -1);
+        if (isYdocPipeline()) {
+          const ydoc = getTemplateYdoc();
+          const current = projectDoc(ydoc);
+          if (step.revisions.length === 0) {
+            // Revision-less snapshot step (e.g. template rename): rebuild the
+            // Y doc from the snapshot in one transaction; history is preserved.
+            initializeTemplateYDoc(ydoc, step.doc);
+            set({
+              doc: projectDoc(ydoc),
+              history: historyFromYdoc(ydoc),
+              past: remaining,
+              future: [{ doc: current, revisions: [] }, ...future].slice(-MAX_UNDO_STEPS),
+              lastErrors: [],
+            });
+            return;
+          }
+          const inverse: EditCommand[] = [];
+          for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
+            inverse.push(...commandsFromRevision(current, step.revisions[i]));
+          }
+          const result = applyToYdoc(inverse);
+          if (!result.ok) {
+            set({ lastErrors: result.errors });
+            return;
+          }
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: remaining,
+            future: [{ doc: result.before, revisions: result.entries }, ...future].slice(-MAX_UNDO_STEPS),
+            lastErrors: [],
+          });
+          return;
+        }
         if (step.revisions.length === 0) {
           // Revision-less step (e.g. template rename): fall back to the
           // snapshot without touching the append-only history.
@@ -154,10 +357,11 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        const result = invertRevisionGroup(doc, step.revisions);
+        const legacyRevisions = step.revisions.filter(isLegacyEntry);
+        const result = invertRevisionGroup(doc, legacyRevisions);
         set({
           doc: result.doc,
-          history: appendRevisions(history, result.revisions),
+          history: appendRevisions(legacyLog(history), result.revisions),
           past: remaining,
           future: [{ doc, revisions: result.revisions }, ...future].slice(-MAX_UNDO_STEPS),
           lastErrors: [],
@@ -168,6 +372,38 @@ export const useTemplateStore = create<TemplateState>()(
         const { doc, history, past, future } = get();
         if (future.length === 0) return;
         const [step, ...rest] = future;
+        if (isYdocPipeline()) {
+          const ydoc = getTemplateYdoc();
+          const current = projectDoc(ydoc);
+          if (step.revisions.length === 0) {
+            initializeTemplateYDoc(ydoc, step.doc);
+            set({
+              doc: projectDoc(ydoc),
+              history: historyFromYdoc(ydoc),
+              past: pushSnapshot(past, { doc: current, revisions: [] }),
+              future: rest,
+              lastErrors: [],
+            });
+            return;
+          }
+          const inverse: EditCommand[] = [];
+          for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
+            inverse.push(...commandsFromRevision(current, step.revisions[i]));
+          }
+          const result = applyToYdoc(inverse);
+          if (!result.ok) {
+            set({ lastErrors: result.errors });
+            return;
+          }
+          set({
+            doc: projectDoc(ydoc),
+            history: historyFromYdoc(ydoc),
+            past: pushSnapshot(past, { doc: result.before, revisions: result.entries }),
+            future: rest,
+            lastErrors: [],
+          });
+          return;
+        }
         if (step.revisions.length === 0) {
           set({
             doc: { ...step.doc, revision: doc.revision + 1 },
@@ -177,10 +413,11 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        const result = invertRevisionGroup(doc, step.revisions);
+        const legacyRevisions = step.revisions.filter(isLegacyEntry);
+        const result = invertRevisionGroup(doc, legacyRevisions);
         set({
           doc: result.doc,
-          history: appendRevisions(history, result.revisions),
+          history: appendRevisions(legacyLog(history), result.revisions),
           past: pushSnapshot(past, { doc, revisions: result.revisions }),
           future: rest,
           lastErrors: [],

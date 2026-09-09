@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useTemplateStore } from '../../store/templateStore';
+import { useTemplateStore, type AnyRevisionEntry } from '../../store/templateStore';
 import { useEditorStore } from '../../store/editorStore';
-import type { RevisionEntry } from '../../types/commands';
 import { cn } from '../../lib/cn';
 import { historyBadgeVariants } from '../../lib/variants';
 
@@ -24,8 +23,12 @@ export function HistoryPanel() {
   const [filterSelected, setFilterSelected] = useState(false);
 
   const entries = useMemo(() => {
-    const all: RevisionEntry[] = Object.values(history).flat();
-    all.sort((a, b) => b.timestamp - a.timestamp || b.baseRevision - a.baseRevision);
+    const all: AnyRevisionEntry[] = Object.values(history).flat();
+    // Yjs entries carry serverSeq instead of baseRevision, so the tiebreak
+    // reads whichever sequence marker the entry shape provides.
+    const seqOf = (entry: AnyRevisionEntry): number =>
+      'baseRevision' in entry ? entry.baseRevision : entry.serverSeq ?? 0;
+    all.sort((a, b) => b.timestamp - a.timestamp || seqOf(b) - seqOf(a));
     if (!filterSelected || selectedIds.length === 0) return all;
     return all.filter((entry) => selectedIds.includes(entry.elementId));
   }, [history, filterSelected, selectedIds]);
@@ -108,9 +111,11 @@ export function HistoryPanel() {
                 >
                   {entry.elementId}
                 </button>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${darkMode ? 'bg-surface/5 text-muted-dark' : 'bg-paper text-muted border border-stone'}`}>
-                  rev {entry.baseRevision}
-                </span>
+                {'baseRevision' in entry && (
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${darkMode ? 'bg-surface/5 text-muted-dark' : 'bg-paper text-muted border border-stone'}`}>
+                    rev {entry.baseRevision}
+                  </span>
+                )}
               </div>
               <div className={`mt-2 truncate text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted-strong'}`}>
                 <span className="font-medium">{entry.label}</span>
