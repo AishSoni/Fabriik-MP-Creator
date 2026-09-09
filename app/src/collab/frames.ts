@@ -87,7 +87,12 @@ export function encodeControlFrame(frame: ControlFramePayload): Uint8Array {
   return bytes;
 }
 
-export function decodeControlFrame(bytes: Uint8Array): ControlFrame | null {
+export interface ControlEnvelope {
+  tag: number;
+  data: unknown;
+}
+
+export function decodeControlEnvelope(bytes: Uint8Array): ControlEnvelope | null {
   if (bytes.length < 1) return null;
   const tag = bytes[0];
   if (
@@ -98,12 +103,17 @@ export function decodeControlFrame(bytes: Uint8Array): ControlFrame | null {
   ) {
     return null;
   }
-  let data: unknown;
   try {
-    data = JSON.parse(textDecoder.decode(bytes.subarray(1)));
+    return { tag, data: JSON.parse(textDecoder.decode(bytes.subarray(1))) };
   } catch {
     return null;
   }
+}
+
+export function decodeControlFrame(bytes: Uint8Array): ControlFrame | null {
+  const envelope = decodeControlEnvelope(bytes);
+  if (!envelope) return null;
+  const { tag, data } = envelope;
   switch (tag) {
     case TAG_COMMAND: {
       const parsed = commandFrameSchema.safeParse(data);

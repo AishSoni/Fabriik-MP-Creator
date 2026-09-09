@@ -73,6 +73,20 @@ const scopedContentShape = {
   overrides: viewportRecord(elementContentSchema).optional(),
 };
 
+const scopedContentStrictShape = {
+  base: elementContentSchema,
+  overrides: viewportRecord(elementContentSchema).optional(),
+};
+
+const insertElementSchema = z.strictObject({
+  id: z.string().min(1),
+  type: elementTypeSchema,
+  parentId: z.string().nullable(),
+  childIds: z.array(z.string()),
+  content: z.strictObject(scopedContentStrictShape),
+  style: scopedStyleSchema,
+});
+
 export const templateElementSchema = z.strictObject({
   id: z.string().min(1),
   type: elementTypeSchema,
@@ -139,12 +153,12 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('insert'),
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
-    targetIds: z.array(z.string()).max(0),
+    targetIds: z.tuple([]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
     baseRevision: z.number().int().nonnegative(),
     parentId: z.string().min(1),
     index: z.number().int().nonnegative(),
-    element: templateElementSchema,
+    element: insertElementSchema,
   }),
   z.strictObject({
     kind: z.literal('remove'),

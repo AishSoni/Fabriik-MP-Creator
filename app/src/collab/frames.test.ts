@@ -10,6 +10,7 @@ import {
   frameTagFor,
 } from './frames';
 import type { AckFrame, CommandFrame, NoticeFrame, RejectFrame } from './frames';
+import { decodeControlEnvelope } from './frames';
 
 const textEncoder = new TextEncoder();
 const json = (payload: unknown) =>
@@ -101,6 +102,14 @@ describe('control frames', () => {
       const decoded = decodeControlFrame(encodeControlFrame({ ...rejectFrame, errors }));
       expect(decoded?.frame).toMatchObject({ errors: [{ code, message: `x ${code}` }] });
     }
+  });
+
+  it('exposes raw envelopes for the DO gate to decide on', () => {
+    const envelope = decodeControlEnvelope(encodeControlFrame(reorderFrame));
+    expect(envelope).toEqual({ tag: TAG_COMMAND, data: reorderFrame });
+    expect(decodeControlEnvelope(new Uint8Array([TAG_COMMAND, ...textEncoder.encode('{oops')]))).toBeNull();
+    expect(decodeControlEnvelope(new Uint8Array([0, 1]))).toBeNull();
+    expect(decodeControlEnvelope(new Uint8Array())).toBeNull();
   });
 
   it('returns null for non-control tags (yjs sync passthrough)', () => {
