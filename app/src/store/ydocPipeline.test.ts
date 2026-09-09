@@ -333,3 +333,155 @@ describe('flag OFF keeps the legacy pipeline', () => {
     expect(state().past).toHaveLength(1);
   });
 });
+
+describe('YDoc pipeline whole-doc ops', () => {
+  const importedDoc = () => ({
+    templateId: 'tpl-imported-v1',
+    templateName: 'Imported Template',
+    revision: 7,
+    rootId: 'imported-root',
+    elements: {
+      'imported-root': {
+        id: 'imported-root',
+        type: 'section',
+        parentId: null,
+        childIds: ['imported-heading'],
+        content: { base: {} },
+        style: { base: {} },
+      },
+      'imported-heading': {
+        id: 'imported-heading',
+        type: 'heading',
+        parentId: 'imported-root',
+        childIds: [],
+        content: { base: { text: 'Imported heading' } },
+        style: { base: { fontSize: 40 } },
+      },
+    },
+  });
+
+  it('loadTemplate swaps the Y doc atomically and clears history', async () => {
+    dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: ['hero-heading'],
+      scope: 'all',
+      content: { text: 'Before swap' },
+    });
+    expect(totalYEntries()).toBe(1);
+
+    const errors = state().loadTemplate('tpl-editorial-v1');
+    expect(errors).toBeNull();
+    expect(state().activeTemplateId).toBe('tpl-editorial-v1');
+    expect(state().doc.templateId).toBe('tpl-editorial-v1');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+    expect(totalGrouped()).toBe(0);
+    expect(state().past).toHaveLength(0);
+    expect(state().future).toHaveLength(0);
+
+    await flushMicrotasks();
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+  });
+
+  it('loadTemplate with an unknown id reports errors without touching the Y doc', () => {
+    const before = state().doc;
+    const errors = state().loadTemplate('tpl-nope-v1');
+    expect(errors?.[0].code).toBe('unknown-element');
+    expect(state().doc).toBe(before);
+    expect(projectDoc(getTemplateYdoc())).toEqual(before);
+    expect(state().past).toHaveLength(0);
+  });
+
+  it('importDoc adopts a valid doc through replaceYDoc and clears history', () => {
+    const errors = state().importDoc(importedDoc());
+    expect(errors).toBeNull();
+    expect(state().activeTemplateId).toBe('tpl-imported-v1');
+    expect(state().doc.templateId).toBe('tpl-imported-v1');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+    expect(state().past).toHaveLength(0);
+    expect(state().future).toHaveLength(0);
+  });
+
+  it('importDoc rejects an invalid doc without touching the Y doc', () => {
+    const before = state().doc;
+    const errors = state().importDoc({ templateId: 'broken' });
+    expect(errors?.length).toBeGreaterThan(0);
+    expect(state().doc).toBe(before);
+    expect(projectDoc(getTemplateYdoc())).toEqual(before);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+  });
+
+  it('resetDoc rebuilds the active template and clears history', () => {
+    dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: ['hero-heading'],
+      scope: 'all',
+      content: { text: 'Dirtied' },
+    });
+    state().resetDoc();
+    expect(textOf('hero-heading')).toBe('Main Hero Message to Sell Yourself!');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+    expect(state().past).toHaveLength(0);
+    expect(state().activeTemplateId).toBe('tpl-landing-v1');
+  });
+
+  it('replaceDoc folds the diff and rename into one undoable step with the Y doc in sync', () => {
+    const originalName = state().doc.templateName;
+    const candidate = JSON.parse(JSON.stringify(state().doc)) as Record<string, unknown>;
+    const elements = (candidate.elements as Record<string, { content: { base: { text: string } } }>);
+    candidate.templateName = 'Renamed Landing';
+    elements['hero-heading'].content.base.text = 'Coded headline';
+
+    const errors = state().replaceDoc(candidate);
+    expect(errors).toEqual([]);
+    expect(state().doc.templateName).toBe('Renamed Landing');
+    expect(textOf('hero-heading')).toBe('Coded headline');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+    expect(state().past).toHaveLength(1);
+    expect(totalYEntries()).toBe(1);
+
+    state().undo();
+    expect(textOf('hero-heading')).toBe('Main Hero Message to Sell Yourself!');
+    expect(state().doc.templateName).toBe('Renamed Landing');
+
+    state().redo();
+    expect(textOf('hero-heading')).toBe('Coded headline');
+    expect(state().doc.templateName).toBe('Renamed Landing');
+    expect(originalName).not.toBe('Renamed Landing');
+  });
+
+  it('replaceDoc with a name-only change is a revision-less undoable step', () => {
+    getTemplateYdoc();
+    const originalName = state().doc.templateName;
+    const candidate = JSON.parse(JSON.stringify(state().doc)) as Record<string, unknown>;
+    candidate.templateName = 'Just Renamed';
+
+    const errors = state().replaceDoc(candidate);
+    expect(errors).toEqual([]);
+    expect(state().doc.templateName).toBe('Just Renamed');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+    expect(state().past).toHaveLength(1);
+    expect(totalYEntries()).toBe(0);
+
+    state().undo();
+    expect(state().doc.templateName).toBe(originalName);
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+
+    state().redo();
+    expect(state().doc.templateName).toBe('Just Renamed');
+    expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
+  });
+
+  it('replaceDoc rejects an invalid doc without touching the Y doc', () => {
+    const before = state().doc;
+    const errors = state().replaceDoc({ nope: true });
+    expect(errors?.[0].code).toBe('invalid-payload');
+    expect(state().doc).toBe(before);
+    expect(projectDoc(getTemplateYdoc())).toEqual(before);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+  });
+});
