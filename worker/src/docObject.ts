@@ -86,7 +86,9 @@ export class TemplateDocDO extends YServer {
           return;
         }
         const response = processCommand(this.#ensureState(), decision);
-        if (response) connection.send(encodeControlFrame(response));
+        if (response) {
+          connection.send(encodeControlFrame(response));
+        }
         return;
       }
       return;
