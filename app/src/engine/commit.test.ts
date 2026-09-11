@@ -23,6 +23,19 @@ describe('resolution', () => {
 });
 
 describe('commitCommand', () => {
+  it('records entries without baseRevision', () => {
+    const result = commitCommand(doc(), {}, {
+      kind: 'set-style',
+      source: 'canvas',
+      targetIds: ['hero-heading'],
+      scope: 'all',
+      stylePatch: { color: '#ff0000' },
+    });
+    for (const entry of result.revisions) {
+      expect('baseRevision' in entry).toBe(false);
+    }
+  });
+
   it('bumps revision and records one revision per affected element', () => {
     let d = doc();
     let history: HistoryLog = {};
