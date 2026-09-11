@@ -1,4 +1,4 @@
-import type { ElementContent, ElementId, StylePatch, StyleProps, TemplateElement } from './template';
+import type { ElementContent, ElementId, StylePatch, StyleProps, TemplateDoc, TemplateElement } from './template';
 import type { Scope } from './viewport';
 
 export type EditSource = 'canvas' | 'code' | 'ai' | 'restore';
@@ -58,13 +58,31 @@ export interface RenameCommand {
   templateName: string;
 }
 
+export type ReplaceDocReason = 'import' | 'load-template' | 'reset';
+
+/**
+ * Room-scoped whole-document op (HLD §4.3): replaces the authoritative doc for
+ * every peer in one transaction and clears shared history. The payload must be
+ * a normalized document (content.base present); `by` is a display-only hint.
+ */
+export interface ReplaceDocCommand {
+  kind: 'replace-doc';
+  source: EditSource;
+  targetIds: [];
+  scope: 'all';
+  reason: ReplaceDocReason;
+  doc: TemplateDoc;
+  by?: string;
+}
+
 export type EditCommand =
   | SetContentCommand
   | SetStyleCommand
   | ReorderCommand
   | InsertCommand
   | RemoveCommand
-  | RenameCommand;
+  | RenameCommand
+  | ReplaceDocCommand;
 
 export type StyleSnapshot = Partial<Record<keyof StyleProps, number | string | null>>;
 

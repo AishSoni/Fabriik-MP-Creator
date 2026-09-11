@@ -93,6 +93,8 @@ function describe(cmd: EditCommand, kind: RevisionKind): string {
       return `element removed (${kind})`;
     case 'rename':
       return `template renamed (${kind})`;
+    case 'replace-doc':
+      return `document replaced (${kind})`;
   }
 }
 
@@ -243,6 +245,13 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
       }
       case 'rename': {
         draft.templateName = command.templateName;
+        break;
+      }
+      case 'replace-doc': {
+        draft.templateId = command.doc.templateId;
+        draft.templateName = command.doc.templateName;
+        draft.rootId = command.doc.rootId;
+        draft.elements = JSON.parse(JSON.stringify(command.doc.elements));
         break;
       }
     }

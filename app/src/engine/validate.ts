@@ -104,6 +104,23 @@ export const templateDocSchema = z.strictObject({
   elements: z.record(z.string(), templateElementSchema),
 });
 
+/**
+ * Wire-shape document used by the room-scoped `replace-doc` command: unlike
+ * `templateDocSchema` (deliberately loose for import normalization), every
+ * element must already carry `content.base` so `z.infer` stays exactly
+ * `TemplateDoc`.
+ */
+export const strictTemplateDocSchema = z.strictObject({
+  templateId: z.string().min(1),
+  templateName: z.string(),
+  revision: z.number().int().nonnegative(),
+  rootId: z.string().min(1),
+  elements: z.record(z.string(), insertElementSchema),
+});
+
+/** Untrusted replacement payloads are rejected past this element count. */
+export const MAX_REPLACE_DOC_ELEMENTS = 1000;
+
 export function normalizeTemplateDoc(raw: z.infer<typeof templateDocSchema>): TemplateDoc {
   return {
     templateId: raw.templateId,
@@ -168,6 +185,15 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     targetIds: z.tuple([]),
     scope: z.literal('all'),
     templateName: z.string().trim().min(1).max(120),
+  }),
+  z.strictObject({
+    kind: z.literal('replace-doc'),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
+    targetIds: z.tuple([]),
+    scope: z.literal('all'),
+    reason: z.enum(['import', 'load-template', 'reset']),
+    doc: strictTemplateDocSchema,
+    by: z.string().max(64).optional(),
   }),
 ]);
 
@@ -303,6 +329,19 @@ export function validateCommand(
       break;
     }
     case 'rename': {
+      break;
+    }
+    case 'replace-doc': {
+      const elementCount = Object.keys(cmd.doc.elements).length;
+      if (elementCount > MAX_REPLACE_DOC_ELEMENTS) {
+        errors.push(
+          err(
+            'invalid-payload',
+            `replace-doc carries ${elementCount} elements (max ${MAX_REPLACE_DOC_ELEMENTS})`,
+          ),
+        );
+      }
+      errors.push(...validateTemplateSemantics(cmd.doc));
       break;
     }
   }

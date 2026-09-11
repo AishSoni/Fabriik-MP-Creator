@@ -84,6 +84,8 @@ function describe(command: EditCommand, kind: RevisionKind): string {
       return `element removed (${kind})`;
     case 'rename':
       return `template renamed (${kind})`;
+    case 'replace-doc':
+      return `document replaced (${kind})`;
   }
 }
 
@@ -309,6 +311,12 @@ export function applyCommandToYDoc(
         getMetaYMap(ydoc).set(TEMPLATE_NAME_FIELD, command.templateName);
         break;
       }
+      case 'replace-doc': {
+        for (const id of replaceYDocInTransaction(ydoc, command.doc)) {
+          changed.add(id);
+        }
+        break;
+      }
     }
 
     if (opts.origin === 'authoritative' && entries.length > 0) {
@@ -319,24 +327,34 @@ export function applyCommandToYDoc(
   return { entries, changedElementIds: [...changed] };
 }
 
-export const replaceYDoc = (ydoc: Y.Doc, nextDoc: TemplateDoc): ApplyResult => {
-  const entries: CollabRevisionEntry[] = [];
+/**
+ * Replaces every element plus meta and clears history inside the caller's
+ * transaction. Shared by the standalone `replaceYDoc` tool and the
+ * `replace-doc` command so both swap the document atomically.
+ */
+function replaceYDocInTransaction(ydoc: Y.Doc, nextDoc: TemplateDoc): ElementId[] {
   const changedElementIds: ElementId[] = [];
+  const elements = getElementsYMap(ydoc);
+  for (const existingId of [...elements.keys()]) {
+    elements.delete(existingId);
+  }
+  const history = getHistoryYArray(ydoc);
+  history.delete(0, history.length);
+  const meta = getMetaYMap(ydoc);
+  meta.set(TEMPLATE_ID_FIELD, nextDoc.templateId);
+  meta.set(TEMPLATE_NAME_FIELD, nextDoc.templateName);
+  meta.set(ROOT_ID_FIELD, nextDoc.rootId);
+  for (const element of Object.values(nextDoc.elements)) {
+    elements.set(element.id, buildElementYMap(element));
+  }
+  changedElementIds.push(...Object.keys(nextDoc.elements));
+  return changedElementIds;
+}
+
+export const replaceYDoc = (ydoc: Y.Doc, nextDoc: TemplateDoc): ApplyResult => {
+  let changedElementIds: ElementId[] = [];
   ydoc.transact(() => {
-    const elements = getElementsYMap(ydoc);
-    for (const existingId of [...elements.keys()]) {
-      elements.delete(existingId);
-    }
-    const history = getHistoryYArray(ydoc);
-    history.delete(0, history.length);
-    const meta = getMetaYMap(ydoc);
-    meta.set(TEMPLATE_ID_FIELD, nextDoc.templateId);
-    meta.set(TEMPLATE_NAME_FIELD, nextDoc.templateName);
-    meta.set(ROOT_ID_FIELD, nextDoc.rootId);
-    for (const element of Object.values(nextDoc.elements)) {
-      elements.set(element.id, buildElementYMap(element));
-    }
-    changedElementIds.push(...Object.keys(nextDoc.elements));
+    changedElementIds = replaceYDocInTransaction(ydoc, nextDoc);
   }, TRANSACTION_ORIGIN);
-  return { entries, changedElementIds };
+  return { entries: [], changedElementIds };
 };
