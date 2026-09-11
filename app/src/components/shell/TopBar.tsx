@@ -54,10 +54,6 @@ export function TopBar() {
   const [scopeOpen, setScopeOpen] = useState(false);
 
   const handleTemplateSwitch = (nextId: string) => {
-    if (roomActive) {
-      setToastMessage('Template switching is unavailable while sharing a room');
-      return;
-    }
     if (nextId === activeTemplateId) return;
     const definition = TEMPLATES.find((t) => t.id === nextId);
     if (!definition) return;
@@ -550,10 +546,6 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => {
-            if (isRoomActive()) {
-              setToastMessage('Reset is unavailable while sharing a room');
-              return;
-            }
             if (window.confirm('Reset the template and all history to its original state?')) resetDoc();
           }}
           className={cn(

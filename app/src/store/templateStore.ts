@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as Y from 'yjs';
-import type { EditCommand, HistoryLog, RevisionEntry } from '../types/commands';
+import type {
+  EditCommand,
+  HistoryLog,
+  ReplaceDocCommand,
+  ReplaceDocReason,
+  RevisionEntry,
+} from '../types/commands';
 import type { ElementId, TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
 import { commitCommand, appendRevisions } from '../engine/commit';
@@ -119,6 +125,34 @@ function setTemplateNameOnYdoc(name: string): void {
   });
 }
 
+/** Routes a template rename through the room when connected, else the Y doc meta. */
+function applyTemplateName(name: string): void {
+  if (isRoomActive()) {
+    getRoomProvider()?.dispatch({
+      kind: 'rename',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      templateName: name,
+    });
+    return;
+  }
+  if (isYdocPipeline()) setTemplateNameOnYdoc(name);
+}
+
+/** A whole-doc replacement command forwarded to the room authority. */
+function roomReplace(reason: ReplaceDocReason, doc: TemplateDoc): ReplaceDocCommand {
+  return {
+    kind: 'replace-doc',
+    source: 'code',
+    targetIds: [],
+    scope: 'all',
+    reason,
+    doc,
+    by: resolveIdentity().name,
+  };
+}
+
 let projector: TemplateProjector | null = null;
 let persistenceReady: Promise<void> = Promise.resolve();
 
@@ -135,9 +169,13 @@ function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
   }
   seedTemplateYdoc(created.ydoc, seedDoc);
   created.subscribe((doc) => {
+    const previous = useTemplateStore.getState();
+    const replaced = previous.doc.templateId !== doc.templateId;
     useTemplateStore.setState({
       doc,
       history: historyFromYdoc(created.ydoc),
+      activeTemplateId: doc.templateId,
+      ...(replaced ? { past: [], future: [] } : {}),
     });
   });
   projector = created;
@@ -260,7 +298,7 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
   }
   if (roomProvider) {
     for (const raw of commands) {
-      roomProvider.dispatch(raw);
+      roomProvider.dispatch(raw, { optimistic: raw.kind !== 'replace-doc' });
     }
     return { ok: true, before, entries: [] };
   }
@@ -591,7 +629,7 @@ export const useTemplateStore = create<TemplateState>()(
           if (commands.length === 0) {
             // Name-only change with no diff commands: still a single undoable step.
             const { doc, past } = get();
-            if (isYdocPipeline()) setTemplateNameOnYdoc(normalized.templateName);
+            applyTemplateName(normalized.templateName);
             set({
               doc: { ...doc, templateName: normalized.templateName },
               past: pushSnapshot(past, { doc, revisions: [] }),
@@ -599,7 +637,7 @@ export const useTemplateStore = create<TemplateState>()(
             });
           } else {
             // Fold the rename into the same undo step pushed by dispatchMany.
-            if (isYdocPipeline()) setTemplateNameOnYdoc(normalized.templateName);
+            applyTemplateName(normalized.templateName);
             set((state) => ({ doc: { ...state.doc, templateName: normalized.templateName } }));
           }
         }
@@ -637,7 +675,16 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: semanticErrors });
           return semanticErrors;
         }
-        if (isYdocPipeline() || isRoomActive()) {
+        if (isRoomActive()) {
+          const confirmed = window.confirm(
+            `Import "${normalized.templateName}"? This will replace the document for everyone in this room.`,
+          );
+          if (!confirmed) return null;
+          getRoomProvider()?.dispatch(roomReplace('import', normalized), { optimistic: false });
+          set({ lastErrors: [] });
+          return null;
+        }
+        if (isYdocPipeline()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, normalized);
           set({
@@ -673,7 +720,18 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: errors });
           return errors;
         }
-        if (isYdocPipeline() || isRoomActive()) {
+        if (isRoomActive()) {
+          const confirmed = window.confirm(
+            `Switch everyone in this room to "${definition.name}"? This will replace the document for everyone.`,
+          );
+          if (!confirmed) return null;
+          getRoomProvider()?.dispatch(roomReplace('load-template', definition.create()), {
+            optimistic: false,
+          });
+          set({ lastErrors: [] });
+          return null;
+        }
+        if (isYdocPipeline()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, definition.create());
           set({
@@ -701,7 +759,16 @@ export const useTemplateStore = create<TemplateState>()(
         const fresh = (
           getTemplateById(get().activeTemplateId) ?? getTemplateById(FALLBACK_TEMPLATE_ID)!
         ).create();
-        if (isYdocPipeline() || isRoomActive()) {
+        if (isRoomActive()) {
+          const confirmed = window.confirm(
+            `Reset the document for everyone in this room to "${fresh.templateName}"?`,
+          );
+          if (!confirmed) return;
+          getRoomProvider()?.dispatch(roomReplace('reset', fresh), { optimistic: false });
+          set({ lastErrors: [] });
+          return;
+        }
+        if (isYdocPipeline()) {
           const ydoc = getTemplateYdoc();
           replaceYDoc(ydoc, fresh);
           set({

@@ -49,6 +49,15 @@ export interface TemplateRoomProviderOptions {
   party?: string;
 }
 
+export interface RoomDispatchOptions {
+  /**
+   * When false the frame is sent without a local apply; the projection waits
+   * for the authoritative broadcast (used by whole-doc replace commands,
+   * which clear history and must not be undone by client rollback).
+   */
+  optimistic?: boolean;
+}
+
 export class TemplateRoomProvider extends YPartyserverProvider {
   readonly pending = new Map<string, { frame: OutgoingFrame }>();
   readonly queue: OutgoingFrame[] = [];
@@ -118,12 +127,14 @@ export class TemplateRoomProvider extends YPartyserverProvider {
   }
 
   /** Applies the command optimistically and sends (or queues) the frame. */
-  dispatch(command: EditCommand): string {
+  dispatch(command: EditCommand, options: RoomDispatchOptions = {}): string {
     const commandId = newCommandId();
-    applyCommandToYDoc(this.doc, command, {
-      origin: OPTIMISTIC_ORIGIN,
-      commandId,
-    });
+    if (options.optimistic !== false) {
+      applyCommandToYDoc(this.doc, command, {
+        origin: OPTIMISTIC_ORIGIN,
+        commandId,
+      });
+    }
     const frame: OutgoingFrame = { v: 1, commandId, command };
     this.pending.set(commandId, { frame });
     this.sendOrQueue(frame);
