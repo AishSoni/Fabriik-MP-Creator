@@ -115,7 +115,17 @@ export function HistoryPanel() {
                 <span className="mx-1.5 opacity-40">·</span>
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${darkMode ? 'bg-surface/5 text-stone' : 'bg-ink text-white'}`}>{entry.scope}</span>
               </div>
-              <div className={`mt-1 text-[11px] tabular-nums ${darkMode ? 'text-muted' : 'text-muted-dark'}`}>{new Date(entry.timestamp).toLocaleString()}</div>
+              <div className={`mt-1 flex items-center gap-1.5 text-[11px] tabular-nums ${darkMode ? 'text-muted' : 'text-muted-dark'}`}>
+                <span>{new Date(entry.timestamp).toLocaleString()}</span>
+                {entry.serverSeq !== undefined && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold ${darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-surface-muted text-muted-strong'}`}
+                    title="Server sequence"
+                  >
+                    #{entry.serverSeq}
+                  </span>
+                )}
+              </div>
             </div>
             <button
               type="button"
