@@ -3,7 +3,7 @@ import type { EditCommand } from '@app/types/commands';
 import type { CommandError } from '@app/engine/validate';
 import { zodErrorToCommandErrors } from '@app/engine/validate';
 import { commandFrameSchema } from '@app/collab/frames';
-import type { AckFrame, RejectFrame } from '@app/collab/frames';
+import type { AckFrame, NoticeFrame, RejectFrame } from '@app/collab/frames';
 import { applyCommandToYDoc, projectDoc, validateCommand } from './validate';
 
 export const DEDUPE_CAPACITY = 512;
@@ -94,9 +94,30 @@ export function decideCommandFrame(data: unknown): CommandDecision {
 
 export type CommandResponse = AckFrame | RejectFrame;
 
+export const MAX_NOTICE_AUTHOR_LENGTH = 64;
+
+export function sanitizeNoticeAuthor(by: string | undefined): string {
+  if (typeof by !== 'string') return 'Someone';
+  const cleaned = by.replace(/\p{C}/gu, '').trim();
+  if (cleaned.length === 0) return 'Someone';
+  return cleaned.slice(0, MAX_NOTICE_AUTHOR_LENGTH);
+}
+
+export function noticeForCommand(command: EditCommand): NoticeFrame | null {
+  if (command.kind !== 'replace-doc') return null;
+  return {
+    v: 1,
+    type: 'notice',
+    event: 'room-replaced',
+    reason: command.reason,
+    by: sanitizeNoticeAuthor(command.by),
+  };
+}
+
 export function processCommand(
   state: DocLoopState,
   decision: CommandDecision,
+  onApplied?: (command: EditCommand) => void,
 ): CommandResponse | null {
   if (decision.action === 'drop') return null;
   if (decision.action === 'reject') {
@@ -119,5 +140,6 @@ export function processCommand(
   });
   state.serverSeq = serverSeq;
   state.seen.add(commandId, serverSeq);
+  onApplied?.(command);
   return { v: 1, type: 'ack', commandId, serverSeq };
 }

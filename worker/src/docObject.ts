@@ -3,7 +3,7 @@ import { YServer } from 'y-partyserver';
 import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
-import { decideCommandFrame, dedupeFromEntries, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
+import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
 import type { Env } from './env';
 
@@ -85,7 +85,14 @@ export class TemplateDocDO extends YServer {
           console.warn('[doc] dropped malformed command frame');
           return;
         }
-        const response = processCommand(this.#ensureState(), decision);
+        const response = processCommand(this.#ensureState(), decision, (command) => {
+          const notice = noticeForCommand(command);
+          if (!notice) return;
+          const bytes = encodeControlFrame(notice);
+          for (const peer of this.getConnections()) {
+            peer.send(bytes);
+          }
+        });
         if (response) {
           connection.send(encodeControlFrame(response));
         }
