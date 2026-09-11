@@ -91,6 +91,8 @@ function describe(cmd: EditCommand, kind: RevisionKind): string {
       return `element inserted (${kind})`;
     case 'remove':
       return `element removed (${kind})`;
+    case 'rename':
+      return `template renamed (${kind})`;
   }
 }
 
@@ -237,6 +239,10 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
             },
           });
         }
+        break;
+      }
+      case 'rename': {
+        draft.templateName = command.templateName;
         break;
       }
     }

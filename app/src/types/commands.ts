@@ -46,12 +46,25 @@ export interface RemoveCommand {
   scope: Scope;
 }
 
+/**
+ * Room-scoped metadata op: renames the template for every peer. It carries no
+ * element targets, so it can never enter the element history log.
+ */
+export interface RenameCommand {
+  kind: 'rename';
+  source: EditSource;
+  targetIds: [];
+  scope: 'all';
+  templateName: string;
+}
+
 export type EditCommand =
   | SetContentCommand
   | SetStyleCommand
   | ReorderCommand
   | InsertCommand
-  | RemoveCommand;
+  | RemoveCommand
+  | RenameCommand;
 
 export type StyleSnapshot = Partial<Record<keyof StyleProps, number | string | null>>;
 

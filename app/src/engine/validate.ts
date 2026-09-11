@@ -162,6 +162,13 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
   }),
+  z.strictObject({
+    kind: z.literal('rename'),
+    source: z.enum(['canvas', 'code', 'ai', 'restore']),
+    targetIds: z.tuple([]),
+    scope: z.literal('all'),
+    templateName: z.string().trim().min(1).max(120),
+  }),
 ]);
 
 export type CommandErrorCode =
@@ -293,6 +300,9 @@ export function validateCommand(
       if (cmd.targetIds.includes(doc.rootId)) {
         errors.push(err('forbidden-field', 'the page root cannot be removed'));
       }
+      break;
+    }
+    case 'rename': {
       break;
     }
   }

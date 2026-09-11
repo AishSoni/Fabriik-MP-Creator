@@ -82,6 +82,8 @@ function describe(command: EditCommand, kind: RevisionKind): string {
       return `element inserted (${kind})`;
     case 'remove':
       return `element removed (${kind})`;
+    case 'rename':
+      return `template renamed (${kind})`;
   }
 }
 
@@ -301,6 +303,10 @@ export function applyCommandToYDoc(
           changed.add(id);
           changed.add(parentId);
         }
+        break;
+      }
+      case 'rename': {
+        getMetaYMap(ydoc).set(TEMPLATE_NAME_FIELD, command.templateName);
         break;
       }
     }
