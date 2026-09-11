@@ -165,6 +165,42 @@ describe('YDoc pipeline dispatch', () => {
     expect(textOf('footer-text')).toBe('Batch two');
   });
 
+  it('rejects a batch whose later command fails and leaves the Y doc untouched', () => {
+    const before = state().doc;
+    const yEntriesBefore = totalYEntries();
+
+    const errors = state().dispatchMany([
+      {
+        kind: 'remove',
+        source: 'canvas',
+        targetIds: ['feature-card-1'],
+        scope: 'all',
+        baseRevision: 0,
+      },
+      {
+        kind: 'set-content',
+        source: 'canvas',
+        targetIds: ['feature-1-title'],
+        scope: 'all',
+        baseRevision: 0,
+        content: { text: 'Ghost after remove' },
+      },
+    ]);
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].code).toBe('unknown-element');
+    expect(state().doc).toBe(before);
+    expect(state().doc.elements['feature-card-1']).toBeDefined();
+    expect(state().doc.elements['feature-1-title'].content.base).toEqual({
+      text: 'Modular elements',
+    });
+    expect(totalYEntries()).toBe(yEntriesBefore);
+    expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+    expect(state().past).toHaveLength(0);
+    expect(state().future).toHaveLength(0);
+    expect(state().lastErrors).toEqual(errors);
+  });
+
   it('treats a multi-element command as one atomic undo step', () => {
     dispatch({
       kind: 'set-style',
