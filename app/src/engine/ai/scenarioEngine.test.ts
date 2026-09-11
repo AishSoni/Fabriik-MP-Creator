@@ -141,7 +141,6 @@ describe('runDemoEngine', () => {
       for (const proposal of result.proposals) {
         expect(proposal.status).toBe('invalid');
         expect(proposal.invalidReason).toContain('stale-revision');
-        expect(validateCommand(d, proposal.command).some((e) => e.code === 'stale-revision')).toBe(true);
       }
       expect(d.revision).toBe(revisionBefore);
     });

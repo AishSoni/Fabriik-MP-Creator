@@ -10,7 +10,6 @@ export const TAG_NOTICE = 103;
 const commandErrorCodes = [
   'invalid-payload',
   'unknown-element',
-  'stale-revision',
   'invalid-target',
   'id-collision',
   'forbidden-field',

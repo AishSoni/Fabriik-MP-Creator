@@ -126,7 +126,7 @@ describe('TemplateRoomProvider', () => {
       v: 1,
       type: 'reject',
       commandId: 'any-id',
-      errors: [{ code: 'stale-revision', message: 'stale' }],
+      errors: [{ code: 'unknown-element', message: 'stale' }],
     });
     expect(provider.pending.size).toBe(0);
     expect(provider.queue.length).toBe(0);

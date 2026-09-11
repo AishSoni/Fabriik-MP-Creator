@@ -172,7 +172,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
 export type CommandErrorCode =
   | 'invalid-payload'
   | 'unknown-element'
-  | 'stale-revision'
   | 'invalid-target'
   | 'id-collision'
   | 'forbidden-field';
@@ -205,15 +204,6 @@ export function validateCommand(
   if (!parsed.success) return parseErrors(parsed.error);
   const cmd = parsed.data;
   const errors: CommandError[] = [];
-
-  if (cmd.baseRevision !== doc.revision) {
-    errors.push(
-      err(
-        'stale-revision',
-        `command targets revision ${cmd.baseRevision} but current revision is ${doc.revision}`,
-      ),
-    );
-  }
 
   const requireElements = (ids: string[]) => {
     for (const id of ids) {

@@ -20,7 +20,6 @@ export type DemoErrorCode =
   | 'unsupported-instruction'
   | 'unselected-target'
   | 'forbidden-field'
-  | 'stale-revision'
   | 'provider-auth'
   | 'provider-rate-limit'
   | 'provider-network'
