@@ -56,7 +56,7 @@ export type YElementField =
 
 export type YElement = Y.Map<YElementField>;
 
-export type HistoryEntry = Omit<RevisionEntry, 'baseRevision'> & {
+export type HistoryEntry = RevisionEntry & {
   serverSeq?: number;
 };
 

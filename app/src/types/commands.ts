@@ -80,7 +80,6 @@ export interface RevisionEntry {
   before: ElementSnapshot;
   after: ElementSnapshot;
   structural?: StructuralInfo;
-  baseRevision: number;
   timestamp: number;
 }
 

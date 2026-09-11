@@ -37,12 +37,14 @@ import { TemplateRoomProvider } from '../collab/provider';
 import { resolveIdentityName } from '../collab/room';
 
 /**
- * History entries move through two shapes during the migration: legacy
- * RevisionEntry (immer pipeline, carries baseRevision) and CollabRevisionEntry
- * (Yjs pipeline, no baseRevision, optional serverSeq). The store accepts both;
- * legacy code paths narrow back via the `'baseRevision' in entry` guard.
+ * History entries exist in two producer shapes: the legacy immer pipeline
+ * (RevisionEntry, no sequence marker) and the Yjs pipeline
+ * (CollabRevisionEntry = RevisionEntry with an optional serverSeq key).
+ * After dropping the retired `baseRevision` field the two types unified;
+ * the `serverSeq` key's presence separates the shapes at runtime, and stale
+ * persisted blobs carrying `baseRevision` are ignored by the guards.
  */
-export type AnyRevisionEntry = RevisionEntry | CollabRevisionEntry;
+export type AnyRevisionEntry = CollabRevisionEntry;
 export type AnyHistoryLog = Record<ElementId, AnyRevisionEntry[]>;
 
 /**
@@ -87,13 +89,12 @@ function pushSnapshot(
   return [...past, snapshot].slice(-MAX_UNDO_STEPS);
 }
 
-const isLegacyEntry = (entry: AnyRevisionEntry): entry is RevisionEntry =>
-  'baseRevision' in entry;
+const isYdocEntry = (entry: AnyRevisionEntry): boolean => 'serverSeq' in entry;
 
 /** Narrow a mixed history log for the legacy immer pipeline (identity on legacy logs). */
 const legacyLog = (log: AnyHistoryLog): HistoryLog =>
   Object.fromEntries(
-    Object.entries(log).map(([id, list]) => [id, list.filter(isLegacyEntry)]),
+    Object.entries(log).map(([id, list]) => [id, list.filter((entry) => !isYdocEntry(entry))]),
   );
 
 function historyFromYdoc(ydoc: Y.Doc): AnyHistoryLog {
@@ -363,7 +364,7 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        if (!isLegacyEntry(entry)) return;
+        if (isYdocEntry(entry)) return;
         const { doc, history, past } = get();
         const result = restoreRevision(doc, entry);
         if (!result.revision) {
@@ -444,7 +445,7 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        const legacyRevisions = step.revisions.filter(isLegacyEntry);
+        const legacyRevisions = step.revisions.filter((entry) => !isYdocEntry(entry));
         const result = invertRevisionGroup(doc, legacyRevisions);
         set({
           doc: result.doc,
@@ -508,7 +509,7 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        const legacyRevisions = step.revisions.filter(isLegacyEntry);
+        const legacyRevisions = step.revisions.filter((entry) => !isYdocEntry(entry));
         const result = invertRevisionGroup(doc, legacyRevisions);
         set({
           doc: result.doc,

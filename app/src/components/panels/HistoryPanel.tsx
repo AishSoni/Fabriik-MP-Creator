@@ -24,10 +24,8 @@ export function HistoryPanel() {
 
   const entries = useMemo(() => {
     const all: AnyRevisionEntry[] = Object.values(history).flat();
-    // Yjs entries carry serverSeq instead of baseRevision, so the tiebreak
-    // reads whichever sequence marker the entry shape provides.
-    const seqOf = (entry: AnyRevisionEntry): number =>
-      'baseRevision' in entry ? entry.baseRevision : entry.serverSeq ?? 0;
+    // serverSeq (DO-assigned) breaks ties between entries with equal timestamps.
+    const seqOf = (entry: AnyRevisionEntry): number => entry.serverSeq ?? 0;
     all.sort((a, b) => b.timestamp - a.timestamp || seqOf(b) - seqOf(a));
     if (!filterSelected || selectedIds.length === 0) return all;
     return all.filter((entry) => selectedIds.includes(entry.elementId));
@@ -111,11 +109,6 @@ export function HistoryPanel() {
                 >
                   {entry.elementId}
                 </button>
-                {'baseRevision' in entry && (
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${darkMode ? 'bg-surface/5 text-muted-dark' : 'bg-paper text-muted border border-stone'}`}>
-                    rev {entry.baseRevision}
-                  </span>
-                )}
               </div>
               <div className={`mt-2 truncate text-xs leading-5 ${darkMode ? 'text-muted-dark' : 'text-muted-strong'}`}>
                 <span className="font-medium">{entry.label}</span>

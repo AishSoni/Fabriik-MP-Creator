@@ -102,13 +102,12 @@ export function applyCommand(doc: TemplateDoc, command: EditCommand): CommitResu
     draft.revision += 1;
 
     const recordRevision = (
-      entry: Omit<RevisionEntry, 'id' | 'commandId' | 'baseRevision' | 'timestamp'>,
+      entry: Omit<RevisionEntry, 'id' | 'commandId' | 'timestamp'>,
     ) => {
       revisions.push({
         ...entry,
         id: nextRevisionId(),
         commandId: commandIdFor(command, seq),
-        baseRevision: doc.revision,
         timestamp: Date.now(),
       });
       seq += 1;

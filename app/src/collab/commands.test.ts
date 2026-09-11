@@ -335,7 +335,7 @@ describe('commandsFromRevision on Y adapter entries', () => {
     });
 
     const projected = projectDoc(ydoc);
-    const oracle = restoreRevision(after, { ...entry, baseRevision: 0 }).doc;
+    const oracle = restoreRevision(after, { ...entry }).doc;
     expect(stripRevision(projected)).toEqual(stripRevision(oracle));
   });
 });

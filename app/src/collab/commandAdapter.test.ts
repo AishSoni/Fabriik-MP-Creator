@@ -33,7 +33,7 @@ const authoritative = (overrides: Partial<ApplyOptions> = {}): ApplyOptions => (
 });
 
 const stripEntry = (entry: RevisionEntry | CollabRevisionEntry) => {
-  const { id: _id, commandId: _c, baseRevision: _b, timestamp: _t, ...rest } = entry as RevisionEntry & CollabRevisionEntry;
+  const { id: _id, commandId: _c, timestamp: _t, ...rest } = entry as RevisionEntry & CollabRevisionEntry;
   return rest;
 };
 

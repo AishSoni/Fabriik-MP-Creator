@@ -46,7 +46,6 @@ export function restoreRevision(doc: TemplateDoc, entry: RevisionEntry): Restore
       source: 'restore' as const,
       kind: 'restore' as const,
       label: `restored to revision ${entry.id}`,
-      baseRevision: entry.baseRevision,
     };
 
     if (!structural) {
