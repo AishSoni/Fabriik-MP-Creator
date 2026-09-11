@@ -8,7 +8,8 @@ import { setYdocPipeline } from '../collab/flag';
 import { applyCommandToYDoc } from '../collab/commandAdapter';
 import type { CollabRevisionEntry } from '../collab/commandAdapter';
 import { getHistoryYArray, projectDoc } from '../collab/schema';
-import type { SetContentCommand, SetStyleCommand } from '../types/commands';
+import { createDefaultTemplate } from '../template/defaultTemplate';
+import type { ReplaceDocCommand, SetContentCommand, SetStyleCommand } from '../types/commands';
 
 const state = () => useTemplateStore.getState();
 
@@ -512,5 +513,46 @@ describe('YDoc pipeline whole-doc ops', () => {
     expect(state().doc).toBe(before);
     expect(projectDoc(getTemplateYdoc())).toEqual(before);
     expect(getHistoryYArray(getTemplateYdoc()).length).toBe(0);
+  });
+});
+
+describe('authoritative replace-doc projection', () => {
+  it('adopts the replaced template id and clears undo state', async () => {
+    dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: ['hero-heading'],
+      scope: 'all',
+      content: { text: 'Edited before replace' },
+    });
+    expect(state().past).toHaveLength(1);
+    expect(totalYEntries()).toBe(1);
+
+    const next = createDefaultTemplate();
+    next.templateId = 'tpl-replaced-x1';
+    next.templateName = 'Replaced';
+    const command: ReplaceDocCommand = {
+      kind: 'replace-doc',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      reason: 'import',
+      doc: next,
+    };
+    applyCommandToYDoc(getTemplateYdoc(), command, {
+      origin: 'authoritative',
+      commandId: 'srv-1',
+      serverSeq: 1,
+    });
+    await flushMicrotasks();
+
+    const after = state();
+    expect(after.doc.templateId).toBe('tpl-replaced-x1');
+    expect(after.activeTemplateId).toBe('tpl-replaced-x1');
+    expect(after.doc.templateName).toBe('Replaced');
+    expect(after.past).toHaveLength(0);
+    expect(after.future).toHaveLength(0);
+    expect(after.history).toEqual({});
+    expect(totalYEntries()).toBe(0);
   });
 });

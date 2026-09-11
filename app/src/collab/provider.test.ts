@@ -69,6 +69,19 @@ const styleCommand = (patch: Record<string, unknown>): EditCommand =>
     stylePatch: patch,
   }) as unknown as EditCommand;
 
+const replaceCommand = (): EditCommand => ({
+  kind: 'replace-doc',
+  source: 'code',
+  targetIds: [],
+  scope: 'all',
+  reason: 'reset',
+  doc: {
+    ...createDefaultTemplate(),
+    templateId: 'tpl-replaced-x1',
+    templateName: 'Replaced',
+  },
+});
+
 describe('TemplateRoomProvider', () => {
   it('dispatch applies optimistically and queues while offline', () => {
     const doc = makeDoc();
@@ -161,5 +174,40 @@ describe('TemplateRoomProvider', () => {
     expect(provider.queue.length).toBe(0);
     const ids = sent.map((bytes) => parseFrame(bytes).commandId);
     expect(ids).toEqual([secondId, firstId, secondId, firstId]);
+  });
+
+  it('dispatch with optimistic:false sends the frame without applying locally', () => {
+    const doc = makeDoc();
+    const provider = makeProvider(doc);
+    const sent: Uint8Array[] = [];
+    stubConnect(provider, sent);
+    const before = JSON.stringify(projectDoc(doc));
+
+    const commandId = provider.dispatch(replaceCommand(), { optimistic: false });
+
+    expect(sent.length).toBe(1);
+    expect(sent[0][0]).toBe(TAG_COMMAND);
+    expect(parseFrame(sent[0]).commandId).toBe(commandId);
+    expect(provider.pending.has(commandId)).toBe(true);
+    expect(JSON.stringify(projectDoc(doc))).toBe(before);
+  });
+
+  it('a reject after a non-optimistic dispatch leaves the doc intact', () => {
+    const doc = makeDoc();
+    const provider = makeProvider(doc);
+    const sent: Uint8Array[] = [];
+    stubConnect(provider, sent);
+    const before = JSON.stringify(projectDoc(doc));
+
+    const commandId = provider.dispatch(replaceCommand(), { optimistic: false });
+    driveControl(provider, TAG_REJECT, {
+      v: 1,
+      type: 'reject',
+      commandId,
+      errors: [{ code: 'invalid-payload', message: 'rejected' }],
+    });
+
+    expect(provider.pending.size).toBe(0);
+    expect(JSON.stringify(projectDoc(doc))).toBe(before);
   });
 });
