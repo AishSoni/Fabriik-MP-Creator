@@ -4,6 +4,7 @@ import { useEditorStore } from '../../store/editorStore';
 import { resolveElement } from '../../engine/resolve';
 import type { ElementContent, TemplateElement } from '../../types/template';
 import { styleToCss } from '../renderer/styleToCss';
+import { useRemoteSelectionStyle } from '../collab/RemoteSelection';
 import {
   ButtonView,
   HeadingView,
@@ -28,6 +29,7 @@ export function ElementNode({ id }: ElementNodeProps) {
   const dispatch = useTemplateStore((s) => s.dispatch);
   const [editing, setEditing] = useState(false);
   const [draftText, setDraftText] = useState('');
+  const remoteStyle = useRemoteSelectionStyle(id);
 
   const element: TemplateElement | undefined = doc.elements[id];
   if (!element) return null;
@@ -105,7 +107,7 @@ export function ElementNode({ id }: ElementNodeProps) {
 
   if (element.type === 'section') {
     return (
-      <div {...commonProps} style={css}>
+      <div {...commonProps} style={{ ...css, ...remoteStyle }}>
         {isSelected && (
           <span className="pointer-events-none absolute -top-2 -left-2 z-20 inline-flex items-center gap-1 rounded-full bg-[#0E0E10] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-white shadow-md">
             <span className="h-1 w-1 rounded-full bg-[#7868E6]" />
@@ -121,7 +123,7 @@ export function ElementNode({ id }: ElementNodeProps) {
 
   if (element.type === 'nav') {
     return (
-      <nav {...commonProps}>
+      <nav {...commonProps} style={remoteStyle}>
         {isSelected && (
           <span className="pointer-events-none absolute -top-2 left-2 z-20 inline-flex rounded-full bg-[#0E0E10] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">NAV · {id}</span>
         )}
@@ -132,7 +134,7 @@ export function ElementNode({ id }: ElementNodeProps) {
 
   if (editing && editableText !== null) {
     return (
-      <div {...commonProps} style={css}>
+      <div {...commonProps} style={{ ...css, ...remoteStyle }}>
         <input
           autoFocus
           value={draftText}
@@ -154,7 +156,7 @@ export function ElementNode({ id }: ElementNodeProps) {
   }
 
   const withBadge = (children: React.ReactNode) => (
-    <div {...commonProps}>
+    <div {...commonProps} style={remoteStyle}>
       {isSelected && (
         <span className="pointer-events-none absolute -top-2 left-2 z-20 inline-flex rounded-full bg-[#7868E6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
           {element.type}
