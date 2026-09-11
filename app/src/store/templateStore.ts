@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type * as Y from 'yjs';
+import * as Y from 'yjs';
 import type { EditCommand, HistoryLog, RevisionEntry } from '../types/commands';
 import type { ElementId, TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
-import { commitCommand, appendRevisions, applyCommand } from '../engine/commit';
+import { commitCommand, appendRevisions } from '../engine/commit';
 import { restoreRevision, invertRevisionGroup } from '../engine/restore';
 import {
   validateCommand,
@@ -204,10 +204,10 @@ export function detachRoomProvider(): void {
 }
 
 /**
- * Validates commands against the live projection (dry-run on an immer
- * scratch doc so a failing sequence leaves the Y.Doc untouched), then
- * applies them all authoritatively. Returns the pre-apply projection and
- * every history entry the batch appended.
+ * Validates commands against a throwaway Y.Doc clone of the live doc
+ * (so a failing sequence leaves the real Y.Doc untouched), then applies
+ * them all authoritatively. Returns the pre-apply projection and every
+ * history entry the batch appended.
  */
 function applyToYdoc(commands: EditCommand[]): YApplyResult {
   if (commands.length === 0) {
@@ -215,12 +215,20 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
   }
   const ydoc = getTemplateYdoc();
   const before = projectDoc(ydoc);
-  let scratch = before;
-  for (const raw of commands) {
-    const candidate = { ...raw, baseRevision: scratch.revision };
-    const errors = validateCommand(scratch, candidate);
-    if (errors.length > 0) return { ok: false, errors };
-    scratch = applyCommand(scratch, candidate).doc;
+  const scratch = new Y.Doc();
+  try {
+    Y.applyUpdate(scratch, Y.encodeStateAsUpdate(ydoc));
+    for (const raw of commands) {
+      const candidate = { ...raw, baseRevision: 0 };
+      const errors = validateCommand(projectDoc(scratch), candidate);
+      if (errors.length > 0) return { ok: false, errors };
+      applyCommandToYDoc(scratch, candidate, {
+        origin: 'optimistic',
+        commandId: newCommandId(),
+      });
+    }
+  } finally {
+    scratch.destroy();
   }
   if (roomProvider) {
     for (const raw of commands) {
