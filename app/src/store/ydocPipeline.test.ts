@@ -8,16 +8,16 @@ import { setYdocPipeline } from '../collab/flag';
 import { applyCommandToYDoc } from '../collab/commandAdapter';
 import type { CollabRevisionEntry } from '../collab/commandAdapter';
 import { getHistoryYArray, projectDoc } from '../collab/schema';
-import type { EditCommand, SetContentCommand, SetStyleCommand } from '../types/commands';
+import type { SetContentCommand, SetStyleCommand } from '../types/commands';
 
 const state = () => useTemplateStore.getState();
 
 const flushMicrotasks = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-type DraftCommand = Omit<SetContentCommand, 'baseRevision'> | Omit<SetStyleCommand, 'baseRevision'>;
+type DraftCommand = SetContentCommand | SetStyleCommand;
 
 function dispatch(cmd: DraftCommand) {
-  return state().dispatch({ ...cmd, baseRevision: state().doc.revision } as EditCommand);
+  return state().dispatch(cmd);
 }
 
 const yHistory = (): CollabRevisionEntry[] =>
@@ -125,7 +125,6 @@ describe('YDoc pipeline dispatch', () => {
       source: 'canvas',
       targetIds: ['page-root'],
       scope: 'all',
-      baseRevision: 0,
     });
     expect(rootErrors[0].code).toBe('forbidden-field');
     expect(totalYEntries()).toBe(0);
@@ -138,7 +137,6 @@ describe('YDoc pipeline dispatch', () => {
         source: 'code',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Batch one' },
       },
       {
@@ -146,7 +144,6 @@ describe('YDoc pipeline dispatch', () => {
         source: 'code',
         targetIds: ['footer-text'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Batch two' },
       },
     ]);
@@ -175,14 +172,12 @@ describe('YDoc pipeline dispatch', () => {
         source: 'canvas',
         targetIds: ['feature-card-1'],
         scope: 'all',
-        baseRevision: 0,
       },
       {
         kind: 'set-content',
         source: 'canvas',
         targetIds: ['feature-1-title'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Ghost after remove' },
       },
     ]);
@@ -252,7 +247,6 @@ describe('YDoc pipeline undo/redo', () => {
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: 0,
     });
     expect(errors).toEqual([]);
     expect(state().doc.elements['feature-card-1']).toBeUndefined();
@@ -331,7 +325,6 @@ describe('YDoc pipeline projection subscription', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#abcdef' },
       },
       { origin: 'optimistic', commandId: 'external-1' },

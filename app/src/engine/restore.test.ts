@@ -14,7 +14,6 @@ describe('restoreRevision', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { fontSize: 72 },
     });
     const second = commitCommand(first.doc, first.history, {
@@ -22,7 +21,6 @@ describe('restoreRevision', () => {
       source: 'canvas',
       targetIds: ['hero-subtext'],
       scope: 'all',
-      baseRevision: first.doc.revision,
       stylePatch: { fontSize: 10 },
     });
     const entry = second.history['hero-heading'][0];
@@ -41,7 +39,6 @@ describe('restoreRevision', () => {
       source: 'ai',
       targetIds: ['footer-text'],
       scope: 'mobile',
-      baseRevision: 0,
       content: { text: 'Mobile footer' },
     });
     const entry = committed.history['footer-text'][0];
@@ -60,7 +57,6 @@ describe('restoreRevision', () => {
       source: 'ai',
       targetIds: ['cta-button'],
       scope: 'tablet',
-      baseRevision: 0,
       stylePatch: { backgroundColor: '#000000' },
     });
     const historyBefore = committed.history['cta-button'].length;
@@ -80,7 +76,6 @@ describe('restoreRevision', () => {
       source: 'canvas',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'features-section',
       index: 3,
       element: newElement,
@@ -97,7 +92,6 @@ describe('restoreRevision', () => {
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: 0,
     });
     const restored = restoreRevision(committed.doc, committed.history['feature-card-1'][0]);
     expect(restored.doc.elements['feature-card-1']).toBeDefined();
@@ -112,7 +106,6 @@ describe('restoreRevision', () => {
       source: 'canvas',
       targetIds: ['footer-section'],
       scope: 'all',
-      baseRevision: 0,
       index: 0,
     });
     const restored = restoreRevision(committed.doc, committed.history['footer-section'][0]);

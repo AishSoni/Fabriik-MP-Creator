@@ -55,7 +55,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       content: { text: 'Hello collab' },
     },
   },
@@ -66,7 +65,6 @@ const parityCases: ParityCase[] = [
       source: 'code',
       targetIds: ['hero-eyebrow'],
       scope: 'mobile',
-      baseRevision: 0,
       content: { text: 'Mobile eyebrow' },
     },
   },
@@ -77,7 +75,6 @@ const parityCases: ParityCase[] = [
       source: 'code',
       targetIds: ['top-nav'],
       scope: 'all',
-      baseRevision: 0,
       content: {
         brand: 'Renamed',
         links: [{ label: 'Docs', href: '#docs' }],
@@ -91,7 +88,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-heading', 'hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { color: '#ff0000', fontSize: 64 },
     },
   },
@@ -102,7 +98,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-cta'],
       scope: 'tablet',
-      baseRevision: 0,
       stylePatch: { paddingX: 8, borderRadius: 4 },
     },
   },
@@ -113,7 +108,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-eyebrow'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { marginBottom: undefined, marginTop: 4 },
     },
   },
@@ -124,7 +118,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
       index: 0,
     },
   },
@@ -135,7 +128,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
       index: 999,
     },
   },
@@ -146,7 +138,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'hero-section',
       index: 2,
       element: {
@@ -166,7 +157,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'footer-section',
       index: 999,
       element: {
@@ -186,7 +176,6 @@ const parityCases: ParityCase[] = [
       source: 'code',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'features-section',
       index: 0,
       element: {
@@ -206,7 +195,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: 0,
     },
   },
   {
@@ -216,7 +204,6 @@ const parityCases: ParityCase[] = [
       source: 'canvas',
       targetIds: ['feature-card-1', 'testimonial-quote'],
       scope: 'all',
-      baseRevision: 0,
     },
   },
 ];
@@ -244,7 +231,6 @@ describe('parity oracle vs engine/commit.ts', () => {
         source: 'ai',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#123456' },
       },
       authoritative(),
@@ -264,7 +250,6 @@ describe('entry contract', () => {
         source: 'canvas',
         targetIds: ['hero-heading', 'hero-subtext'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#00ff00' },
       },
       authoritative({ commandId: 'cmd-xyz', serverSeq: 42 }),
@@ -291,7 +276,6 @@ describe('entry contract', () => {
         source: 'canvas',
         targetIds: ['footer-text'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Updated footer' },
       },
       authoritative(),
@@ -312,7 +296,6 @@ describe('history gating', () => {
         source: 'canvas',
         targetIds: ['footer-text'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Optimistic footer' },
       },
       authoritative({ origin: 'optimistic' }),
@@ -335,7 +318,6 @@ describe('history gating', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'mobile',
-        baseRevision: 0,
         stylePatch: { fontSize: 36 },
       },
       authoritative({ serverSeq: 7 }),
@@ -359,7 +341,6 @@ describe('skip and idempotency behavior', () => {
         source: 'canvas',
         targetIds: ['no-such-element'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'ghost' },
       },
       authoritative(),
@@ -379,7 +360,6 @@ describe('skip and idempotency behavior', () => {
         source: 'canvas',
         targetIds: ['feature-card-1', 'feature-1-title'],
         scope: 'all',
-        baseRevision: 0,
       },
       authoritative(),
     );
@@ -397,7 +377,6 @@ describe('skip and idempotency behavior', () => {
         source: 'canvas',
         targetIds: ['page-root'],
         scope: 'all',
-        baseRevision: 0,
       },
       authoritative(),
     );
@@ -413,7 +392,6 @@ describe('skip and idempotency behavior', () => {
         source: 'canvas',
         targetIds: ['page-root'],
         scope: 'all',
-        baseRevision: 0,
         index: 0,
       },
       authoritative(),
@@ -432,7 +410,6 @@ describe('structural snapshots', () => {
         source: 'canvas',
         targetIds: ['feature-card-1'],
         scope: 'all',
-        baseRevision: 0,
       },
       authoritative(),
     );
@@ -458,7 +435,6 @@ describe('structural snapshots', () => {
         source: 'canvas',
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: 'cta-section',
         index: 0,
         element: {
@@ -496,7 +472,6 @@ describe('atomicity and transaction origin', () => {
         source: 'canvas',
         targetIds: ['hero-heading', 'hero-subtext', 'footer-text'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#abcdef' },
       },
       authoritative(),
@@ -517,7 +492,6 @@ describe('atomicity and transaction origin', () => {
         source: 'canvas',
         targetIds: ['footer-text'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Origin check' },
       },
       authoritative(),
@@ -534,7 +508,6 @@ describe('atomicity and transaction origin', () => {
         source: 'canvas',
         targetIds: ['hero-heading', 'hero-subtext'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#111111' },
       },
       authoritative(),
@@ -548,7 +521,6 @@ describe('atomicity and transaction origin', () => {
         source: 'canvas',
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: 'hero-section',
         index: 0,
         element: {
@@ -571,7 +543,6 @@ describe('atomicity and transaction origin', () => {
         source: 'canvas',
         targetIds: ['tracked-insert'],
         scope: 'all',
-        baseRevision: 0,
       },
       authoritative(),
     );
@@ -612,7 +583,6 @@ describe('convergence', () => {
     source: 'canvas',
     targetIds: ['hero-heading'],
     scope: 'all',
-    baseRevision: 0,
     stylePatch: { color },
   });
 
@@ -621,7 +591,6 @@ describe('convergence', () => {
     source: 'code',
     targetIds: ['footer-text'],
     scope: 'all',
-    baseRevision: 0,
     content: { text },
   });
 
@@ -689,7 +658,6 @@ describe('convergence', () => {
       source: 'canvas',
       targetIds: ['hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
       index: 0,
     };
     const remove: EditCommand = {
@@ -697,7 +665,6 @@ describe('convergence', () => {
       source: 'canvas',
       targetIds: ['hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
     };
 
     expect(() => {
@@ -744,7 +711,6 @@ describe('replaceYDoc', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Seeded' },
       },
       authoritative(),
@@ -807,7 +773,6 @@ describe('semantic invariant sweep', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Sweep heading' },
       },
       authoritative({ commandId: 'cmd-sweep-1' }),
@@ -821,7 +786,6 @@ describe('semantic invariant sweep', () => {
         source: 'ai',
         targetIds: ['hero-heading', 'footer-text'],
         scope: 'mobile',
-        baseRevision: 0,
         stylePatch: { color: '#0a0a0a', fontSize: 14 },
       },
       authoritative({ commandId: 'cmd-sweep-2' }),
@@ -835,7 +799,6 @@ describe('semantic invariant sweep', () => {
         source: 'code',
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: 'hero-section',
         index: 1,
         element: {
@@ -858,7 +821,6 @@ describe('semantic invariant sweep', () => {
         source: 'canvas',
         targetIds: ['hero-subtext'],
         scope: 'all',
-        baseRevision: 0,
         index: 0,
       },
       authoritative({ commandId: 'cmd-sweep-4' }),
@@ -872,7 +834,6 @@ describe('semantic invariant sweep', () => {
         source: 'canvas',
         targetIds: ['sweep-badge'],
         scope: 'all',
-        baseRevision: 0,
       },
       authoritative({ commandId: 'cmd-sweep-5' }),
     );

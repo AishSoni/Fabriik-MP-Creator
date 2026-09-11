@@ -17,8 +17,8 @@ beforeEach(() => {
 
 describe('end-to-end editor journey', () => {
   it('canvas edit → code edit → AI multi-element partial accept → independent recovery', () => {
-    const dispatch = (cmd: Omit<EditCommand, 'baseRevision'> & Record<string, unknown>) => {
-      const errors = template().dispatch({ ...cmd, baseRevision: template().doc.revision } as EditCommand);
+    const dispatch = (cmd: EditCommand) => {
+      const errors = template().dispatch(cmd);
       expect(errors).toEqual([]);
     };
 
@@ -66,7 +66,6 @@ describe('end-to-end editor journey', () => {
       source: 'canvas',
       targetIds: ['cta-button'],
       scope: 'tablet',
-      baseRevision: template().doc.revision,
       stylePatch: { backgroundColor: '#ff0055' },
     });
 
@@ -85,7 +84,6 @@ describe('end-to-end editor journey', () => {
       source: 'canvas',
       targetIds: ['cta-button'],
       scope: 'all',
-      baseRevision: template().doc.revision,
       stylePatch: { backgroundColor: '#ff0055' },
     });
     const raw = JSON.parse(localStorage.getItem('fabriik-template-v1')!);

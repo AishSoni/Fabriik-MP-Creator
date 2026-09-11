@@ -131,7 +131,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.tuple([z.string().min(1)]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    baseRevision: z.number().int().nonnegative(),
     content: elementContentSchema,
   }),
   z.strictObject({
@@ -139,7 +138,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    baseRevision: z.number().int().nonnegative(),
     stylePatch: stylePatchSchema,
   }),
   z.strictObject({
@@ -147,7 +145,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.tuple([z.string().min(1)]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    baseRevision: z.number().int().nonnegative(),
     index: z.number().int().nonnegative(),
   }),
   z.strictObject({
@@ -155,7 +152,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.tuple([]),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    baseRevision: z.number().int().nonnegative(),
     parentId: z.string().min(1),
     index: z.number().int().nonnegative(),
     element: insertElementSchema,
@@ -165,7 +161,6 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    baseRevision: z.number().int().nonnegative(),
   }),
 ]);
 

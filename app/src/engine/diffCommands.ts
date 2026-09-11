@@ -36,7 +36,6 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
         source: options.source,
         targetIds: [id],
         scope: 'all',
-        baseRevision: 0,
       });
     }
   }
@@ -49,7 +48,6 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
         source: options.source,
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: next.parentId ?? newDoc.rootId,
         index: insertionIndex(newDoc, next.parentId ?? newDoc.rootId, id),
         element: stripTransient(next),
@@ -71,7 +69,6 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
           source: options.source,
           targetIds: [id],
           scope: 'all',
-          baseRevision: 0,
         });
       }
       commands.push({
@@ -79,7 +76,6 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
         source: options.source,
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: next.parentId ?? newDoc.rootId,
         index: insertionIndex(newDoc, next.parentId ?? newDoc.rootId, id),
         element: stripTransient(next),
@@ -122,7 +118,6 @@ export function diffDocs(oldDoc: TemplateDoc, newDoc: TemplateDoc, options: Diff
         source: options.source,
         targetIds: [wanted],
         scope: 'all',
-        baseRevision: 0,
         index: targetIndex,
       });
     }
@@ -160,7 +155,6 @@ function appendPropertyCommands(
       source,
       targetIds: [id],
       scope: 'all',
-      baseRevision: 0,
       content: nextContent.base,
     });
   }
@@ -181,7 +175,6 @@ function appendPropertyCommands(
       source,
       targetIds: [id],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: patch,
     });
   }
@@ -195,7 +188,6 @@ function appendPropertyCommands(
         source,
         targetIds: [id],
         scope: vp,
-        baseRevision: 0,
         content: nextOverrideContent ?? fallbackContent(nextContent, vp),
       });
     }
@@ -214,7 +206,6 @@ function appendPropertyCommands(
         source,
         targetIds: [id],
         scope: vp,
-        baseRevision: 0,
         stylePatch: patch,
       });
     }

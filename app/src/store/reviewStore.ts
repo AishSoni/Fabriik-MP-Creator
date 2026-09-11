@@ -36,15 +36,7 @@ export const useReviewStore = create<ReviewState>()((set) => ({
     if (!proposal || proposal.status !== 'pending') return;
 
     const template = useTemplateStore.getState();
-    if (proposal.generatedAt === undefined || proposal.command.baseRevision < proposal.generatedAt) {
-      updateProposal(proposalId, {
-        status: 'invalid',
-        invalidReason: 'stale-revision: this proposal is older than the current document and cannot be applied',
-      });
-      return;
-    }
-    const rebased = { ...proposal.command, baseRevision: template.doc.revision };
-    const errors = template.dispatch(rebased);
+    const errors = template.dispatch(proposal.command);
     if (errors.length > 0) {
       updateProposal(proposalId, {
         status: 'invalid',

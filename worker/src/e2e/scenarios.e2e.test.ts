@@ -177,21 +177,19 @@ function isReject(f: Payload): f is Payload & { type: 'reject'; commandId: strin
   return f.type === 'reject';
 }
 
-const styleColor = (hex: string, baseRevision = 0): unknown => ({
+const styleColor = (hex: string): unknown => ({
   kind: 'set-style',
   source: 'canvas',
   targetIds: ['hero-heading'],
   scope: 'all',
-  baseRevision,
   stylePatch: { color: hex },
 });
 
-const contentText = (text: string, baseRevision = 0): unknown => ({
+const contentText = (text: string): unknown => ({
   kind: 'set-content',
   source: 'canvas',
   targetIds: ['hero-eyebrow'],
   scope: 'all',
-  baseRevision,
   content: { text },
 });
 
@@ -240,7 +238,6 @@ it.skipIf(!url)('scenario 2: invalid command rejected sender-only, peers see not
     source: 'canvas',
     targetIds: ['ghost-element'],
     scope: 'all',
-    baseRevision: 0,
     stylePatch: { color: '#ff0000' },
   });
   const rej = await nextControl(aCtl, (f) => isReject(f));
@@ -295,7 +292,6 @@ it.skipIf(!url)('scenario 4+7: provider dispatch onto removed element rejects, r
     source: 'canvas',
     targetIds: ['hero-eyebrow'],
     scope: 'all',
-    baseRevision: 0,
   } as never);
   await nextControl(aCtl, (f) => isAck(f, 'scen-rej-a1'));
   await waitForQuiet(a.ws);
@@ -322,7 +318,6 @@ it.skipIf(!url)('scenario 4+7: provider dispatch onto removed element rejects, r
     source: 'canvas',
     targetIds: ['hero-eyebrow'],
     scope: 'all',
-    baseRevision: 0,
     contentPatch: { text: 'zombie' },
   } as never);
   await new Promise<void>((resolve) => {

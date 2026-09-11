@@ -21,8 +21,8 @@ describe('diffDocs', () => {
 
     let current = oldDoc;
     for (const command of commands) {
-      expect(validateCommand(current, { ...command, baseRevision: current.revision })).toEqual([]);
-      const result = commitCommand(current, {}, { ...command, baseRevision: current.revision });
+      expect(validateCommand(current, command)).toEqual([]);
+      const result = commitCommand(current, {}, command);
       current = result.doc;
     }
 

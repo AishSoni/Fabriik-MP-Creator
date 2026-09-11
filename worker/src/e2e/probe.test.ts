@@ -76,7 +76,6 @@ describe('probe', () => {
                       source: 'canvas',
                       targetIds: ['hero-heading'],
                       scope: 'all',
-                      baseRevision: 0,
                       stylePatch: { color: '#112233' },
                     },
                   }),

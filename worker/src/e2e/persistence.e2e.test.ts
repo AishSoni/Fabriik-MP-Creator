@@ -100,7 +100,7 @@ function bindSyncApplying(ws: WebSocket, doc: Y.Doc): void {
   });
 }
 
-function sendCommand(ws: WebSocket, commandId: string, baseRevision = 0): void {
+function sendCommand(ws: WebSocket, commandId: string): void {
   ws.send(
     encodeControlFrame({
       v: 1,
@@ -110,7 +110,6 @@ function sendCommand(ws: WebSocket, commandId: string, baseRevision = 0): void {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision,
         stylePatch: { color: '#112233' },
       },
     }),

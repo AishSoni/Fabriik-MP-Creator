@@ -22,7 +22,7 @@ export interface CommitResult {
 let revisionCounter = 0;
 const nextRevisionId = () => `rev-${Date.now().toString(36)}-${(revisionCounter++).toString(36)}`;
 export const commandIdFor = (cmd: EditCommand, seq: number) =>
-  `cmd-${cmd.source}-${cmd.kind}-${cmd.baseRevision}-${seq}`;
+  `cmd-${cmd.source}-${cmd.kind}-${seq}`;
 
 function snapshotClone<T>(value: T): T {
   if (value === undefined || value === null || typeof value !== 'object') return value;

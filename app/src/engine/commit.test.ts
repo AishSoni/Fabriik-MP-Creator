@@ -31,7 +31,6 @@ describe('commitCommand', () => {
       source: 'canvas',
       targetIds: ['hero-heading', 'hero-subtext'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { color: '#ff0000' },
     };
     const result = commitCommand(d, history, cmd);
@@ -51,7 +50,6 @@ describe('commitCommand', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'mobile',
-      baseRevision: 0,
       stylePatch: { fontSize: 20 },
     });
     const after = resolveTree(result.doc, 'desktop');
@@ -66,7 +64,6 @@ describe('commitCommand', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { fontSize: 60 },
     });
     expect(resolveTree(result.doc, 'desktop').get('hero-heading')?.style.fontSize).toBe(60);
@@ -79,7 +76,6 @@ describe('commitCommand', () => {
       source: 'code',
       targetIds: ['footer-text'],
       scope: 'all',
-      baseRevision: 0,
       content: { text: 'New footer' },
     });
     for (const vp of ['desktop', 'tablet', 'mobile'] as const) {
@@ -93,7 +89,6 @@ describe('commitCommand', () => {
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: 0,
     });
     expect(result.doc.elements['feature-card-1']).toBeUndefined();
     expect(result.doc.elements['features-section'].childIds).not.toContain('feature-card-1');
@@ -112,7 +107,6 @@ describe('commitCommand', () => {
       source: 'canvas',
       targetIds: ['cta-section'],
       scope: 'all',
-      baseRevision: 0,
       index: 1,
     });
     expect(result.doc.elements['page-root'].childIds[1]).toBe('cta-section');

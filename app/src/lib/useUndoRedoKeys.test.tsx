@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUndoRedoKeys } from './useUndoRedoKeys';
 import { useTemplateStore } from '../store/templateStore';
-import type { EditCommand } from '../types/commands';
 
 vi.mock('../components/code/CodePanel', () => ({
   CodePanel: () => null,
@@ -33,9 +32,8 @@ function editHeadline(text: string) {
     source: 'canvas',
     targetIds: ['hero-heading'],
     scope: 'all',
-    baseRevision: state().doc.revision,
     content: { text },
-  } as EditCommand);
+  });
   expect(errors).toEqual([]);
 }
 

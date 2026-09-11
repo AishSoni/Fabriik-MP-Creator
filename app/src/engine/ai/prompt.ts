@@ -29,7 +29,7 @@ export function buildSystemPrompt(): string {
     '- insert: {"kind":"insert","parentId":"<section id>","index":<number>,"element":{"id":"<unique kebab-case id>","type":"...","parentId":"<same section id>","childIds":[],"content":{"base":{...}},"style":{"base":{...}}}}',
     '- remove: {"kind":"remove","targetIds":["<id>", ...]}',
     '',
-    'Never include "baseRevision", "source", or "scope" in a command — the app injects them.',
+    'Never include "source" or "scope" in a command — the app injects them.',
     'targetId and command targetIds must be element ids taken from the provided document inventory. Keep proposals minimal and independent; do not emit more than the instruction needs.',
     '',
     `Style rules: stylePatch accepts only these props: ${styleProps}.`,

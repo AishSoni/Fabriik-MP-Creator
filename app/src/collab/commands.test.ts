@@ -50,7 +50,7 @@ const expectRoundTrip = (after: TemplateDoc, entry: RevisionEntry): EditCommand[
 
   let scratch = after;
   for (const command of commands) {
-    expect(validateCommand(scratch, { ...command, baseRevision: scratch.revision })).toEqual([]);
+    expect(validateCommand(scratch, command)).toEqual([]);
     scratch = applyCommand(scratch, command).doc;
   }
 
@@ -73,7 +73,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         content: { text: 'Hello' },
       },
     ]);
@@ -95,7 +94,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-eyebrow'],
         scope: 'mobile',
-        baseRevision: 0,
         content: { text: 'First mobile' },
       },
       {
@@ -103,7 +101,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-eyebrow'],
         scope: 'mobile',
-        baseRevision: 0,
         content: { text: 'Second mobile' },
       },
     ]);
@@ -122,7 +119,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-eyebrow'],
         scope: 'mobile',
-        baseRevision: 0,
         content: { text: 'Only mobile' },
       },
     ]);
@@ -136,7 +132,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-eyebrow'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { fontSize: undefined, color: '#111111' },
       },
       {
@@ -144,7 +139,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-eyebrow'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { fontSize: 20, color: '#111111' },
       },
     ]);
@@ -164,7 +158,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-cta'],
         scope: 'tablet',
-        baseRevision: 0,
         stylePatch: { paddingX: 8 },
       },
       {
@@ -172,7 +165,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-cta'],
         scope: 'tablet',
-        baseRevision: 0,
         stylePatch: { paddingX: 24 },
       },
     ]);
@@ -191,7 +183,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-subtext'],
         scope: 'all',
-        baseRevision: 0,
         index: 0,
       },
     ]);
@@ -210,7 +201,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: [],
         scope: 'all',
-        baseRevision: 0,
         parentId: 'hero-section',
         index: 2,
         element: {
@@ -234,7 +224,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['hero-cta'],
         scope: 'all',
-        baseRevision: 0,
       },
     ]);
     const commands = expectRoundTrip(after, entry);
@@ -255,7 +244,6 @@ describe('commandsFromRevision', () => {
         source: 'canvas',
         targetIds: ['feature-card-1'],
         scope: 'all',
-        baseRevision: 0,
       },
     ]);
     const commands = expectRoundTrip(after, entry);
@@ -275,7 +263,6 @@ describe('commandsFromRevision', () => {
       source: 'canvas',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'hero-section',
       index: 2,
       element: {
@@ -292,7 +279,6 @@ describe('commandsFromRevision', () => {
       source: 'canvas',
       targetIds: ['new-paragraph'],
       scope: 'all',
-      baseRevision: 0,
     }).doc;
     expect(commandsFromRevision(gone, applied.revisions[0])).toEqual([]);
   });
@@ -303,7 +289,6 @@ describe('commandsFromRevision', () => {
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: 0,
     });
     const entry = applied.revisions[0];
     const root = entry.structural?.removedSubtree?.[0];
@@ -313,7 +298,6 @@ describe('commandsFromRevision', () => {
       source: 'canvas',
       targetIds: [],
       scope: 'all',
-      baseRevision: 0,
       parentId: 'features-section',
       index: 1,
       element: root,
@@ -332,7 +316,6 @@ describe('commandsFromRevision on Y adapter entries', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#111111', fontSize: 72 },
       },
       authoritative('cmd-1'),

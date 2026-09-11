@@ -34,7 +34,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'set-style',
       targetIds: ['hero-heading'],
-      baseRevision: 0,
       stylePatch: { fontSize: 64 },
     });
     expect(errors).toEqual([]);
@@ -56,7 +55,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'set-style',
       targetIds: ['nope'],
-      baseRevision: 0,
       stylePatch: { fontSize: 10 },
     });
     expect(errors.some((e) => e.code === 'unknown-element')).toBe(true);
@@ -69,7 +67,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'set-style',
       targetIds: ['hero-heading'],
-      baseRevision: 3,
       stylePatch: { fontSize: 10 },
     });
     expect(errors).toEqual([]);
@@ -80,7 +77,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'set-content',
       targetIds: ['hero-cta'],
-      baseRevision: 0,
       content: { text: 'hello' },
     });
     expect(errors[0]?.code).toBe('invalid-payload');
@@ -91,7 +87,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'remove',
       targetIds: ['page-root'],
-      baseRevision: 0,
     });
     expect(errors.some((e) => e.code === 'forbidden-field')).toBe(true);
   });
@@ -103,7 +98,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'insert',
       targetIds: [],
-      baseRevision: 0,
       parentId: 'hero-heading',
       index: 0,
       element,
@@ -114,7 +108,6 @@ describe('validateCommand', () => {
       ...base,
       kind: 'insert',
       targetIds: [],
-      baseRevision: 0,
       parentId: 'features-section',
       index: 0,
       element,
@@ -129,7 +122,6 @@ describe('document URL allowlist (spec ai-byok §8)', () => {
       ...base,
       kind: 'set-content',
       targetIds: ['hero-cta'],
-      baseRevision: 0,
       content,
     }) as unknown as EditCommand;
 

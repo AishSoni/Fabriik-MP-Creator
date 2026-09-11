@@ -25,7 +25,6 @@ export function LayersPanel() {
       source: 'canvas',
       targetIds: [id],
       scope: 'all',
-      baseRevision: doc.revision,
       index: target,
     });
   };
@@ -37,7 +36,6 @@ export function LayersPanel() {
       source: 'canvas',
       targetIds: [id],
       scope: 'all',
-      baseRevision: doc.revision,
     });
   };
 

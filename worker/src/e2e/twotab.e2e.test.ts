@@ -10,21 +10,19 @@ declare const process: { env: Record<string, string | undefined> };
 const url = process.env.SMOKE_E2E_URL;
 const RUN = Date.now().toString(36);
 
-const styleColor = (hex: string, baseRevision = 0): unknown => ({
+const styleColor = (hex: string): unknown => ({
   kind: 'set-style',
   source: 'canvas',
   targetIds: ['hero-heading'],
   scope: 'all',
-  baseRevision,
   stylePatch: { color: hex },
 });
 
-const contentText = (text: string, baseRevision = 0): unknown => ({
+const contentText = (text: string): unknown => ({
   kind: 'set-content',
   source: 'canvas',
   targetIds: ['hero-eyebrow'],
   scope: 'all',
-  baseRevision,
   content: { text },
 });
 
@@ -103,7 +101,6 @@ it.skipIf(!url)('two-provider smoke: creator + joiner converge, invalid rolls ba
     source: 'canvas',
     targetIds: ['ghost-element'],
     scope: 'all',
-    baseRevision: 0,
     stylePatch: { color: '#ff0000' },
   } as never);
   await rejectJoiner;

@@ -17,7 +17,6 @@ const editCurrentDoc = () => {
     source: 'canvas',
     targetIds: ['hero-heading'],
     scope: 'all',
-    baseRevision: useTemplateStore.getState().doc.revision,
     stylePatch: { fontSize: 88 },
   });
 };

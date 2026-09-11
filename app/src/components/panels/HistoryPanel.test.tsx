@@ -18,7 +18,6 @@ describe('HistoryPanel', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { fontSize: 99 },
     });
     useTemplateStore.getState().dispatch({
@@ -26,7 +25,6 @@ describe('HistoryPanel', () => {
       source: 'ai',
       targetIds: ['footer-text'],
       scope: 'all',
-      baseRevision: useTemplateStore.getState().doc.revision,
       content: { text: 'changed footer' },
     });
 

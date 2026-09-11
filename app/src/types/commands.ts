@@ -10,7 +10,6 @@ export interface SetContentCommand {
   source: EditSource;
   targetIds: [ElementId];
   scope: Scope;
-  baseRevision: number;
   content: ElementContent;
 }
 
@@ -19,7 +18,6 @@ export interface SetStyleCommand {
   source: EditSource;
   targetIds: ElementId[];
   scope: Scope;
-  baseRevision: number;
   stylePatch: StylePatch;
 }
 
@@ -28,7 +26,6 @@ export interface ReorderCommand {
   source: EditSource;
   targetIds: [ElementId];
   scope: Scope;
-  baseRevision: number;
   index: number;
 }
 
@@ -37,7 +34,6 @@ export interface InsertCommand {
   source: EditSource;
   targetIds: [];
   scope: Scope;
-  baseRevision: number;
   parentId: ElementId;
   index: number;
   element: TemplateElement;
@@ -48,7 +44,6 @@ export interface RemoveCommand {
   source: EditSource;
   targetIds: ElementId[];
   scope: Scope;
-  baseRevision: number;
 }
 
 export type EditCommand =

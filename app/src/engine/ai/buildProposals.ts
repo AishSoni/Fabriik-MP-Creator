@@ -27,7 +27,7 @@ export function buildProposals(ctx: EngineContext, raws: RawProposal[]): import(
     .map((raw) => ({ raw, seq: ordered.indexOf(raw.targetId) }))
     .sort((a, b) => a.seq - b.seq)
     .map(({ raw }, index) => {
-      const command = { ...raw.command, baseRevision } as EditCommand & { source: 'ai' };
+      const command = raw.command as EditCommand & { source: 'ai' };
       const errors = validateCommand(ctx.doc, command);
       return {
         proposalId: `p-${baseRevision}-${raw.targetId}-${index}`,

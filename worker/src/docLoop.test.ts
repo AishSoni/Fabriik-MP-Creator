@@ -12,7 +12,7 @@ const makeState = (): DocLoopState => {
   return { ydoc, serverSeq: 0, seen: createDedupeSet() };
 };
 
-const setStyle = (commandId: string, baseRevision = 0) => ({
+const setStyle = (commandId: string) => ({
   v: 1 as const,
   commandId,
   command: {
@@ -20,12 +20,11 @@ const setStyle = (commandId: string, baseRevision = 0) => ({
     source: 'canvas' as const,
     targetIds: ['hero-heading'],
     scope: 'all' as const,
-    baseRevision,
     stylePatch: { color: '#112233' },
   },
 });
 
-const reorderGhost = (commandId: string, baseRevision = 0) => ({
+const reorderGhost = (commandId: string) => ({
   v: 1 as const,
   commandId,
   command: {
@@ -33,7 +32,6 @@ const reorderGhost = (commandId: string, baseRevision = 0) => ({
     source: 'canvas' as const,
     targetIds: ['ghost'],
     scope: 'all' as const,
-    baseRevision,
     index: 0,
   },
 });
@@ -97,7 +95,7 @@ describe('doc loop: authoritative apply', () => {
 
   it('applies commands regardless of revision', () => {
     const state = makeState();
-    const response = run(state, setStyle('cmd-s', 5));
+    const response = run(state, setStyle('cmd-s'));
     if (!response || response.type !== 'ack') throw new Error('expected ack, got reject');
     expect(response.serverSeq).toBe(1);
     expect(getHistoryYArray(state.ydoc).length).toBe(1);

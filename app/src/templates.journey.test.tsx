@@ -22,7 +22,6 @@ describe('multi-template journey', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: useTemplateStore.getState().doc.revision,
       stylePatch: { fontSize: 88 },
     });
     expect(Object.keys(useTemplateStore.getState().history)).toHaveLength(1);

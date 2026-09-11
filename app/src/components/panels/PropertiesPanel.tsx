@@ -23,7 +23,6 @@ export function PropertiesPanel() {
       source: 'canvas',
       targetIds: selectedIds,
       scope: editScope,
-      baseRevision: doc.revision,
       stylePatch: patch,
     });
   };
@@ -40,7 +39,6 @@ export function PropertiesPanel() {
       source: 'canvas',
       targetIds: [single.id],
       scope: editScope,
-      baseRevision: doc.revision,
       content,
     });
   };
@@ -53,7 +51,6 @@ export function PropertiesPanel() {
       source: 'canvas',
       targetIds: [single.id],
       scope: editScope,
-      baseRevision: doc.revision,
       content: { brand, links: 'links' in current ? current.links : [] },
     });
   };
@@ -71,7 +68,6 @@ export function PropertiesPanel() {
       source: 'canvas',
       targetIds: [single.id],
       scope: editScope,
-      baseRevision: doc.revision,
       content: { brand: 'brand' in current ? current.brand : '', links },
     });
   };

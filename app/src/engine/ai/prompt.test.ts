@@ -31,7 +31,6 @@ describe('prompt assembly (spec ai-byok §6)', () => {
 
   it('system prompt forbids engine-injected fields in commands', () => {
     const system = buildSystemPrompt();
-    expect(system).toContain('baseRevision');
     expect(system).toContain('source');
     expect(system).toContain('scope');
   });

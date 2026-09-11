@@ -24,7 +24,6 @@ const reorderFrame: CommandFrame = {
     source: 'canvas',
     targetIds: ['hero-subtext'],
     scope: 'all',
-    baseRevision: 0,
     index: 0,
   },
 };

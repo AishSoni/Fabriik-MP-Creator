@@ -23,7 +23,6 @@ describe('template registry + store lifecycle', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: store.doc.revision,
       stylePatch: { fontSize: 90 },
     });
     expect(Object.keys(useTemplateStore.getState().history)).toHaveLength(1);
@@ -44,7 +43,6 @@ describe('template registry + store lifecycle', () => {
       source: 'canvas',
       targetIds: ['welcome-heading'],
       scope: 'all',
-      baseRevision: store.doc.revision,
       content: { text: 'edited' },
     });
 

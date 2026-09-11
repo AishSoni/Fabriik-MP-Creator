@@ -92,7 +92,6 @@ describe('runDemoEngine', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       content: { text: 'fresh value from canvas' },
     }).doc;
     const result = runDemoEngine(
@@ -129,7 +128,6 @@ describe('runDemoEngine', () => {
         source: 'canvas',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: 0,
         stylePatch: { color: '#000000' },
       }).doc;
       const revisionBefore = d.revision;

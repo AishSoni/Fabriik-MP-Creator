@@ -61,7 +61,6 @@ const styleHeroHeading = async (ydoc: Y.Doc, color: string): Promise<void> => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: 0,
       stylePatch: { color },
     },
     { origin: 'authoritative', commandId: 'cmd-persist-1' },
@@ -179,7 +178,6 @@ describe('template store persistence wiring', () => {
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
-      baseRevision: state().doc.revision,
       content: { text: 'Persisted headline' },
     });
 

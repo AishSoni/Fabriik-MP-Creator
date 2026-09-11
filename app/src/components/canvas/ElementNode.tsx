@@ -83,7 +83,6 @@ export function ElementNode({ id }: ElementNodeProps) {
       source: 'canvas',
       targetIds: [id],
       scope: editScope,
-      baseRevision: doc.revision,
       content: nextContentFor(element, resolved, trimmed),
     });
   };

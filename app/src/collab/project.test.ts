@@ -149,7 +149,6 @@ describe('projection coalescing', () => {
       source: 'canvas',
       targetIds: [target.id],
       scope: 'all',
-      baseRevision: 0,
       content: { text: 'Optimistic text' },
     };
     const optimistic: ApplyOptions = { origin: 'optimistic', commandId: 'cmd-opt-1' };

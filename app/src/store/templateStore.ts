@@ -219,10 +219,9 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
   try {
     Y.applyUpdate(scratch, Y.encodeStateAsUpdate(ydoc));
     for (const raw of commands) {
-      const candidate = { ...raw, baseRevision: 0 };
-      const errors = validateCommand(projectDoc(scratch), candidate);
+      const errors = validateCommand(projectDoc(scratch), raw);
       if (errors.length > 0) return { ok: false, errors };
-      applyCommandToYDoc(scratch, candidate, {
+      applyCommandToYDoc(scratch, raw, {
         origin: 'optimistic',
         commandId: newCommandId(),
       });
@@ -232,14 +231,13 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
   }
   if (roomProvider) {
     for (const raw of commands) {
-      roomProvider.dispatch({ ...raw, baseRevision: before.revision } as EditCommand);
+      roomProvider.dispatch(raw);
     }
     return { ok: true, before, entries: [] };
   }
   const entries: CollabRevisionEntry[] = [];
   for (const raw of commands) {
-    const stamped = { ...raw, baseRevision: before.revision };
-    const result = applyCommandToYDoc(ydoc, stamped, {
+    const result = applyCommandToYDoc(ydoc, raw, {
       origin: 'authoritative',
       commandId: newCommandId(),
     });
@@ -316,13 +314,12 @@ export const useTemplateStore = create<TemplateState>()(
         let currentDoc = doc;
         let currentHistory: HistoryLog = legacyLog(history);
         for (const rawCommand of commands) {
-          const command = { ...rawCommand, baseRevision: currentDoc.revision } as EditCommand;
-          const errors = validateCommand(currentDoc, command);
+          const errors = validateCommand(currentDoc, rawCommand);
           if (errors.length > 0) {
             set({ lastErrors: errors });
             return errors;
           }
-          const result = commitCommand(currentDoc, currentHistory, command);
+          const result = commitCommand(currentDoc, currentHistory, rawCommand);
           currentDoc = result.doc;
           currentHistory = result.history;
           allRevisions.push(...result.revisions);

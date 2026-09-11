@@ -3,8 +3,7 @@ import type { StylePatch, TemplateDoc } from '../types/template';
 
 /**
  * The subset of a revision entry needed to compute its inverse commands.
- * Accepts both legacy RevisionEntry and CollabRevisionEntry (which lacks
- * baseRevision).
+ * Accepts both legacy RevisionEntry and CollabRevisionEntry shapes.
  */
 export type InvertibleRevision = Pick<
   RevisionEntry,
@@ -27,8 +26,8 @@ const clamp = (value: number, min: number, max: number) =>
  * mirroring how invertRevisionGroup skips non-invertible entries.
  *
  * Commands are emitted against `doc` (the state the entry was applied to):
- * inverse commands carry source 'restore' and baseRevision = doc.revision so
- * they pass validateCommand on the state they are meant to undo.
+ * inverse commands carry source 'restore' so they re-validate naturally on
+ * the state they are meant to undo.
  */
 export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision): EditCommand[] {
   const structural = entry.structural;
@@ -46,7 +45,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
           source: 'restore',
           targetIds: [entry.elementId],
           scope: entry.scope,
-          baseRevision: doc.revision,
           index: structural.previousIndex,
         },
       ];
@@ -61,7 +59,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
           source: 'restore',
           targetIds: [entry.elementId],
           scope: entry.scope,
-          baseRevision: doc.revision,
         },
       ];
     }
@@ -86,7 +83,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
             source: 'restore',
             targetIds: [],
             scope: entry.scope,
-            baseRevision: doc.revision,
             parentId,
             index,
             element: { ...clone(captured), childIds: [] },
@@ -104,7 +100,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
           source: 'restore',
           targetIds: [],
           scope: entry.scope,
-          baseRevision: doc.revision,
           parentId: captured.parentId ?? parentId,
           index: inParent >= 0 ? inParent : 0,
           element: { ...clone(captured), childIds: [] },
@@ -125,7 +120,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
         source: 'restore',
         targetIds: [entry.elementId],
         scope: entry.scope,
-        baseRevision: doc.revision,
         content: clone(beforeContent),
       },
     ];
@@ -149,7 +143,6 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
       source: 'restore',
       targetIds: [entry.elementId],
       scope: entry.scope,
-      baseRevision: doc.revision,
       stylePatch,
     },
   ];

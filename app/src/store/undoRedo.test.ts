@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useTemplateStore, MAX_UNDO_STEPS } from './templateStore';
-import type { EditCommand, SetContentCommand, SetStyleCommand } from '../types/commands';
+import type { SetContentCommand, SetStyleCommand } from '../types/commands';
 
 const state = () => useTemplateStore.getState();
 
-type DraftCommand = Omit<SetContentCommand, 'baseRevision'> | Omit<SetStyleCommand, 'baseRevision'>;
+type DraftCommand = SetContentCommand | SetStyleCommand;
 
 function dispatch(cmd: DraftCommand) {
-  const errors = state().dispatch({ ...cmd, baseRevision: state().doc.revision } as EditCommand);
+  const errors = state().dispatch(cmd);
   expect(errors).toEqual([]);
 }
 
@@ -91,24 +91,21 @@ describe('global undo/redo', () => {
   });
 
   it('treats dispatchMany (code Apply) as one atomic undo step', () => {
-    const revision = state().doc.revision;
     const errors = state().dispatchMany([
       {
         kind: 'set-content',
         source: 'code',
         targetIds: ['hero-heading'],
         scope: 'all',
-        baseRevision: revision,
         content: { text: 'Batch one' },
-      } as EditCommand,
+      },
       {
         kind: 'set-content',
         source: 'code',
         targetIds: ['footer-text'],
         scope: 'all',
-        baseRevision: revision,
         content: { text: 'Batch two' },
-      } as EditCommand,
+      },
     ]);
     expect(errors).toEqual([]);
     expect(state().past).toHaveLength(1);
@@ -170,8 +167,7 @@ describe('global undo/redo', () => {
       source: 'canvas',
       targetIds: ['feature-card-1'],
       scope: 'all',
-      baseRevision: state().doc.revision,
-    } as EditCommand);
+    });
     expect(errors).toEqual([]);
     expect(state().doc.elements['feature-card-1']).toBeUndefined();
     const afterRemove = totalEntries();
