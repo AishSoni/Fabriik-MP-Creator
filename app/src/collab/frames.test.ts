@@ -130,7 +130,7 @@ describe('control frames', () => {
         json({
           v: 1,
           commandId: 'cmd-1',
-          command: { kind: 'reorder', source: 'canvas', targetIds: ['e1'], scope: 'all', baseRevision: -1, index: 0 },
+          command: { kind: 'reorder', source: 'canvas', targetIds: ['e1'], scope: 'all', index: -1 },
         }),
       ),
     ).toBeNull();

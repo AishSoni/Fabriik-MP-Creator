@@ -261,7 +261,7 @@ describe('entry contract', () => {
       expect(entry.serverSeq).toBe(42);
       expect(entry.id).toMatch(/^rev-[0-9a-z]+-[0-9a-z]+$/);
       expect(entry.timestamp).toBe(fixedNow());
-      expect('baseRevision' in entry && entry.baseRevision !== undefined).toBe(false);
+      expect('baseRevision' in entry).toBe(false);
     }
     const ids = result.entries.map((e) => e.id);
     expect(new Set(ids).size).toBe(2);

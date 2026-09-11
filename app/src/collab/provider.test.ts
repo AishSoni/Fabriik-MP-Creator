@@ -66,7 +66,6 @@ const styleCommand = (patch: Record<string, unknown>): EditCommand =>
     source: 'canvas',
     targetIds: ['hero-heading'],
     scope: 'all',
-    baseRevision: 0,
     stylePatch: patch,
   }) as unknown as EditCommand;
 

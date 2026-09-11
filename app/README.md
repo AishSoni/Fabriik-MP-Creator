@@ -100,10 +100,10 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 
 ```ts
 { kind, source: 'canvas'|'code'|'ai', targetIds, scope: 'all'|'desktop'|'tablet'|'mobile',
-  baseRevision, payload }
+  payload }
 ```
 
-`dispatch()` validates against the *current* document and rejects anything unknown, out-of-bounds, forbidden, or stale (`baseRevision !== doc.revision`). Accepted multi-element operations produce independent revisions per element, which is what makes partial acceptance and independent recovery possible.
+`dispatch()` validates against the *current* document and rejects anything unknown, out-of-bounds, or forbidden. Concurrent edits merge through the Yjs document layer instead of being rejected on staleness (D6). Accepted multi-element operations produce independent revisions per element, which is what makes partial acceptance and independent recovery possible.
 
 ### Commit boundary & trade-off
 
