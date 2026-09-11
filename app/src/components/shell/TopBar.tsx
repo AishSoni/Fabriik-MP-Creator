@@ -9,8 +9,10 @@ import { FileMenu } from './FileMenu';
 import {
   attachRoomProvider,
   detachRoomProvider,
+  getRoomProvider,
   isRoomActive,
 } from '../../store/templateStore';
+import { AvatarStack } from '../collab/AvatarStack';
 import {
   clearRoomFromUrl,
   getCollabHost,
@@ -423,6 +425,7 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
+        <AvatarStack awareness={roomActive ? (getRoomProvider()?.awareness ?? null) : null} />
         <button
           type="button"
           onClick={handleShare}
