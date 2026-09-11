@@ -44,7 +44,7 @@ function nullifyStyle(
 function writeStyleLayer(
   element: TemplateElement,
   scope: Scope,
-  patch: Record<string, number | string | undefined>,
+  patch: Record<string, number | string | null | undefined>,
 ): { before: Record<string, number | string | undefined>; after: Record<string, number | string | undefined> } {
   const layer = isViewportScope(scope)
     ? ((element.style.overrides ??= {})[scope] ??= {})
@@ -54,8 +54,9 @@ function writeStyleLayer(
   const after: Record<string, number | string | undefined> = {};
   for (const key of keys) {
     before[key] = (layer as Record<string, number | string | undefined>)[key];
-    (layer as Record<string, number | string | undefined>)[key] = patch[key];
-    after[key] = patch[key];
+    const next = patch[key] === null ? undefined : patch[key];
+    (layer as Record<string, number | string | undefined>)[key] = next;
+    after[key] = next;
   }
   return { before, after };
 }

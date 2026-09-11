@@ -46,10 +46,14 @@ function withResolvedSides(ctx: EngineContext, raws: RawProposal[]): RawProposal
         const value = resolved.style[prop];
         if (value !== undefined) picked[prop] = value;
       }
+      const after: Record<string, string | number> = {};
+      for (const [key, value] of Object.entries(command.stylePatch)) {
+        if (value !== null && value !== undefined) after[key] = value;
+      }
       return {
         ...raw,
         before: { style: picked as StylePatch },
-        after: { style: command.stylePatch },
+        after: { style: after as StylePatch },
       };
     }
     if (command.kind === 'insert') {

@@ -17,6 +17,12 @@ export interface StyleProps {
 }
 
 export type StylePatch = Partial<StyleProps>;
+/**
+ * Command-level style patch. A `null` value explicitly clears the property
+ * (deletes the key from the target style layer), which keeps inverse patches
+ * expressible over JSON wire frames where `undefined` keys are dropped.
+ */
+export type StyleMutationPatch = { [K in keyof StyleProps]?: StyleProps[K] | null };
 export type StyleOverrides = Partial<Record<Viewport, StylePatch>>;
 
 export interface ScopedStyle {

@@ -191,13 +191,18 @@ export function applyCommandToYDoc(
           if (!ymap) continue;
           const styleLayer = readStyleLayer(ymap);
           const layer = resolveScopedLayer(styleLayer, command.scope);
-          const patch = command.stylePatch as Record<string, StyleLayerValue>;
+          const patch = command.stylePatch as Record<string, StyleLayerValue | null | undefined>;
           const before: Record<string, StyleLayerValue> = {};
           const after: Record<string, StyleLayerValue> = {};
           for (const [key, value] of Object.entries(patch)) {
             before[key] = layer.get(key);
-            layer.set(key, value);
-            after[key] = value;
+            if (value === null || value === undefined) {
+              layer.delete(key);
+              after[key] = undefined;
+            } else {
+              layer.set(key, value);
+              after[key] = value;
+            }
           }
           record({
             elementId: id,

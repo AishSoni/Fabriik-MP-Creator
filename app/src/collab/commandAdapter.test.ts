@@ -13,7 +13,7 @@ import {
 } from './schema';
 import { applyCommandToYDoc, replaceYDoc } from './commandAdapter';
 import type { ApplyOptions, CollabRevisionEntry } from './commandAdapter';
-import { validateTemplateSemantics } from '../engine/validate';
+import { validateTemplateSemantics, templateDocSchema } from '../engine/validate';
 
 const doc = (): TemplateDoc => createDefaultTemplate();
 
@@ -962,5 +962,61 @@ describe('semantic invariant sweep', () => {
 
     replaceYDoc(ydoc, doc());
     assertInvariants();
+  });
+});
+
+describe('style deletion via null mutation', () => {
+  const setColor = (color: string | null | undefined): EditCommand => ({
+    kind: 'set-style',
+    source: 'canvas',
+    targetIds: ['hero-heading'],
+    scope: 'all',
+    stylePatch: { color },
+  });
+
+  it('deletes the key from the style layer and records null snapshots', () => {
+    const ydoc = makeYDoc();
+    applyCommandToYDoc(ydoc, setColor('#111111'), authoritative({ commandId: 'cmd-del-1' }));
+    const result = applyCommandToYDoc(
+      ydoc,
+      setColor(null),
+      authoritative({ commandId: 'cmd-del-2' }),
+    );
+
+    expect(result.entries[0].before.style).toEqual({ color: '#111111' });
+    expect(result.entries[0].after.style).toEqual({ color: null });
+    const projected = projectDoc(ydoc);
+    expect('color' in projected.elements['hero-heading'].style.base).toBe(false);
+    expect(templateDocSchema.safeParse(projected).success).toBe(true);
+  });
+
+  it('treats undefined in a command patch like null deletion', () => {
+    const withNull = makeYDoc();
+    const withUndefined = makeYDoc();
+    for (const ydoc of [withNull, withUndefined]) {
+      applyCommandToYDoc(ydoc, setColor('#222222'), authoritative({ commandId: 'cmd-del-seed' }));
+    }
+    applyCommandToYDoc(withNull, setColor(null), authoritative({ commandId: 'cmd-del-null' }));
+    applyCommandToYDoc(
+      withUndefined,
+      setColor(undefined),
+      authoritative({ commandId: 'cmd-del-undefined' }),
+    );
+
+    expect('color' in projectDoc(withNull).elements['hero-heading'].style.base).toBe(false);
+    expect(projectDoc(withNull)).toEqual(projectDoc(withUndefined));
+  });
+
+  it('converges a peer after a null deletion', () => {
+    const a = makeYDoc();
+    const b = new Y.Doc();
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+    applyCommandToYDoc(a, setColor('#333333'), authoritative({ commandId: 'cmd-del-3' }));
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+    applyCommandToYDoc(a, setColor(null), authoritative({ commandId: 'cmd-del-4' }));
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+
+    expect(projectDoc(a)).toEqual(projectDoc(b));
+    expect('color' in projectDoc(b).elements['hero-heading'].style.base).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import type { EditCommand, RevisionEntry } from '../types/commands';
-import type { StylePatch, TemplateDoc } from '../types/template';
+import type { StyleMutationPatch, TemplateDoc } from '../types/template';
+import { STYLE_PROPS } from '../types/template';
 
 /**
  * The subset of a revision entry needed to compute its inverse commands.
@@ -134,9 +135,14 @@ export function commandsFromRevision(doc: TemplateDoc, entry: InvertibleRevision
   const beforeStyle = entry.before.style;
   if (!beforeStyle || Object.keys(beforeStyle).length === 0) return [];
 
-  const stylePatch: StylePatch = Object.fromEntries(
-    Object.entries(beforeStyle).map(([key, value]) => [key, value === null ? undefined : value]),
-  );
+  // `null` means "was unset": keep it as null so the deletion is expressible
+  // over JSON control frames (undefined keys are dropped on the wire).
+  const stylePatch: StyleMutationPatch = {};
+  for (const [key, value] of Object.entries(beforeStyle)) {
+    if (STYLE_PROPS.has(key)) {
+      (stylePatch as Record<string, number | string | null>)[key] = value;
+    }
+  }
   return [
     {
       kind: 'set-style',

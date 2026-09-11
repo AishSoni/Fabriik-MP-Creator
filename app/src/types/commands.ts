@@ -1,4 +1,4 @@
-import type { ElementContent, ElementId, StylePatch, StyleProps, TemplateDoc, TemplateElement } from './template';
+import type { ElementContent, ElementId, StyleMutationPatch, StyleProps, TemplateDoc, TemplateElement } from './template';
 import type { Scope } from './viewport';
 
 export type EditSource = 'canvas' | 'code' | 'ai' | 'restore';
@@ -18,7 +18,7 @@ export interface SetStyleCommand {
   source: EditSource;
   targetIds: ElementId[];
   scope: Scope;
-  stylePatch: StylePatch;
+  stylePatch: StyleMutationPatch;
 }
 
 export interface ReorderCommand {

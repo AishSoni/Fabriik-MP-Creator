@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { applyCommand } from '../engine/commit';
 import { restoreRevision } from '../engine/restore';
-import { validateCommand } from '../engine/validate';
+import { validateCommand, templateDocSchema } from '../engine/validate';
 import type { EditCommand, InsertCommand, RevisionEntry, SetStyleCommand } from '../types/commands';
 import type { TemplateDoc } from '../types/template';
 import { initializeTemplateYDoc, projectDoc } from './schema';
@@ -125,7 +125,7 @@ describe('commandsFromRevision', () => {
     expect(commandsFromRevision(after, entry)).toEqual([]);
   });
 
-  it('maps null style values to undefined deletions when inverting set-style', () => {
+  it('maps null style values to null deletions when inverting set-style', () => {
     const { after, entry } = applyAll([
       {
         kind: 'set-style',
@@ -148,7 +148,36 @@ describe('commandsFromRevision', () => {
     const patch = (commands[0] as SetStyleCommand).stylePatch;
     expect(patch.color).toBe('#111111');
     expect('fontSize' in patch).toBe(true);
-    expect(patch.fontSize).toBeUndefined();
+    expect(patch.fontSize).toBeNull();
+  });
+
+  it('keeps null deletions JSON-safe and deletes the key through the Y adapter', () => {
+    const ydoc = makeYDoc(doc());
+    const applied = applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-style',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        stylePatch: { color: '#112233' },
+      },
+      authoritative('cmd-null-delete-1'),
+    );
+    expect(applied.entries[0].before.style).toEqual({ color: null });
+
+    const inverse = commandsFromRevision(projectDoc(ydoc), applied.entries[0]);
+    expect(inverse).toHaveLength(1);
+    const wire = JSON.parse(JSON.stringify(inverse)) as EditCommand[];
+    expect((wire[0] as SetStyleCommand).stylePatch).toEqual({ color: null });
+
+    wire.forEach((command, i) => {
+      applyCommandToYDoc(ydoc, command, authoritative(`cmd-null-delete-undo-${i}`));
+    });
+    const projected = projectDoc(ydoc);
+    const base = projected.elements['hero-heading'].style.base;
+    expect('color' in base).toBe(false);
+    expect(templateDocSchema.safeParse(projected).success).toBe(true);
   });
 
   it('inverts set-style viewport overrides back to the prior value', () => {

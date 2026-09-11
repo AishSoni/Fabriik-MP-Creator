@@ -15,17 +15,26 @@ const viewportRecord = <T extends z.ZodType>(valueSchema: T) =>
     Object.fromEntries(VIEWPORTS.map((vp) => [vp, valueSchema.optional()])),
   );
 
+const styleValueSchema = (key: string) =>
+  key === 'textAlign'
+    ? z.enum(['left', 'center', 'right'])
+    : key === 'color' || key === 'backgroundColor'
+      ? z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/)
+      : z.number().finite();
+
 export const stylePatchSchema = z.strictObject(
-  Object.fromEntries(
-    [...STYLE_PROPS].map((key) => [
-      key,
-      key === 'textAlign'
-        ? z.enum(['left', 'center', 'right']).optional()
-        : key === 'color' || key === 'backgroundColor'
-          ? z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/).optional()
-          : z.number().finite().optional(),
-    ]),
-  ),
+  Object.fromEntries([...STYLE_PROPS].map((key) => [key, styleValueSchema(key).optional()])),
+);
+
+/**
+ * Command-level style patch: identical to `stylePatchSchema` except that a
+ * property may be `null` to delete it from the target style layer. Documents
+ * themselves never carry null style values.
+ */
+export const styleMutationPatchSchema = z.strictObject(
+  Object.fromEntries([
+    ...STYLE_PROPS,
+  ].map((key) => [key, styleValueSchema(key).nullable().optional()])),
 );
 
 const linkSchema = z.strictObject({
@@ -155,7 +164,7 @@ export const editCommandSchema = z.discriminatedUnion('kind', [
     source: z.enum(['canvas', 'code', 'ai', 'restore']),
     targetIds: z.array(z.string().min(1)).min(1),
     scope: z.union([z.literal('all'), z.enum(VIEWPORTS)]),
-    stylePatch: stylePatchSchema,
+    stylePatch: styleMutationPatchSchema,
   }),
   z.strictObject({
     kind: z.literal('reorder'),

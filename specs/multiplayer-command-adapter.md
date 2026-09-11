@@ -94,13 +94,20 @@ for each targetId:
 ```
 
 > Note: `scope: 'all'` writes `base` only; overrides are untouched — exact parity with
-> `engine/commit.ts`. Key *deletion* is not expressible in Phase 1 (parity with the
-> current engine); revisit if scoped override clearing becomes a feature.
+> `engine/commit.ts`. Key *deletion* is not expressible for content layers in Phase 1;
+> revisit if scoped override clearing becomes a feature. (Style patches do support
+> key deletion via `null` — see §5.2.)
 
 ### 5.2 `set-style`
 
 Identical shape to §5.1, targeting `style.base` / `style.overrides[scope]`.
 
+> Note: a `null` value in a `set-style` patch **deletes** the key instead of writing
+> it. Inverse patches from `commandsFromRevision` use `null` for "was unset" because
+> JSON control frames drop `undefined` keys on the wire; `undefined` behaves like
+> `null` for in-process callers. Document layers never store `null` — the adapter
+> removes the key, keeping `stylePatchSchema` non-nullable for docs.
+>
 > Note: `style.overrides.mobile.fontSize` and `style.base.fontSize` are disjoint Y.Map
 > key paths — two users editing the same element in different scopes never collide.
 > Same key + same scope → last-write-wins, decided by Yjs, no code needed.
@@ -184,6 +191,7 @@ client code beyond the `notice` toast (DO protocol spec §4.3).
 | Before/after `RevisionEntry` capture | §4 preamble + §6 (`toJSON()` snapshots) |
 | `remove` captures `removedSubtree` | §5.4 |
 | `dispatchMany` sequential re-stamping | Deleted — commands apply independently (DLD §3.2) |
+| `restore` of an unset style key (`before` snapshot `null`) | Inverse patch carries `null`; adapter deletes the style key (JSON frames would drop `undefined`) — §5.2 |
 
 During migration keep `engine/commit.ts` alive behind a feature flag for the legacy
 store; delete once P3 exit criteria (HLD §10) are met.

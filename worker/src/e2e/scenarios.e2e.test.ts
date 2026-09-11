@@ -469,3 +469,44 @@ it.skipIf(!url)('scenario 10: restore round-trips through the command gate', { t
   a.close();
   b.close();
 });
+
+it.skipIf(!url)('scenario 11: restoring an unset style value deletes it across peers', { timeout: 45_000 }, async () => {
+  const a = await connectRoom('scen-restore-unset');
+  bindSyncApplying(a.ws, a.doc);
+  sendSyncStep1(a.ws, a.doc);
+  sendSyncUpdate(a.ws, promotedLocalDoc());
+  const aCtl = observeControl(a.ws);
+  sendCommand(a.ws, 'scen-rst-u1', styleColor('#778899'));
+  expect((await nextControl(aCtl, (f) => isAck(f, 'scen-rst-u1'))).serverSeq).toBe(1);
+  await waitForQuiet(a.ws);
+
+  const b = await connectRoom('scen-restore-unset');
+  bindSyncApplying(b.ws, b.doc);
+  sendSyncStep1(b.ws, b.doc);
+  await waitForQuiet(b.ws);
+  expect(getHistoryYArray(b.doc).length).toBe(1);
+
+  const entry = getHistoryYArray(b.doc).toArray()[0];
+  expect(entry.before.style).toEqual({ color: null });
+  const inverse = commandsFromRevision(projectDoc(b.doc), entry);
+  expect(inverse).toHaveLength(1);
+  expect(inverse[0]).toMatchObject({ stylePatch: { color: null } });
+
+  const bCtl = observeControl(b.ws);
+  sendCommand(b.ws, 'scen-rst-u2', inverse[0]);
+  expect((await nextControl(bCtl, (f) => isAck(f, 'scen-rst-u2'))).serverSeq).toBe(2);
+
+  await waitForQuiet(a.ws);
+  await waitForQuiet(b.ws);
+  const styleA = projectDoc(a.doc).elements['hero-heading']?.style;
+  const styleB = projectDoc(b.doc).elements['hero-heading']?.style;
+  expect(JSON.stringify(styleA)).not.toContain('#778899');
+  expect('color' in (styleA?.base ?? {})).toBe(false);
+  expect(styleA).toEqual(styleB);
+
+  const historyB = getHistoryYArray(b.doc).toArray();
+  expect(historyB.map((item) => item.serverSeq)).toEqual([1, 2]);
+  expect(historyB[1]).toMatchObject({ source: 'restore', commandId: 'scen-rst-u2' });
+  a.close();
+  b.close();
+});

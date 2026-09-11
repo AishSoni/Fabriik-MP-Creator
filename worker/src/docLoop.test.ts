@@ -25,6 +25,18 @@ const setStyle = (commandId: string) => ({
   },
 });
 
+const clearStyle = (commandId: string) => ({
+  v: 1 as const,
+  commandId,
+  command: {
+    kind: 'set-style' as const,
+    source: 'restore' as const,
+    targetIds: ['hero-heading'],
+    scope: 'all' as const,
+    stylePatch: { color: null },
+  },
+});
+
 const reorderGhost = (commandId: string) => ({
   v: 1 as const,
   commandId,
@@ -96,6 +108,16 @@ describe('doc loop: authoritative apply', () => {
     expect(state.serverSeq).toBe(1);
     expect(getHistoryYArray(state.ydoc).length).toBe(1);
     expect(JSON.stringify(projectDoc(state.ydoc))).toContain('#112233');
+  });
+
+  it('accepts a JSON null style patch as a deletion through the gate', () => {
+    const state = makeState();
+    expect(run(state, setStyle('cmd-set'))).toMatchObject({ serverSeq: 1 });
+    const response = run(state, clearStyle('cmd-clear'));
+    expect(response).toEqual({ v: 1, type: 'ack', commandId: 'cmd-clear', serverSeq: 2 });
+    const style = projectDoc(state.ydoc).elements['hero-heading']?.style;
+    expect('color' in (style?.base ?? {})).toBe(false);
+    expect(getHistoryYArray(state.ydoc).length).toBe(2);
   });
 
   it('re-acks duplicates with the original seq without re-applying', () => {
