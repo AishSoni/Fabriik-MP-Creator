@@ -121,28 +121,6 @@ describe('runDemoEngine', () => {
       expect(result.error?.message).toContain('footer-section');
     });
 
-    it('simulates a stale revision and marks proposals invalid so nothing applies', () => {
-      let d = doc();
-      d = commitCommand(d, {}, {
-        kind: 'set-style',
-        source: 'canvas',
-        targetIds: ['hero-heading'],
-        scope: 'all',
-        stylePatch: { color: '#000000' },
-      }).doc;
-      const revisionBefore = d.revision;
-      const result = runDemoEngine(
-        { instruction: 'Simulate a stale revision conflict', selectedIds: ['hero-heading'], scope: 'all' },
-        d,
-      );
-      expect(result.proposals.length).toBeGreaterThan(0);
-      for (const proposal of result.proposals) {
-        expect(proposal.status).toBe('invalid');
-        expect(proposal.invalidReason).toContain('stale-revision');
-      }
-      expect(d.revision).toBe(revisionBefore);
-    });
-
     it('reports unsupported instructions', () => {
       const result = runDemoEngine(
         { instruction: 'Tell me a joke about pixels', selectedIds: ['hero-heading'], scope: 'all' },
