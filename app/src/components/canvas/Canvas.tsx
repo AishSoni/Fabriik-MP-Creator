@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ElementNode } from './ElementNode';
+import { CursorsOverlay } from '../collab/CursorsOverlay';
 import { useRoomAwareness } from '../collab/RemoteSelection';
 import { useCursorBroadcast } from '../../collab/presence';
 import { useEditorStore } from '../../store/editorStore';
@@ -137,6 +138,7 @@ export function Canvas() {
             {/* inner highlight */}
             <div className="pointer-events-none absolute inset-0 rounded-[16px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]" />
             <ElementNode id="page-root" />
+            <CursorsOverlay />
             {marquee && (
               <div
                 aria-hidden="true"
