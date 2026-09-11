@@ -57,7 +57,7 @@ src/
 ├── types/            # The contract: template model, edit commands, revisions, proposals
 ├── engine/           # Pure functions, zero React — the safety core
 │   ├── resolve.ts        # Viewport resolution: override[vp] ?? base
-│   ├── validate.ts       # Zod schemas + semantic checks (IDs, staleness, bounds)
+│   ├── validate.ts       # Zod schemas + semantic checks (IDs, bounds)
 │   ├── commit.ts         # applyCommand via immer → new doc + per-element revisions
 │   ├── restore.ts        # Per-element/per-scope recovery as a NEW revision
 │   ├── diffCommands.ts   # Whole-document diffs → granular command streams
@@ -124,7 +124,7 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 | Scope: All vs single view | Scoped writes in `commit.ts`; isolation tests |
 | Deterministic AI inside selection/scope | `engine/ai/scenarioEngine.ts`; containment + determinism tests |
 | One-click prompt autofill | `engine/ai/exampleCatalog.ts` (categorized, selection-aware ordering) + gallery in `AiDemoPanel` |
-| Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-based safely against current revision, genuinely stale proposals stay blocked |
+| Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-validates against the current document — only genuinely invalid proposals stay blocked |
 | Per-element × scope recovery | `HistoryPanel` + `engine/restore.ts`; independence tested |
 | Persistence + reset | `templateStore` persist middleware (localStorage, versioned, per-template reset); Reset button |
 | Template import/export (.json) | `FileMenu` + `engine/exportTemplate.ts` + `store importDoc`; versioned envelope, schema + semantic gate, full replacement with history reset, save-first prompt |

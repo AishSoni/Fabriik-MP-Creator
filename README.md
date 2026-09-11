@@ -34,7 +34,7 @@ src/
 ├── types/            # The contract: template model, edit commands, revisions, proposals
 ├── engine/           # Pure functions, zero React — the safety core
 │   ├── resolve.ts        # Viewport resolution: override[vp] ?? base
-│   ├── validate.ts       # Zod schemas + semantic checks (IDs, staleness, bounds)
+│   ├── validate.ts       # Zod schemas + semantic checks (IDs, bounds)
 │   ├── commit.ts         # applyCommand via immer → new doc + per-element revisions
 │   ├── restore.ts        # Per-element/per-scope recovery as a NEW revision
 │   ├── diffCommands.ts   # Whole-document diffs → granular command streams
@@ -72,10 +72,10 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 
 ```ts
 { kind, source: 'canvas'|'code'|'ai', targetIds, scope: 'all'|'desktop'|'tablet'|'mobile',
-  baseRevision, payload }
+  payload }
 ```
 
-`dispatch()` validates against the *current* document and rejects anything unknown, out-of-bounds, forbidden, or stale (`baseRevision !== doc.revision`). Accepted multi-element operations produce independent revisions per element, which is what makes partial acceptance and independent recovery possible.
+`dispatch()` validates against the *current* document and rejects anything unknown, out-of-bounds, or forbidden. Concurrent edits merge through the Yjs document layer instead of being rejected on staleness (D6). Accepted multi-element operations produce independent revisions per element, which is what makes partial acceptance and independent recovery possible.
 
 ### Commit boundary & trade-off
 
@@ -96,7 +96,7 @@ Every change — canvas click, inline text edit, properties input, code Apply, A
 | Scope: All vs single view | Scoped writes in `commit.ts`; isolation tests |
 | Deterministic AI inside selection/scope | `engine/ai/scenarioEngine.ts`; containment + determinism tests |
 | One-click prompt autofill | `engine/ai/exampleCatalog.ts` (categorized, selection-aware ordering) + gallery in `AiDemoPanel` |
-| Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-based safely against current revision, genuinely stale proposals stay blocked |
+| Proposal review, partial accept/reject | `AiDemoPanel` + `reviewStore`; acceptance re-validates against the current document — only genuinely invalid proposals stay blocked |
 | Per-element × scope recovery | `HistoryPanel` + `engine/restore.ts`; independence tested |
 | Persistence + reset | `templateStore` persist middleware (localStorage, versioned, per-template reset); Reset button |
 | Tests (AI scope, canvas-code consistency, view isolation, independent recovery) | `src/engine/ai/*.test.ts`, `src/engine/diffCommands.test.ts`, `src/engine/commit.test.ts`, `src/engine/restore.test.ts`, `src/journey.test.tsx`, `src/templates.journey.test.tsx` |

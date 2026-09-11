@@ -42,7 +42,6 @@ export const EXAMPLE_INSTRUCTIONS: ExampleInstruction[] = [
   { instruction: 'Make all selected elements bolder', description: 'Bold everything selected', category: 'multi-element' },
   { instruction: 'Change the templateId to something else', description: 'Forbidden field', category: 'failure' },
   { instruction: 'Now change the footer section too', description: 'Unselected target', category: 'failure' },
-  { instruction: 'Simulate a stale revision conflict', description: 'Stale revision', category: 'failure' },
   { instruction: 'Tell me a joke about pixels', description: 'Unsupported ask', category: 'failure' },
 ];
 
