@@ -143,7 +143,24 @@ export function bindTemplatePersistence(
       if (options.storeTimeout !== undefined) {
         Object.assign(provider, { _storeTimeout: options.storeTimeout });
       }
-      return provider.whenSynced.then(() => undefined);
+      // Upstream whenSynced never settles for a provider destroyed before
+      // its first sync, so race it against the live doc's teardown — callers
+      // awaiting `ready` must never be left hanging.
+      let rejectOnDestroy!: (reason: Error) => void;
+      const destroyed = new Promise<never>((_resolve, reject) => {
+        rejectOnDestroy = reject;
+      });
+      const onLiveDestroy = (): void => {
+        rejectOnDestroy(
+          new Error('ydoc destroyed before provider sync completed'),
+        );
+      };
+      ydoc.on('destroy', onLiveDestroy);
+      return Promise.race([provider.whenSynced, destroyed])
+        .finally(() => {
+          ydoc.off('destroy', onLiveDestroy);
+        })
+        .then(() => undefined);
     });
 
   return { ready };
