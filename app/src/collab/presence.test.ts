@@ -12,12 +12,15 @@ import {
   collectRemotePresence,
   colorForId,
   createCursorBroadcaster,
+  pointerToDocPercent,
   presenceNoticeMessage,
   resolveIdentity,
   sanitizeCursor,
   sanitizePresenceUser,
   sanitizeSelectedIds,
+  useCursorBroadcast,
   useRemotePresence,
+  type CursorPointerEventLike,
   type PresenceAwareness,
   type PresenceNotice,
 } from './presence';
@@ -136,6 +139,35 @@ describe('sanitizeCursor', () => {
     expect(sanitizeCursor({ xPct: NaN, yPct: 10 })).toBeNull();
     expect(sanitizeCursor({ xPct: Infinity, yPct: 10 })).toBeNull();
     expect(sanitizeCursor({ xPct: 10 })).toBeNull();
+  });
+});
+
+describe('pointerToDocPercent', () => {
+  const frame = { left: 100, top: 50, width: 1000, height: 2000 };
+
+  it('converts client coordinates into document-space percentages', () => {
+    expect(pointerToDocPercent(frame, 600, 1050)).toEqual({ xPct: 50, yPct: 50 });
+    expect(pointerToDocPercent(frame, 1100, 250)).toEqual({ xPct: 100, yPct: 10 });
+  });
+
+  it('clamps out-of-frame points and rounds to two decimals', () => {
+    expect(pointerToDocPercent(frame, 50, 50)).toEqual({ xPct: 0, yPct: 0 });
+    expect(pointerToDocPercent(frame, 2000, 5000)).toEqual({ xPct: 100, yPct: 100 });
+    expect(pointerToDocPercent(frame, 433.33, 50)).toEqual({ xPct: 33.33, yPct: 0 });
+    expect(pointerToDocPercent(frame, Number.NaN, 50)).toBeNull();
+  });
+
+  it('returns null for degenerate frames', () => {
+    expect(pointerToDocPercent({ left: 0, top: 0, width: 0, height: 100 }, 10, 10)).toBeNull();
+    expect(pointerToDocPercent({ left: 0, top: 0, width: 100, height: 0 }, 10, 10)).toBeNull();
+    expect(pointerToDocPercent({ left: 0, top: 0, width: -5, height: 10 }, 10, 10)).toBeNull();
+  });
+
+  it('maps the same document position identically across device frames', () => {
+    const desktop = { left: 0, top: 0, width: 1440, height: 2000 };
+    const mobile = { left: 120, top: 40, width: 375, height: 2000 };
+    expect(pointerToDocPercent(desktop, 576, 1000)).toEqual({ xPct: 40, yPct: 50 });
+    expect(pointerToDocPercent(mobile, 270, 1040)).toEqual({ xPct: 40, yPct: 50 });
   });
 });
 
@@ -289,6 +321,82 @@ describe('createCursorBroadcaster', () => {
     broadcaster.send({ xPct: NaN, yPct: 0 });
     broadcaster.flush();
     expect(emit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useCursorBroadcast', () => {
+  const frame = { left: 100, top: 50, width: 1000, height: 1000 };
+  const move = (clientX: number, clientY: number): CursorPointerEventLike => ({
+    clientX,
+    clientY,
+    currentTarget: { getBoundingClientRect: () => frame },
+  });
+  const seedState = (awareness: { setLocalState: (state: Record<string, unknown>) => void }) =>
+    awareness.setLocalState({
+      user: { id: 'self', name: 'Me', color: '#7868e6' },
+      cursor: null,
+      selectedIds: [],
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('sends throttled document-space cursors through setLocalStateField', () => {
+    const { awareness, readState } = fakeWritableAwareness();
+    seedState(awareness);
+    const { result, unmount } = renderHook(() => useCursorBroadcast(awareness));
+
+    act(() => result.current.onPointerMove(move(600, 550)));
+    expect(readState()).toMatchObject({ cursor: { xPct: 50, yPct: 50 } });
+
+    act(() => result.current.onPointerMove(move(700, 550)));
+    expect(readState()).toMatchObject({ cursor: { xPct: 50, yPct: 50 } });
+
+    act(() => {
+      vi.advanceTimersByTime(CURSOR_THROTTLE_MS);
+    });
+    expect(readState()).toMatchObject({ cursor: { xPct: 60, yPct: 50 } });
+
+    act(() => result.current.onPointerLeave());
+    expect(readState()).toMatchObject({ cursor: null });
+    unmount();
+  });
+
+  it('ignores moves without an active awareness or a degenerate frame', () => {
+    const idle = renderHook(() => useCursorBroadcast(null));
+    expect(() => act(() => idle.result.current.onPointerMove(move(600, 550)))).not.toThrow();
+    idle.unmount();
+
+    const { awareness, readState } = fakeWritableAwareness();
+    seedState(awareness);
+    const zero = {
+      clientX: 10,
+      clientY: 10,
+      currentTarget: {
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }),
+      },
+    };
+    const hook = renderHook(() => useCursorBroadcast(awareness));
+    act(() => hook.result.current.onPointerMove(zero));
+    expect(readState()).toMatchObject({ cursor: null });
+    hook.unmount();
+  });
+
+  it('clears the cursor when the broadcaster detaches', () => {
+    const { awareness, readState } = fakeWritableAwareness();
+    seedState(awareness);
+    const { result, unmount } = renderHook(() => useCursorBroadcast(awareness));
+
+    act(() => result.current.onPointerMove(move(600, 550)));
+    expect(readState()).toMatchObject({ cursor: { xPct: 50, yPct: 50 } });
+
+    unmount();
+    expect(readState()).toMatchObject({ cursor: null });
   });
 });
 
