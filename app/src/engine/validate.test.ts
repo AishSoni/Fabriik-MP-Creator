@@ -1,11 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { elementContentSchemas, templateDocSchema, validateCommand } from './validate';
+import { editCommandSchema, elementContentSchemas, templateDocSchema, validateCommand } from './validate';
 import type { EditCommand } from '../types/commands';
 
 const doc = () => createDefaultTemplate();
 
 const base = { source: 'canvas' as const, scope: 'all' as const };
+
+describe('editCommandSchema', () => {
+  it('parses commands without baseRevision and rejects payloads that carry it', () => {
+    const ok = editCommandSchema.safeParse({
+      ...base,
+      kind: 'set-style',
+      targetIds: ['hero-heading'],
+      stylePatch: { fontSize: 64 },
+    });
+    expect(ok.success).toBe(true);
+
+    const bad = editCommandSchema.safeParse({
+      ...base,
+      kind: 'set-style',
+      targetIds: ['hero-heading'],
+      baseRevision: 0,
+      stylePatch: { fontSize: 64 },
+    });
+    expect(bad.success).toBe(false);
+  });
+});
 
 describe('validateCommand', () => {
   it('accepts a valid set-style command', () => {
