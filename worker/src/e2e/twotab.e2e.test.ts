@@ -92,7 +92,7 @@ it.skipIf(!url)('two-provider smoke: creator + joiner converge, invalid rolls ba
     'creator receives joiner content',
   );
 
-  expect(JSON.stringify(projectDoc(creatorDoc).elements)).toEqual(JSON.stringify(projectDoc(joinerDoc).elements));
+  expect(projectDoc(creatorDoc).elements).toEqual(projectDoc(joinerDoc).elements);
   expect(getHistoryYArray(creatorDoc).length).toBe(2);
 
   const rejectJoiner = waitEvent(joiner, 'room-reject', () => true);

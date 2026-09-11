@@ -223,7 +223,7 @@ it.skipIf(!url)('scenario 1+5: A edits, ack, B joins and converges with history'
   sendSyncStep1(b.ws, b.doc);
   await waitForQuiet(b.ws);
   expect(JSON.stringify(projectDoc(b.doc).elements['hero-heading']?.style)).toContain('#112233');
-  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+  expect(projectDoc(a.doc).elements).toEqual(projectDoc(b.doc).elements);
   expect(getHistoryYArray(b.doc).length).toBe(1);
   a.close();
   b.close();
@@ -281,7 +281,7 @@ it.skipIf(!url)('scenario 3: disjoint concurrent edits both acked and converge',
 
   await waitForQuiet(a.ws);
   await waitForQuiet(b.ws);
-  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+  expect(projectDoc(a.doc).elements).toEqual(projectDoc(b.doc).elements);
   expect(JSON.stringify(projectDoc(a.doc).elements['hero-heading']?.style)).toContain('#112233');
   expect(JSON.stringify(projectDoc(a.doc).elements['hero-eyebrow']?.content)).toContain('From B');
   a.close();
@@ -381,7 +381,7 @@ it.skipIf(!url)('scenario 8: whole-doc replace notices every client and clears h
   await waitForQuiet(b.ws);
   expect(projectDoc(a.doc).templateId).toBe('tpl-replaced-e2e');
   expect(projectDoc(b.doc).templateId).toBe('tpl-replaced-e2e');
-  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+  expect(projectDoc(a.doc).elements).toEqual(projectDoc(b.doc).elements);
   expect(getHistoryYArray(a.doc).length).toBe(0);
   expect(getHistoryYArray(b.doc).length).toBe(0);
   a.close();
@@ -459,7 +459,7 @@ it.skipIf(!url)('scenario 10: restore round-trips through the command gate', { t
   await waitForQuiet(b.ws);
   expect(JSON.stringify(projectDoc(a.doc).elements['hero-heading']?.style)).toContain('#445566');
   expect(JSON.stringify(projectDoc(a.doc).elements['hero-heading']?.style)).not.toContain('#112233');
-  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+  expect(projectDoc(a.doc).elements).toEqual(projectDoc(b.doc).elements);
 
   const historyA = getHistoryYArray(a.doc).toArray();
   const historyB = getHistoryYArray(b.doc).toArray();
