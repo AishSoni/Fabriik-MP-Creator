@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { applyCommandToYDoc } from '../collab/commandAdapter';
-import type { EditCommand, ReplaceDocCommand } from '../types/commands';
+import type { EditCommand, ReplaceDocCommand, RevisionEntry } from '../types/commands';
 
 const harness = vi.hoisted(() => ({
   instances: [] as unknown[],
@@ -211,5 +211,88 @@ describe('room-scoped renames', () => {
     const kinds = fakeProvider().dispatches.map((entry) => entry.command.kind);
     expect(kinds).toEqual(['set-content', 'rename']);
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+});
+
+describe('room-scoped restores', () => {
+  const seedStyleEntry = async (): Promise<void> => {
+    applyCommandToYDoc(
+      fakeProvider().ydoc,
+      {
+        kind: 'set-style',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        stylePatch: { color: '#112233' },
+      },
+      { origin: 'authoritative', commandId: 'srv-1', serverSeq: 1 },
+    );
+    await flushMicrotasks();
+  };
+
+  it('dispatches a shared revision inverse through the room gate as an optimistic command', async () => {
+    await seedStyleEntry();
+    const entry = state().history['hero-heading'][0];
+    expect(entry.serverSeq).toBe(1);
+    expect(state().doc.elements['hero-heading'].style.base.color).toBe('#112233');
+
+    state().restore(entry);
+    await flushMicrotasks();
+
+    const provider = fakeProvider();
+    expect(provider.dispatches).toHaveLength(1);
+    expect(provider.dispatches[0]).toMatchObject({
+      optimistic: true,
+      command: {
+        kind: 'set-style',
+        source: 'restore',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+      },
+    });
+    expect(state().doc.elements['hero-heading'].style.base.color).toBeUndefined();
+    expect(state().history['hero-heading']).toHaveLength(1);
+  });
+
+  it('records the restore in shared history only once the authority applies it', async () => {
+    await seedStyleEntry();
+    const entry = state().history['hero-heading'][0];
+
+    state().restore(entry);
+    await flushMicrotasks();
+    const restoreCommand = fakeProvider().dispatches.at(-1)!.command;
+
+    applyCommandToYDoc(fakeProvider().ydoc, restoreCommand, {
+      origin: 'authoritative',
+      commandId: 'srv-2',
+      serverSeq: 2,
+    });
+    await flushMicrotasks();
+
+    const history = state().history['hero-heading'];
+    expect(history).toHaveLength(2);
+    expect(history[0].serverSeq).toBe(1);
+    expect(history[1]).toMatchObject({ serverSeq: 2, source: 'restore' });
+    expect(state().doc.elements['hero-heading'].style.base.color).toBeUndefined();
+  });
+
+  it('reports invalid-target and dispatches nothing when the location is gone', () => {
+    const ghost: RevisionEntry = {
+      id: 'rev-ghost',
+      commandId: 'cmd-ghost',
+      elementId: 'no-such-element',
+      scope: 'all',
+      source: 'canvas',
+      kind: 'manual',
+      label: 'ghost',
+      before: {},
+      after: {},
+      timestamp: 0,
+    };
+
+    state().restore(ghost);
+
+    expect(state().lastErrors[0].code).toBe('invalid-target');
+    expect(fakeProvider().dispatches).toHaveLength(0);
   });
 });
