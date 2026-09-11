@@ -34,7 +34,13 @@ import {
 } from '../collab/persistence';
 import { newCommandId } from '../collab/ids';
 import { TemplateRoomProvider } from '../collab/provider';
-import { resolveIdentityName } from '../collab/room';
+import {
+  bindPresence,
+  presenceNoticeMessage,
+  resolveIdentity,
+  type PresenceNotice,
+} from '../collab/presence';
+import { useEditorStore } from './editorStore';
 
 /**
  * History entries exist in two producer shapes: the legacy immer pipeline
@@ -163,6 +169,7 @@ type YApplyResult =
   | { ok: false; errors: CommandError[] };
 
 let roomProvider: TemplateRoomProvider | null = null;
+let unbindPresence: (() => void) | null = null;
 
 export function isRoomActive(): boolean {
   return roomProvider !== null;
@@ -193,13 +200,34 @@ export function attachRoomProvider(
     uploadLocal: options.role === 'create',
     party: options.party,
   });
-  provider.awareness.setLocalStateField('user', { name: resolveIdentityName() });
+  unbindPresence = bindPresence({
+    awareness: provider.awareness,
+    identity: resolveIdentity(),
+    getSelectedIds: () => useEditorStore.getState().selectedIds,
+    subscribeSelectedIds: (listener) =>
+      useEditorStore.subscribe((state, previous) => {
+        if (state.selectedIds !== previous.selectedIds) listener();
+      }),
+    subscribeNotices: (listener) => {
+      const handler = (notices: PresenceNotice[]): void => {
+        for (const notice of notices) listener(notice);
+      };
+      provider.on('room-notice', handler);
+      return () => provider.off('room-notice', handler);
+    },
+    onNotice: (notice) => {
+      const message = presenceNoticeMessage(notice);
+      if (message) useEditorStore.getState().setToastMessage(message);
+    },
+  });
   roomProvider = provider;
   return provider;
 }
 
 export function detachRoomProvider(): void {
   if (!roomProvider) return;
+  unbindPresence?.();
+  unbindPresence = null;
   roomProvider.destroy();
   roomProvider = null;
 }

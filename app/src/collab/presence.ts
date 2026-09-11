@@ -198,6 +198,64 @@ export function useRemotePresence(
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+export interface WritablePresenceAwareness extends PresenceAwareness {
+  setLocalState: (state: Record<string, unknown> | null) => void;
+  setLocalStateField: (field: string, value: unknown) => void;
+}
+
+export interface PresenceNotice {
+  event: string;
+  reason?: string;
+  by?: string;
+}
+
+export interface BindPresenceOptions {
+  awareness: WritablePresenceAwareness;
+  identity: PresenceUser;
+  getSelectedIds: () => string[];
+  subscribeSelectedIds: (listener: () => void) => () => void;
+  subscribeNotices?: (listener: (notice: PresenceNotice) => void) => () => void;
+  onNotice?: (notice: PresenceNotice) => void;
+}
+
+/**
+ * Publishes the local identity/selection (a full setLocalState first: writing a
+ * field is a no-op while the local state is null) and forwards room notices.
+ * Unbind unsubscribes first, then clears the state so peers drop us promptly.
+ */
+export function bindPresence(options: BindPresenceOptions): () => void {
+  const { awareness, identity } = options;
+  awareness.setLocalState({
+    user: identity,
+    cursor: null,
+    selectedIds: sanitizeSelectedIds(options.getSelectedIds()),
+  });
+  const unsubscribeSelection = options.subscribeSelectedIds(() => {
+    awareness.setLocalStateField(
+      'selectedIds',
+      sanitizeSelectedIds(options.getSelectedIds()),
+    );
+  });
+  const unsubscribeNotices =
+    options.subscribeNotices && options.onNotice
+      ? options.subscribeNotices((notice) => options.onNotice?.(notice))
+      : () => {};
+  return () => {
+    unsubscribeSelection();
+    unsubscribeNotices();
+    awareness.setLocalState(null);
+  };
+}
+
+export function presenceNoticeMessage(notice: PresenceNotice): string | null {
+  if (notice.event !== 'room-replaced') return null;
+  const by =
+    typeof notice.by === 'string'
+      ? cleanText(notice.by).slice(0, MAX_PRESENCE_NAME_LENGTH)
+      : '';
+  return `Document replaced by ${by || 'Someone'}`;
+}
+
 export interface CursorBroadcaster {
   send: (cursor: PresenceCursor) => void;
   flush: () => void;

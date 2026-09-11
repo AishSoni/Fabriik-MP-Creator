@@ -298,15 +298,15 @@ describe('bindPresence', () => {
   it('seeds the full local state before mirroring selection changes', () => {
     const { awareness, readState } = fakeWritableAwareness();
     let selected = ['a', 'a', 'b'];
-    let selectionListener: (() => void) | null = null;
+    const selectionListeners: (() => void)[] = [];
     const unbind = bindPresence({
       awareness,
       identity,
       getSelectedIds: () => selected,
       subscribeSelectedIds: (listener) => {
-        selectionListener = listener;
+        selectionListeners.push(listener);
         return () => {
-          selectionListener = null;
+          selectionListeners.length = 0;
         };
       },
     });
@@ -317,18 +317,18 @@ describe('bindPresence', () => {
     });
 
     selected = ['c'];
-    selectionListener?.();
+    selectionListeners.at(-1)?.();
     expect((readState() as { selectedIds: string[] }).selectedIds).toEqual(['c']);
 
     unbind();
-    expect(selectionListener).toBeNull();
+    expect(selectionListeners).toHaveLength(0);
     expect(readState()).toBeNull();
   });
 
   it('forwards room notices and unsubscribes before clearing state', () => {
     const { awareness, order, readState } = fakeWritableAwareness();
     const notices: PresenceNotice[] = [];
-    let noticeListener: ((notice: PresenceNotice) => void) | null = null;
+    const noticeListeners: ((notice: PresenceNotice) => void)[] = [];
     let selectionUnsubscribed = false;
     const unbind = bindPresence({
       awareness,
@@ -338,20 +338,20 @@ describe('bindPresence', () => {
         selectionUnsubscribed = true;
       },
       subscribeNotices: (listener) => {
-        noticeListener = listener;
+        noticeListeners.push(listener);
         return () => {
-          noticeListener = null;
+          noticeListeners.length = 0;
         };
       },
       onNotice: (notice) => notices.push(notice),
     });
 
-    noticeListener?.({ event: 'room-replaced', reason: 'import', by: 'Ada' });
+    noticeListeners.at(-1)?.({ event: 'room-replaced', reason: 'import', by: 'Ada' });
     expect(notices).toEqual([{ event: 'room-replaced', reason: 'import', by: 'Ada' }]);
 
     unbind();
     expect(selectionUnsubscribed).toBe(true);
-    expect(noticeListener).toBeNull();
+    expect(noticeListeners).toHaveLength(0);
     expect(order.at(-1)).toBe('setLocalState');
     expect(readState()).toBeNull();
   });
