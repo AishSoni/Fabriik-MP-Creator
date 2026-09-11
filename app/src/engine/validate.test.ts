@@ -41,7 +41,7 @@ describe('validateCommand', () => {
     expect(errors.some((e) => e.code === 'unknown-element')).toBe(true);
   });
 
-  it('rejects stale revisions', () => {
+  it('applies commands regardless of doc revision', () => {
     const d = doc();
     d.revision = 5;
     const errors = validateCommand(d, {
@@ -51,7 +51,7 @@ describe('validateCommand', () => {
       baseRevision: 3,
       stylePatch: { fontSize: 10 },
     });
-    expect(errors.some((e) => e.code === 'stale-revision')).toBe(true);
+    expect(errors).toEqual([]);
   });
 
   it('rejects content that does not match the element type', () => {

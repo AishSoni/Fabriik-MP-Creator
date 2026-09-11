@@ -32,7 +32,7 @@ const reorderFrame: CommandFrame = {
 const ackFrame: AckFrame = { v: 1, type: 'ack', commandId: 'cmd-1', serverSeq: 7 };
 
 const rejectErrors: CommandError[] = [
-  { code: 'stale-revision', message: 'command targets revision 0 but current revision is 3' },
+  { code: 'invalid-target', message: 'command targets an element that is gone' },
   { code: 'unknown-element', message: 'unknown element id "ghost"' },
 ];
 
@@ -71,7 +71,7 @@ describe('control frames', () => {
     expect(decoded).toEqual({ tag: TAG_REJECT, frame: rejectFrame });
     const frame = decoded?.frame;
     if (!frame || !('errors' in frame)) throw new Error('expected reject frame');
-    expect(frame.errors.map((e) => e.code)).toEqual(['stale-revision', 'unknown-element']);
+    expect(frame.errors.map((e) => e.code)).toEqual(['invalid-target', 'unknown-element']);
     expect(frame.errors[1]?.message).toBe('unknown element id "ghost"');
   });
 
@@ -92,7 +92,6 @@ describe('control frames', () => {
     const codes: CommandErrorCode[] = [
       'invalid-payload',
       'unknown-element',
-      'stale-revision',
       'invalid-target',
       'id-collision',
       'forbidden-field',

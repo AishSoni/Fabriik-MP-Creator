@@ -95,12 +95,12 @@ describe('doc loop: authoritative apply', () => {
     expect(getHistoryYArray(state.ydoc).length).toBe(0);
   });
 
-  it('rejects stale revisions', () => {
+  it('applies commands regardless of revision', () => {
     const state = makeState();
     const response = run(state, setStyle('cmd-s', 5));
-    if (!response || response.type !== 'reject') throw new Error('unreachable');
-    expect(response.errors[0]?.code).toBe('stale-revision');
-    expect(state.serverSeq).toBe(0);
+    if (!response || response.type !== 'ack') throw new Error('expected ack, got reject');
+    expect(response.serverSeq).toBe(1);
+    expect(getHistoryYArray(state.ydoc).length).toBe(1);
   });
 
   it('does not remember rejected commandIds', () => {
