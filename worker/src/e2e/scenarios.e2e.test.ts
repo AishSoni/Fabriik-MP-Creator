@@ -8,6 +8,7 @@ import {
   decodeControlFrame,
   encodeControlFrame,
   TAG_ACK,
+  TAG_NOTICE,
   TAG_REJECT,
 } from '@app/collab/frames';
 import { getHistoryYArray, initializeTemplateYDoc, projectDoc } from '@app/collab/schema';
@@ -140,7 +141,7 @@ function observeControl(ws: WebSocket): ControlWait {
   ws.addEventListener('message', (event) => {
     if (typeof event.data === 'string') return;
     const bytes = new Uint8Array(event.data);
-    if (bytes[0] !== TAG_ACK && bytes[0] !== TAG_REJECT) return;
+    if (bytes[0] !== TAG_ACK && bytes[0] !== TAG_REJECT && bytes[0] !== TAG_NOTICE) return;
     const decoded = decodeControlFrame(bytes);
     if (!decoded) return;
     const frame = decoded.frame as unknown as Payload;
@@ -197,6 +198,13 @@ const promotedLocalDoc = (): Uint8Array => {
   const local = new Y.Doc();
   initializeTemplateYDoc(local, createDefaultTemplate());
   return Y.encodeStateAsUpdate(local);
+};
+
+const replacedDoc = (): unknown => {
+  const doc = createDefaultTemplate();
+  doc.templateId = 'tpl-replaced-e2e';
+  doc.templateName = 'Replaced E2E';
+  return doc;
 };
 
 it.skipIf(!url)('scenario 1+5: A edits, ack, B joins and converges with history', { timeout: 45_000 }, async () => {
@@ -332,6 +340,51 @@ it.skipIf(!url)('scenario 4+7: provider dispatch onto removed element rejects, r
   expect(JSON.stringify(projectDoc(providerDoc).elements)).not.toContain('zombie');
   bProvider.destroy();
   a.close();
+});
+
+it.skipIf(!url)('scenario 8: whole-doc replace notices every client and clears history', { timeout: 45_000 }, async () => {
+  const a = await connectRoom('scen-replace');
+  bindSyncApplying(a.ws, a.doc);
+  sendSyncStep1(a.ws, a.doc);
+  sendSyncUpdate(a.ws, promotedLocalDoc());
+  const aCtl = observeControl(a.ws);
+  sendCommand(a.ws, 'scen-rep-a1', styleColor('#112233'));
+  await nextControl(aCtl, (f) => isAck(f, 'scen-rep-a1'));
+  await waitForQuiet(a.ws);
+
+  const b = await connectRoom('scen-replace');
+  bindSyncApplying(b.ws, b.doc);
+  sendSyncStep1(b.ws, b.doc);
+  await waitForQuiet(b.ws);
+  expect(getHistoryYArray(a.doc).length).toBe(1);
+  expect(getHistoryYArray(b.doc).length).toBe(1);
+  const bCtl = observeControl(b.ws);
+
+  sendCommand(a.ws, 'scen-rep-a2', {
+    kind: 'replace-doc',
+    source: 'code',
+    targetIds: [],
+    scope: 'all',
+    reason: 'import',
+    doc: replacedDoc(),
+    by: 'E2E Tester',
+  });
+  const ackA = await nextControl(aCtl, (f) => isAck(f, 'scen-rep-a2'));
+  expect(ackA.serverSeq).toBe(2);
+  const noticeA = await nextControl(aCtl, (f) => f.type === 'notice');
+  const noticeB = await nextControl(bCtl, (f) => f.type === 'notice');
+  expect(noticeA).toMatchObject({ event: 'room-replaced', reason: 'import', by: 'E2E Tester' });
+  expect(noticeB).toMatchObject({ event: 'room-replaced', reason: 'import', by: 'E2E Tester' });
+
+  await waitForQuiet(a.ws);
+  await waitForQuiet(b.ws);
+  expect(projectDoc(a.doc).templateId).toBe('tpl-replaced-e2e');
+  expect(projectDoc(b.doc).templateId).toBe('tpl-replaced-e2e');
+  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+  expect(getHistoryYArray(a.doc).length).toBe(0);
+  expect(getHistoryYArray(b.doc).length).toBe(0);
+  a.close();
+  b.close();
 });
 
 it.skipIf(!url)('scenario 9: duplicate commandId applied exactly once', { timeout: 45_000 }, async () => {
