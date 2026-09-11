@@ -3,8 +3,9 @@ import * as Y from 'yjs';
 import { createDefaultTemplate } from '@app/template/defaultTemplate';
 import { getHistoryYArray, initializeTemplateYDoc, projectDoc } from '@app/collab/schema';
 import { decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
-import { createDedupeSet, decideCommandFrame, dedupeFromEntries, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
+import { createDedupeSet, decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, sanitizeNoticeAuthor, serializeDocLoopMeta } from './docLoop';
 import type { DocLoopState } from './docLoop';
+import type { EditCommand } from '@app/types/commands';
 
 const makeState = (): DocLoopState => {
   const ydoc = new Y.Doc();
@@ -36,8 +37,31 @@ const reorderGhost = (commandId: string) => ({
   },
 });
 
-const run = (state: DocLoopState, envelope: unknown) =>
-  processCommand(state, decideCommandFrame(envelope));
+const replaceDoc = (commandId: string, overrides: Record<string, unknown> = {}) => ({
+  v: 1 as const,
+  commandId,
+  command: {
+    kind: 'replace-doc' as const,
+    source: 'code' as const,
+    targetIds: [] as unknown as [],
+    scope: 'all' as const,
+    reason: 'reset' as const,
+    doc: createDefaultTemplate(),
+    ...overrides,
+  },
+});
+
+const run = (
+  state: DocLoopState,
+  envelope: unknown,
+  onApplied?: (command: EditCommand) => void,
+) => processCommand(state, decideCommandFrame(envelope), onApplied);
+
+const appliedCommand = (envelope: unknown): EditCommand => {
+  const decision = decideCommandFrame(envelope);
+  if (decision.action !== 'apply') throw new Error('expected an apply decision');
+  return decision.command;
+};
 
 describe('doc loop: decision', () => {
   it('drops payloads without a usable commandId', () => {
@@ -209,5 +233,72 @@ describe('doc loop meta persistence', () => {
     expect(getHistoryYArray(wokeState.ydoc).length).toBe(2);
     expect(run(wokeState, setStyle('cmd-3'))).toMatchObject({ serverSeq: 3 });
     expect(getHistoryYArray(wokeState.ydoc).length).toBe(3);
+  });
+});
+
+describe('doc loop: applied callback', () => {
+  it('reports freshly applied commands', () => {
+    const state = makeState();
+    const applied: string[] = [];
+    run(state, setStyle('cmd-1'), (command) => applied.push(command.kind));
+    expect(applied).toEqual(['set-style']);
+  });
+
+  it('does not report duplicate re-acks or rejects', () => {
+    const state = makeState();
+    const applied: string[] = [];
+    const track = (command: EditCommand) => applied.push(command.kind);
+    expect(run(state, setStyle('cmd-1'), track)?.type).toBe('ack');
+    expect(run(state, setStyle('cmd-1'), track)?.type).toBe('ack');
+    expect(run(state, reorderGhost('cmd-x'), track)?.type).toBe('reject');
+    expect(applied).toEqual(['set-style']);
+  });
+
+  it('applies replace-doc through the authoritative gate and clears history', () => {
+    const state = makeState();
+    run(state, setStyle('cmd-1'));
+    expect(getHistoryYArray(state.ydoc).length).toBe(1);
+    const response = run(state, replaceDoc('cmd-replace'));
+    expect(response).toEqual({ v: 1, type: 'ack', commandId: 'cmd-replace', serverSeq: 2 });
+    expect(getHistoryYArray(state.ydoc).length).toBe(0);
+    expect(state.serverSeq).toBe(2);
+  });
+});
+
+describe('doc loop: room-replaced notice', () => {
+  it('builds a notice for replace-doc with a fallback author', () => {
+    expect(noticeForCommand(appliedCommand(replaceDoc('cmd-r')))).toEqual({
+      v: 1,
+      type: 'notice',
+      event: 'room-replaced',
+      reason: 'reset',
+      by: 'Someone',
+    });
+  });
+
+  it('keeps the reason and sanitized author', () => {
+    const notice = noticeForCommand(
+      appliedCommand(replaceDoc('cmd-r', { reason: 'import', by: '  Ada Lovelace  ' })),
+    );
+    expect(notice).toMatchObject({ reason: 'import', by: 'Ada Lovelace' });
+  });
+
+  it('returns null for commands other than replace-doc', () => {
+    expect(noticeForCommand(appliedCommand(setStyle('cmd-1')))).toBeNull();
+    expect(noticeForCommand(appliedCommand(reorderGhost('cmd-2')))).toBeNull();
+  });
+});
+
+describe('notice author sanitizing', () => {
+  it('falls back to Someone for missing or blank authors', () => {
+    expect(sanitizeNoticeAuthor(undefined)).toBe('Someone');
+    expect(sanitizeNoticeAuthor('')).toBe('Someone');
+    expect(sanitizeNoticeAuthor('   ')).toBe('Someone');
+    expect(sanitizeNoticeAuthor('\u0000\u200b')).toBe('Someone');
+  });
+
+  it('strips control characters and clamps to 64 chars', () => {
+    expect(sanitizeNoticeAuthor('Ada\u0000\nLovelace')).toBe('AdaLovelace');
+    expect(sanitizeNoticeAuthor('x'.repeat(100))).toHaveLength(64);
   });
 });
