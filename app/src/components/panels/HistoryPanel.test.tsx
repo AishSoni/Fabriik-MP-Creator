@@ -40,4 +40,30 @@ describe('HistoryPanel', () => {
     expect(useTemplateStore.getState().history['hero-heading']).toHaveLength(2);
     expect(useTemplateStore.getState().history['hero-heading'][1].kind).toBe('restore');
   });
+
+  it('shows the server sequence number when the DO assigned one', () => {
+    useTemplateStore.setState({
+      history: {
+        'hero-heading': [
+          {
+            id: 'rev-seq-1',
+            commandId: 'cmd-seq-1',
+            elementId: 'hero-heading',
+            scope: 'all',
+            source: 'canvas',
+            kind: 'manual',
+            label: 'style updated (manual)',
+            before: {},
+            after: {},
+            timestamp: 1_700_000_000_000,
+            serverSeq: 7,
+          },
+        ],
+      },
+    });
+
+    render(<HistoryPanel />);
+
+    expect(screen.getByText('#7')).toBeInTheDocument();
+  });
 });
