@@ -68,7 +68,7 @@ describe('ByokEngine (spec ai-byok §6, §8 decision, §10)', () => {
     expect(proposal.command.source).toBe('ai');
     expect(proposal.command.scope).toBe('all');
     expect('baseRevision' in proposal.command).toBe(false);
-    expect(proposal.proposalId.startsWith(`p-${doc().revision}-`)).toBe(false);
+    expect(proposal.proposalId).toBe('p-0-hero-heading-0');
     expect(proposal.before.content).toEqual({ text: 'Main Hero Message to Sell Yourself!' });
     expect(proposal.after.content).toEqual({ text: 'Boom! A headline that sells.' });
 

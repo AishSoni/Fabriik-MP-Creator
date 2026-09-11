@@ -9,10 +9,8 @@ export interface RawProposal {
   explanation: string;
   before: { content?: ElementContent; style?: StylePatch };
   after: { content?: ElementContent; style?: StylePatch };
-  command: DistributiveOmit<EditCommand, 'baseRevision'>;
+  command: EditCommand;
 }
-
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 export interface EngineContext {
   doc: TemplateDoc;
@@ -21,7 +19,7 @@ export interface EngineContext {
 }
 
 export function buildProposals(ctx: EngineContext, raws: RawProposal[]): import('../../types/proposal').Proposal[] {
-  const baseRevision = ctx.doc.revision;
+  let seed = 0;
   const ordered = orderTargets(ctx.doc, raws.map((r) => r.targetId));
   return raws
     .map((raw) => ({ raw, seq: ordered.indexOf(raw.targetId) }))
@@ -30,14 +28,13 @@ export function buildProposals(ctx: EngineContext, raws: RawProposal[]): import(
       const command = raw.command as EditCommand & { source: 'ai' };
       const errors = validateCommand(ctx.doc, command);
       return {
-        proposalId: `p-${baseRevision}-${raw.targetId}-${index}`,
+        proposalId: `p-${(seed++).toString(36)}-${raw.targetId}-${index}`,
         targetId: raw.targetId,
         status: errors.length > 0 ? 'invalid' : 'pending',
         explanation: raw.explanation,
         before: raw.before,
         after: raw.after,
         invalidReason: errors[0]?.message,
-        generatedAt: baseRevision,
         command,
       };
     });

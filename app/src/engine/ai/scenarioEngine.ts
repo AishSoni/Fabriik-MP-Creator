@@ -1,4 +1,4 @@
-import type { DemoError, DemoInput, DemoResult, Proposal } from '../../types/proposal';
+import type { DemoError, DemoInput, DemoResult } from '../../types/proposal';
 import type { ElementContent, ElementId, StylePatch, TemplateDoc } from '../../types/template';
 import type { Scope } from '../../types/viewport';
 import { buildProposals, darkenHex, lightenHex, resolvedForScope, type EngineContext, type RawProposal } from './buildProposals';
@@ -18,12 +18,7 @@ export function runDemoEngine(input: DemoInput, doc: TemplateDoc): DemoResult {
     return fail(input, 'unselected-target', 'Nothing is selected. Select one or more elements before requesting an AI demo edit.');
   }
 
-  if (/simulate a stale revision|stale conflict/i.test(instruction)) {
-    const proposals = buildStaleProposals(ctx);
-    return { input, proposals };
-  }
-
-  if (/\btemplate\s*id\b|\btemplateid\b|\btemplate id field\b/i.test(instruction) && !/\bstale\b/i.test(instruction)) {
+  if (/\btemplate\s*id\b|\btemplateid\b|\btemplate id field\b/i.test(instruction)) {
     return fail(
       input,
       'forbidden-field',
@@ -232,35 +227,6 @@ function resizeProposal(ctx: EngineContext, id: ElementId, instruction: string):
     };
   }
   return null;
-}
-
-function buildStaleProposals(ctx: EngineContext): Proposal[] {
-  const raws: RawProposal[] = [];
-  for (const id of ctx.selectedIds.slice(0, 1)) {
-    const resolved = resolvedForScope(ctx, id);
-    const content = resolved.content as { text?: string };
-    if (content.text === undefined) continue;
-    raws.push({
-      targetId: id,
-      explanation: 'Simulated stale proposal: its baseRevision intentionally lags the document so acceptance must be rejected.',
-      before: { content: resolved.content },
-      after: { content: { text: 'This change should never apply.' } },
-      command: {
-        kind: 'set-content',
-        source: 'ai',
-        targetIds: [id],
-        scope: ctx.scope,
-        content: { text: 'This change should never apply.' },
-      },
-    });
-  }
-  const proposals = buildProposals(ctx, raws);
-  return proposals.map((p) => ({
-    ...p,
-    status: 'invalid',
-    invalidReason: `stale-revision: proposal was built against revision ${ctx.doc.revision - 1}, but the template is now at revision ${ctx.doc.revision}`,
-    command: { ...p.command, baseRevision: ctx.doc.revision - 1 },
-  }));
 }
 
 function toTitleCase(text: string): string {
