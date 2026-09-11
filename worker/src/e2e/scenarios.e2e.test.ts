@@ -12,6 +12,7 @@ import {
   TAG_REJECT,
 } from '@app/collab/frames';
 import { getHistoryYArray, initializeTemplateYDoc, projectDoc } from '@app/collab/schema';
+import { commandsFromRevision } from '@app/collab/commands';
 import { createDefaultTemplate } from '@app/template/defaultTemplate';
 import { TemplateRoomProvider } from '@app/collab/provider';
 
@@ -427,4 +428,44 @@ it.skipIf(!url)('scenario 6: reconnect delta-syncs missed changes without comman
   await waitForQuiet(a2.ws);
   expect(JSON.stringify(projectDoc(a2.doc).elements['hero-heading']?.style)).toContain('#332211');
   a2.close();
+});
+
+it.skipIf(!url)('scenario 10: restore round-trips through the command gate', { timeout: 45_000 }, async () => {
+  const a = await connectRoom('scen-restore');
+  bindSyncApplying(a.ws, a.doc);
+  sendSyncStep1(a.ws, a.doc);
+  sendSyncUpdate(a.ws, promotedLocalDoc());
+  const aCtl = observeControl(a.ws);
+  sendCommand(a.ws, 'scen-rst-a1', styleColor('#445566'));
+  expect((await nextControl(aCtl, (f) => isAck(f, 'scen-rst-a1'))).serverSeq).toBe(1);
+  sendCommand(a.ws, 'scen-rst-a2', styleColor('#112233'));
+  expect((await nextControl(aCtl, (f) => isAck(f, 'scen-rst-a2'))).serverSeq).toBe(2);
+  await waitForQuiet(a.ws);
+
+  const b = await connectRoom('scen-restore');
+  bindSyncApplying(b.ws, b.doc);
+  sendSyncStep1(b.ws, b.doc);
+  await waitForQuiet(b.ws);
+  expect(getHistoryYArray(b.doc).length).toBe(2);
+
+  const entry = getHistoryYArray(b.doc).toArray()[1];
+  const inverse = commandsFromRevision(projectDoc(b.doc), entry);
+  expect(inverse).toHaveLength(1);
+  const bCtl = observeControl(b.ws);
+  sendCommand(b.ws, 'scen-rst-b1', inverse[0]);
+  expect((await nextControl(bCtl, (f) => isAck(f, 'scen-rst-b1'))).serverSeq).toBe(3);
+
+  await waitForQuiet(a.ws);
+  await waitForQuiet(b.ws);
+  expect(JSON.stringify(projectDoc(a.doc).elements['hero-heading']?.style)).toContain('#445566');
+  expect(JSON.stringify(projectDoc(a.doc).elements['hero-heading']?.style)).not.toContain('#112233');
+  expect(JSON.stringify(projectDoc(a.doc).elements)).toEqual(JSON.stringify(projectDoc(b.doc).elements));
+
+  const historyA = getHistoryYArray(a.doc).toArray();
+  const historyB = getHistoryYArray(b.doc).toArray();
+  expect(historyA.map((item) => item.serverSeq)).toEqual([1, 2, 3]);
+  expect(historyB.map((item) => item.serverSeq)).toEqual([1, 2, 3]);
+  expect(historyB[2]).toMatchObject({ source: 'restore', commandId: 'scen-rst-b1' });
+  a.close();
+  b.close();
 });
