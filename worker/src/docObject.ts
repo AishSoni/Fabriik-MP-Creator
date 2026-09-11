@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
 import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
+import { trimHistory } from './historyTrim';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
 import type { Env } from './env';
 
@@ -70,6 +71,7 @@ export class TemplateDocDO extends YServer {
   async onSave(): Promise<void> {
     const snapshot = Y.encodeStateAsUpdate(this.document);
     await this.ctx.storage.put(SNAPSHOT_KEY, snapshot);
+    trimHistory(this.document);
     if (this.#state) {
       await this.ctx.storage.put(META_KEY, serializeDocLoopMeta(this.#state));
     }
