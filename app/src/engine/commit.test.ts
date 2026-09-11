@@ -128,6 +128,29 @@ describe('commitCommand', () => {
     expect(result.history).toEqual({});
   });
 
+  it('replace-doc swaps meta and elements without recording revisions', () => {
+    const next = doc();
+    next.templateId = 'tpl-replaced';
+    next.templateName = 'Next Landing';
+    next.elements['hero-heading'].content.base = { text: 'Replaced heading' };
+
+    const result = commitCommand(doc(), {}, {
+      kind: 'replace-doc',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      reason: 'import',
+      doc: next,
+    });
+
+    expect(result.doc.templateId).toBe('tpl-replaced');
+    expect(result.doc.templateName).toBe('Next Landing');
+    expect(result.doc.elements['hero-heading'].content.base).toEqual({ text: 'Replaced heading' });
+    expect(result.doc.revision).toBe(1);
+    expect(result.revisions).toEqual([]);
+    expect(result.history).toEqual({});
+  });
+
   it('reorder updates sibling order and records previous index', () => {
     const result = commitCommand(doc(), {}, {
       kind: 'reorder',

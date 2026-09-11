@@ -216,6 +216,24 @@ const parityCases: ParityCase[] = [
       templateName: 'Renamed Template',
     },
   },
+  {
+    name: 'replace-doc from a normalized import',
+    command: {
+      kind: 'replace-doc',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      reason: 'import',
+      by: 'Aish',
+      doc: (() => {
+        const next = doc();
+        next.templateId = 'tpl-replaced';
+        next.templateName = 'Replaced Template';
+        next.elements['hero-heading'].content.base = { text: 'Replaced heading' };
+        return next;
+      })(),
+    },
+  },
 ];
 
 describe('parity oracle vs engine/commit.ts', () => {
@@ -786,6 +804,76 @@ describe('replaceYDoc', () => {
     expect(stripDoc(projectDoc(b))).toEqual(stripDoc(replacedDoc()));
     expect(getHistoryYArray(b).length).toBe(0);
     expect(getHistoryYArray(a).length).toBe(0);
+  });
+});
+
+describe('replace-doc command', () => {
+  const replacement = (): TemplateDoc => {
+    const next = doc();
+    next.templateId = 'tpl-replaced';
+    next.templateName = 'Replaced Template';
+    return next;
+  };
+
+  const replaceCommand = (next: TemplateDoc): EditCommand => ({
+    kind: 'replace-doc',
+    source: 'code',
+    targetIds: [],
+    scope: 'all',
+    reason: 'import',
+    doc: next,
+  });
+
+  it('swaps contents and clears history without recording entries', () => {
+    const ydoc = makeYDoc();
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-content',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        content: { text: 'seeded history' },
+      },
+      authoritative({ commandId: 'seed' }),
+    );
+    expect(getHistoryYArray(ydoc).length).toBeGreaterThan(0);
+
+    const next = replacement();
+    const result = applyCommandToYDoc(ydoc, replaceCommand(next), authoritative());
+
+    const projected = projectDoc(ydoc);
+    expect(projected.templateId).toBe('tpl-replaced');
+    expect(projected.templateName).toBe('Replaced Template');
+    expect(Object.keys(projected.elements).sort()).toEqual(Object.keys(next.elements).sort());
+    expect(getHistoryYArray(ydoc).length).toBe(0);
+    expect(result.entries).toEqual([]);
+    expect([...result.changedElementIds].sort()).toEqual(Object.keys(next.elements).sort());
+  });
+
+  it('propagates the replacement to a synced peer and clears peer history', () => {
+    const ydoc = makeYDoc();
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-content',
+        source: 'canvas',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        content: { text: 'authoritative history' },
+      },
+      authoritative({ commandId: 'seed' }),
+    );
+    const peer = new Y.Doc();
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(ydoc));
+    expect(getHistoryYArray(peer).length).toBe(1);
+
+    applyCommandToYDoc(ydoc, replaceCommand(replacement()), authoritative());
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(ydoc));
+
+    expect(projectDoc(peer).templateId).toBe('tpl-replaced');
+    expect(projectDoc(peer)).toEqual(projectDoc(ydoc));
+    expect(getHistoryYArray(peer).length).toBe(0);
   });
 });
 

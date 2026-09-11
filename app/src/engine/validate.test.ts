@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { editCommandSchema, elementContentSchemas, templateDocSchema, validateCommand } from './validate';
+import { editCommandSchema, elementContentSchemas, templateDocSchema, validateCommand, MAX_REPLACE_DOC_ELEMENTS } from './validate';
 import type { EditCommand } from '../types/commands';
 
 const doc = () => createDefaultTemplate();
@@ -146,6 +146,62 @@ describe('rename command', () => {
       templateName: 'Nope',
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe('replace-doc command', () => {
+  const replace = (doc: unknown, extra: Record<string, unknown> = {}): EditCommand =>
+    ({
+      kind: 'replace-doc',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      reason: 'import',
+      doc,
+      ...extra,
+    }) as unknown as EditCommand;
+
+  it('accepts a normalized document', () => {
+    expect(validateCommand(doc(), replace(doc()))).toEqual([]);
+  });
+
+  it('rejects documents missing the root element', () => {
+    const broken = JSON.parse(JSON.stringify(doc())) as { rootId: string; elements: Record<string, unknown> };
+    delete broken.elements[broken.rootId];
+    const errors = validateCommand(doc(), replace(broken));
+    expect(errors.some((e) => e.code === 'unknown-element')).toBe(true);
+  });
+
+  it('rejects unnormalized elements without content.base', () => {
+    const raw = JSON.parse(JSON.stringify(doc())) as {
+      elements: Record<string, { content: Record<string, unknown> }>;
+    };
+    delete raw.elements['hero-heading'].content.base;
+    const errors = validateCommand(doc(), replace(raw));
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it(`rejects documents above the ${MAX_REPLACE_DOC_ELEMENTS}-element cap`, () => {
+    const d = doc();
+    const sample = d.elements['hero-heading'];
+    for (let i = 0; i <= MAX_REPLACE_DOC_ELEMENTS; i += 1) {
+      d.elements[`filler-${i}`] = { ...JSON.parse(JSON.stringify(sample)), id: `filler-${i}` };
+    }
+    const errors = validateCommand(doc(), replace(d));
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it('rejects unknown reasons and viewport scope', () => {
+    const base = { kind: 'replace-doc', source: 'code', targetIds: [], doc: doc() };
+    expect(editCommandSchema.safeParse({ ...base, scope: 'all', reason: 'wipe' }).success).toBe(false);
+    expect(editCommandSchema.safeParse({ ...base, scope: 'mobile', reason: 'reset' }).success).toBe(false);
+    expect(editCommandSchema.safeParse({ ...base, scope: 'all', reason: 'reset' }).success).toBe(true);
+  });
+
+  it('accepts a bounded by hint and rejects an oversized one', () => {
+    const base = { kind: 'replace-doc', source: 'code', targetIds: [], scope: 'all', reason: 'import', doc: doc() };
+    expect(editCommandSchema.safeParse({ ...base, by: 'Aish' }).success).toBe(true);
+    expect(editCommandSchema.safeParse({ ...base, by: 'x'.repeat(65) }).success).toBe(false);
   });
 });
 
