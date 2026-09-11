@@ -5,6 +5,7 @@ import {
   resolveIdentity,
   useRemotePresence,
   type PresenceAwareness,
+  type WritablePresenceAwareness,
 } from '../../collab/presence';
 
 export const MAX_REMOTE_SELECTION_COLORS = 3;
@@ -28,7 +29,7 @@ export function remoteSelectionStyle(colors: string[]): CSSProperties {
   return style;
 }
 
-export function useRoomAwareness(): PresenceAwareness | null {
+export function useRoomAwareness(): WritablePresenceAwareness | null {
   const roomActive = useEditorStore((state) => state.roomActive);
   return roomActive ? (getRoomProvider()?.awareness ?? null) : null;
 }

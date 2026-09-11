@@ -1,5 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ElementNode } from './ElementNode';
+import { useRoomAwareness } from '../collab/RemoteSelection';
+import { useCursorBroadcast } from '../../collab/presence';
 import { useEditorStore } from '../../store/editorStore';
 import { useTemplateStore } from '../../store/templateStore';
 import { VIEWPORT_WIDTH } from '../../types/viewport';
@@ -19,6 +21,8 @@ export function Canvas() {
   const frameRef = useRef<HTMLDivElement>(null);
   const [marquee, setMarquee] = useState<Rect | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
+  const { onPointerMove: onFramePointerMove, onPointerLeave: onFramePointerLeave } =
+    useCursorBroadcast(useRoomAwareness());
 
   const onPointerDown = (e: ReactPointerEvent) => {
     const target = e.target as HTMLElement;
@@ -127,6 +131,8 @@ export function Canvas() {
             )}
             style={{ width: '100%', borderRadius: '16px' }}
             data-testid="device-frame"
+            onPointerMove={onFramePointerMove}
+            onPointerLeave={onFramePointerLeave}
           >
             {/* inner highlight */}
             <div className="pointer-events-none absolute inset-0 rounded-[16px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]" />

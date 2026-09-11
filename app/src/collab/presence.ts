@@ -1,4 +1,4 @@
-import { useCallback, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { resolveIdentityName } from './room';
 
 /**
@@ -254,6 +254,86 @@ export function presenceNoticeMessage(notice: PresenceNotice): string | null {
       ? cleanText(notice.by).slice(0, MAX_PRESENCE_NAME_LENGTH)
       : '';
   return `Document replaced by ${by || 'Someone'}`;
+}
+
+export interface RectLike {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Converts viewport (client) coordinates into document-space percentages
+ * relative to a canvas frame, so every viewer can re-project the same point
+ * onto their own device frame (DLD §9).
+ */
+export function pointerToDocPercent(
+  rect: RectLike,
+  clientX: number,
+  clientY: number,
+): PresenceCursor | null {
+  if (!(rect.width > 0) || !(rect.height > 0)) return null;
+  return sanitizeCursor({
+    xPct: ((clientX - rect.left) / rect.width) * 100,
+    yPct: ((clientY - rect.top) / rect.height) * 100,
+  });
+}
+
+export interface CursorPointerEventLike {
+  clientX: number;
+  clientY: number;
+  currentTarget: {
+    getBoundingClientRect: () => RectLike;
+  };
+}
+
+export interface CursorHandlers {
+  onPointerMove: (event: CursorPointerEventLike) => void;
+  onPointerLeave: () => void;
+}
+
+/**
+ * Binds pointer movement over a canvas frame to throttled awareness cursor
+ * updates. Reading the frame rect at event time keeps the broadcast in
+ * document space, so it is identical across device frame widths.
+ */
+export function useCursorBroadcast(
+  awareness: WritablePresenceAwareness | null,
+): CursorHandlers {
+  const broadcasterRef = useRef<CursorBroadcaster | null>(null);
+
+  useEffect(() => {
+    if (!awareness) {
+      broadcasterRef.current?.cancel();
+      broadcasterRef.current = null;
+      return;
+    }
+    const broadcaster = createCursorBroadcaster((cursor) => {
+      awareness.setLocalStateField('cursor', cursor);
+    });
+    broadcasterRef.current = broadcaster;
+    return () => {
+      broadcaster.cancel();
+      broadcasterRef.current = null;
+      awareness.setLocalStateField('cursor', null);
+    };
+  }, [awareness]);
+
+  const onPointerMove = useCallback((event: CursorPointerEventLike) => {
+    const broadcaster = broadcasterRef.current;
+    if (!broadcaster) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const cursor = pointerToDocPercent(rect, event.clientX, event.clientY);
+    if (cursor) broadcaster.send(cursor);
+  }, []);
+
+  const onPointerLeave = useCallback(() => {
+    broadcasterRef.current?.cancel();
+    awareness?.setLocalStateField('cursor', null);
+  }, [awareness]);
+
+  return { onPointerMove, onPointerLeave };
 }
 
 export interface CursorBroadcaster {
