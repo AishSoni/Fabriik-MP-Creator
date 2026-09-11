@@ -206,6 +206,16 @@ const parityCases: ParityCase[] = [
       scope: 'all',
     },
   },
+  {
+    name: 'rename template',
+    command: {
+      kind: 'rename',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      templateName: 'Renamed Template',
+    },
+  },
 ];
 
 describe('parity oracle vs engine/commit.ts', () => {
@@ -237,6 +247,29 @@ describe('parity oracle vs engine/commit.ts', () => {
     );
     expect(result.entries[0].label).toBe('style updated (ai-accepted)');
     expect(result.entries[0].kind).toBe('ai-accepted');
+  });
+});
+
+describe('rename command', () => {
+  it('writes the template name to meta without history or changed elements', () => {
+    const ydoc = makeYDoc();
+    const beforeHistory = getHistoryYArray(ydoc).length;
+    const result = applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'rename',
+        source: 'code',
+        targetIds: [],
+        scope: 'all',
+        templateName: 'Renamed Template',
+      },
+      authoritative(),
+    );
+
+    expect(projectDoc(ydoc).templateName).toBe('Renamed Template');
+    expect(result.entries).toEqual([]);
+    expect(result.changedElementIds).toEqual([]);
+    expect(getHistoryYArray(ydoc).length).toBe(beforeHistory);
   });
 });
 

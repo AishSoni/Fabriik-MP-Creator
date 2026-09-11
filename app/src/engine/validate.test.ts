@@ -116,6 +116,39 @@ describe('validateCommand', () => {
   });
 });
 
+describe('rename command', () => {
+  const rename = (templateName: unknown): EditCommand =>
+    ({ kind: 'rename', source: 'code', targetIds: [], scope: 'all', templateName }) as unknown as EditCommand;
+
+  it('accepts a trimmed rename without touching elements', () => {
+    const errors = validateCommand(doc(), rename(' Landed v2 '));
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects blank names', () => {
+    for (const name of ['', '   ']) {
+      const errors = validateCommand(doc(), rename(name));
+      expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+    }
+  });
+
+  it('rejects names beyond the length cap', () => {
+    const errors = validateCommand(doc(), rename('x'.repeat(121)));
+    expect(errors.some((e) => e.code === 'invalid-payload')).toBe(true);
+  });
+
+  it('rejects viewport-scoped renames', () => {
+    const parsed = editCommandSchema.safeParse({
+      kind: 'rename',
+      source: 'code',
+      targetIds: [],
+      scope: 'mobile',
+      templateName: 'Nope',
+    });
+    expect(parsed.success).toBe(false);
+  });
+});
+
 describe('document URL allowlist (spec ai-byok §8)', () => {
   const contentCmd = (content: unknown): EditCommand =>
     ({

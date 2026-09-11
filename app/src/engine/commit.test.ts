@@ -114,6 +114,20 @@ describe('commitCommand', () => {
     ]);
   });
 
+  it('rename updates the template name and bumps revision without revisions', () => {
+    const result = commitCommand(doc(), {}, {
+      kind: 'rename',
+      source: 'code',
+      targetIds: [],
+      scope: 'all',
+      templateName: 'Landing v2',
+    });
+    expect(result.doc.templateName).toBe('Landing v2');
+    expect(result.doc.revision).toBe(1);
+    expect(result.revisions).toEqual([]);
+    expect(result.history).toEqual({});
+  });
+
   it('reorder updates sibling order and records previous index', () => {
     const result = commitCommand(doc(), {}, {
       kind: 'reorder',
