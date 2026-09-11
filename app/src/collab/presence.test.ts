@@ -8,15 +8,18 @@ import {
   MAX_PRESENCE_NAME_LENGTH,
   MAX_REMOTE_SELECTED_IDS,
   PRESENCE_COLORS,
+  bindPresence,
   collectRemotePresence,
   colorForId,
   createCursorBroadcaster,
+  presenceNoticeMessage,
   resolveIdentity,
   sanitizeCursor,
   sanitizePresenceUser,
   sanitizeSelectedIds,
   useRemotePresence,
   type PresenceAwareness,
+  type PresenceNotice,
 } from './presence';
 
 const GUEST_ID_KEY = 'fabriik-guest-id';
@@ -31,6 +34,29 @@ const fakeAwareness = (
   on: () => {},
   off: () => {},
 });
+
+const fakeWritableAwareness = () => {
+  const order: string[] = [];
+  let state: Record<string, unknown> | null = null;
+  return {
+    order,
+    readState: () => state,
+    awareness: {
+      clientID: 1,
+      getStates: () => new Map<number, unknown>(),
+      on: () => {},
+      off: () => {},
+      setLocalState: (next: Record<string, unknown> | null) => {
+        order.push('setLocalState');
+        state = next;
+      },
+      setLocalStateField: (field: string, value: unknown) => {
+        order.push(`field:${field}`);
+        if (state) state = { ...state, [field]: value };
+      },
+    },
+  };
+};
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -263,5 +289,85 @@ describe('createCursorBroadcaster', () => {
     broadcaster.send({ xPct: NaN, yPct: 0 });
     broadcaster.flush();
     expect(emit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('bindPresence', () => {
+  const identity = { id: 'self', name: 'Me', color: '#7868e6' };
+
+  it('seeds the full local state before mirroring selection changes', () => {
+    const { awareness, readState } = fakeWritableAwareness();
+    let selected = ['a', 'a', 'b'];
+    let selectionListener: (() => void) | null = null;
+    const unbind = bindPresence({
+      awareness,
+      identity,
+      getSelectedIds: () => selected,
+      subscribeSelectedIds: (listener) => {
+        selectionListener = listener;
+        return () => {
+          selectionListener = null;
+        };
+      },
+    });
+    expect(readState()).toEqual({
+      user: identity,
+      cursor: null,
+      selectedIds: ['a', 'b'],
+    });
+
+    selected = ['c'];
+    selectionListener?.();
+    expect((readState() as { selectedIds: string[] }).selectedIds).toEqual(['c']);
+
+    unbind();
+    expect(selectionListener).toBeNull();
+    expect(readState()).toBeNull();
+  });
+
+  it('forwards room notices and unsubscribes before clearing state', () => {
+    const { awareness, order, readState } = fakeWritableAwareness();
+    const notices: PresenceNotice[] = [];
+    let noticeListener: ((notice: PresenceNotice) => void) | null = null;
+    let selectionUnsubscribed = false;
+    const unbind = bindPresence({
+      awareness,
+      identity,
+      getSelectedIds: () => [],
+      subscribeSelectedIds: () => () => {
+        selectionUnsubscribed = true;
+      },
+      subscribeNotices: (listener) => {
+        noticeListener = listener;
+        return () => {
+          noticeListener = null;
+        };
+      },
+      onNotice: (notice) => notices.push(notice),
+    });
+
+    noticeListener?.({ event: 'room-replaced', reason: 'import', by: 'Ada' });
+    expect(notices).toEqual([{ event: 'room-replaced', reason: 'import', by: 'Ada' }]);
+
+    unbind();
+    expect(selectionUnsubscribed).toBe(true);
+    expect(noticeListener).toBeNull();
+    expect(order.at(-1)).toBe('setLocalState');
+    expect(readState()).toBeNull();
+  });
+});
+
+describe('presenceNoticeMessage', () => {
+  it('maps room-replaced notices to a toast and sanitizes the actor name', () => {
+    expect(
+      presenceNoticeMessage({ event: 'room-replaced', reason: 'import', by: 'Ada' }),
+    ).toBe('Document replaced by Ada');
+    expect(presenceNoticeMessage({ event: 'room-replaced' })).toBe(
+      'Document replaced by Someone',
+    );
+    expect(presenceNoticeMessage({ event: 'other', by: 'Ada' })).toBeNull();
+    expect(
+      presenceNoticeMessage({ event: 'room-replaced', by: 'X'.repeat(50) }),
+    ).toBe(`Document replaced by ${'X'.repeat(MAX_PRESENCE_NAME_LENGTH)}`);
   });
 });
