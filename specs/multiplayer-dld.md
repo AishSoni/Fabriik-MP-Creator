@@ -35,7 +35,7 @@ Mapping rationale:
 | Scoped content/style layers | Nested `Y.Map`s (`style.overrides.mobile.fontSize`) | Conflict isolation per **property per viewport**: two users editing the same element in different viewports, or different properties in the same viewport, never collide; same-key → last-write-wins |
 | `templateName` / `rootId` / `templateId` | Plain string fields in `meta` Y.Map | LWW is correct semantics; no Y.Text needed |
 | `HistoryLog` (`Record<ElementId, RevisionEntry[]>`) | Single append-only `Y.Array` of immutable JSON entries | Entries are immutable audit records — shared *container*, immutable *contents*; only the DO appends |
-| `HeadingContent.text`, `TextContent.text` | **Plain strings in Phase 1** | Whole-string LWW matches the commit-on-blur UX. Deliberate, documented exception: upgrade to `Y.Text` later for char-level co-editing — the only planned field-level type change |
+| `HeadingContent.text`, `TextContent.text` | **Plain strings in Phase 1** | Whole-string LWW matches the commit-on-blur UX. Deliberate, documented exception: upgrade to `Y.Text` later for char-level co-editing — the only planned field-level type change. Phase 1 ships without Y.Text (explicit non-goal, HLD §10 P7): the command gate has no char-level command kind |
 
 > Note: never store a whole `TemplateElement` as one opaque JSON blob inside a Y.Map —
 > that would collapse conflict granularity to the whole element. The nested-Y.Map shape

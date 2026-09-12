@@ -125,7 +125,7 @@ Roles:
 | P4 | Presence: avatar stack + remote selection rings | Selections of remote users visible, tinted per user |
 | P5 | Live cursors overlay | Document-space cursors render correctly across different device-frame viewports |
 | P6 | History & restore on the DO | Shared history visible to all; restore round-trips through the command gate |
-| P7 | Polish: `y-indexeddb` offline hardening; optional Y.Text live text | Offline edits survive reload and merge on reconnect |
+| P7 | Polish: `y-indexeddb` offline hardening; text stays plain-string LWW in Phase 1 (Y.Text char-level co-editing explicitly deferred to Phase 2) | Offline edits survive reload and merge on reconnect |
 
 ## 11. Risks & mitigations
 

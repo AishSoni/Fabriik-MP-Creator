@@ -1,11 +1,15 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
+import * as decoding from 'lib0/decoding';
+import * as encoding from 'lib0/encoding';
+import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { getTemplateById } from '../template';
 import { getHistoryYArray, projectDoc } from './schema';
 import { applyCommandToYDoc } from './commandAdapter';
 import type { CollabRevisionEntry } from './commandAdapter';
+import { TemplateRoomProvider } from './provider';
 import {
   DEFAULT_YDOC_DB_NAME,
   bindTemplatePersistence,
@@ -191,5 +195,72 @@ describe('template store persistence wiring', () => {
     expect(text).toBe('Persisted headline');
     const total = Object.values(state().history).reduce((n, list) => n + list.length, 0);
     expect(total).toBe(1);
+  });
+
+  it('serves the seed synchronously without waiting for persistence', async () => {
+    state().loadTemplate('tpl-landing-v1');
+
+    const firstPaint = state().doc;
+    expect(firstPaint.templateId).toBe('tpl-landing-v1');
+    expect(firstPaint.elements['hero-heading']).toBeDefined();
+
+    let settled = false;
+    const ready = whenTemplatePersistenceReady().then(() => {
+      settled = true;
+    });
+    expect(settled).toBe(false);
+
+    await ready;
+    await flush();
+    expect(state().doc.elements['hero-heading']).toBeDefined();
+  });
+
+  it('keeps an offline edit across a reload and uploads it when a room reconnects', async () => {
+    state().loadTemplate('tpl-landing-v1');
+    state().dispatch({
+      kind: 'set-content',
+      source: 'canvas',
+      targetIds: ['hero-heading'],
+      scope: 'all',
+      content: { text: 'Offline headline' },
+    });
+    await whenTemplatePersistenceReady();
+    await flush();
+
+    resetYdocPipeline();
+    state().loadTemplate('tpl-editorial-v1');
+    const ydoc = getTemplateYdoc();
+
+    expect(state().doc.templateId).toBe('tpl-editorial-v1');
+    await whenTemplatePersistenceReady();
+    await flush();
+    expect(state().doc.templateId).toBe('tpl-landing-v1');
+
+    const provider = new TemplateRoomProvider('127.0.0.1:8787', 'persist-room', ydoc, {
+      connect: false,
+      uploadLocal: true,
+    });
+    const sent: Uint8Array[] = [];
+    provider.ws = {
+      send: (bytes: ArrayBuffer) => {
+        sent.push(new Uint8Array(bytes));
+      },
+      close: () => undefined,
+    } as unknown as WebSocket;
+    provider.wsconnected = true;
+    provider.synced = true;
+
+    expect(sent).toHaveLength(1);
+    const server = new Y.Doc();
+    syncProtocol.readSyncMessage(
+      decoding.createDecoder(sent[0].subarray(1)),
+      encoding.createEncoder(),
+      server,
+      'test-server',
+    );
+    const uploaded = (projectDoc(server).elements['hero-heading'].content.base as { text: string })
+      .text;
+    expect(uploaded).toBe('Offline headline');
+    provider.destroy();
   });
 });
