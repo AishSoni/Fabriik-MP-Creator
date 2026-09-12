@@ -494,3 +494,16 @@ describe('roomFullToastMessage', () => {
     expect(roomFullToastMessage(1006)).toBeNull();
   });
 });
+
+describe('expired room notices', () => {
+  it('maps a room-expired notice to a toast', () => {
+    expect(presenceNoticeMessage({ event: 'room-expired' })).toBe(
+      'This room expired - starting fresh',
+    );
+  });
+
+  it('ignores other unknown events', () => {
+    expect(presenceNoticeMessage({ event: 'room-full' })).toBeNull();
+    expect(presenceNoticeMessage({ event: 'other' })).toBeNull();
+  });
+});

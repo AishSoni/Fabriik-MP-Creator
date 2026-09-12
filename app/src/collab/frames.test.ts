@@ -51,6 +51,12 @@ const roomFullFrame: NoticeFrame = {
   event: 'room-full',
 };
 
+const roomExpiredFrame: NoticeFrame = {
+  v: 1,
+  type: 'notice',
+  event: 'room-expired',
+};
+
 describe('control frames', () => {
   it('uses consecutive tags 100-103', () => {
     expect([TAG_COMMAND, TAG_ACK, TAG_REJECT, TAG_NOTICE]).toEqual([100, 101, 102, 103]);
@@ -90,6 +96,12 @@ describe('control frames', () => {
     const bytes = encodeControlFrame(roomFullFrame);
     expect(bytes[0]).toBe(TAG_NOTICE);
     expect(decodeControlFrame(bytes)).toEqual({ tag: TAG_NOTICE, frame: roomFullFrame });
+  });
+
+  it('round-trips a room-expired notice frame', () => {
+    const bytes = encodeControlFrame(roomExpiredFrame);
+    expect(bytes[0]).toBe(TAG_NOTICE);
+    expect(decodeControlFrame(bytes)).toEqual({ tag: TAG_NOTICE, frame: roomExpiredFrame });
   });
 
   it('maps payload types to tags without transport', () => {
@@ -165,5 +177,8 @@ describe('control frames', () => {
 
     const roomFullIncomplete = new Uint8Array([TAG_NOTICE, ...new TextEncoder().encode(JSON.stringify({ v: 1, event: 'room-full' }))]);
     expect(decodeControlFrame(roomFullIncomplete)).toBeNull();
+
+    const roomExpiredExtra = new Uint8Array([TAG_NOTICE, ...new TextEncoder().encode(JSON.stringify({ ...roomExpiredFrame, by: 'client-a' }))]);
+    expect(decodeControlFrame(roomExpiredExtra)).toBeNull();
   });
 });

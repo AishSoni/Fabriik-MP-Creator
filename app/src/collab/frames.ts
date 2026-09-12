@@ -56,9 +56,16 @@ export const roomFullNoticeSchema = z.strictObject({
   event: z.literal('room-full'),
 });
 
+export const roomExpiredNoticeSchema = z.strictObject({
+  v: z.literal(1),
+  type: z.literal('notice'),
+  event: z.literal('room-expired'),
+});
+
 export const noticeFrameSchema = z.discriminatedUnion('event', [
   roomReplacedNoticeSchema,
   roomFullNoticeSchema,
+  roomExpiredNoticeSchema,
 ]);
 
 export type CommandFrame = z.infer<typeof commandFrameSchema>;
@@ -67,6 +74,7 @@ export type RejectFrame = z.infer<typeof rejectFrameSchema>;
 export type NoticeFrame = z.infer<typeof noticeFrameSchema>;
 export type RoomReplacedNotice = z.infer<typeof roomReplacedNoticeSchema>;
 export type RoomFullNotice = z.infer<typeof roomFullNoticeSchema>;
+export type RoomExpiredNotice = z.infer<typeof roomExpiredNoticeSchema>;
 
 export type ControlFramePayload =
   | CommandFrame

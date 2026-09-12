@@ -248,7 +248,10 @@ export function bindPresence(options: BindPresenceOptions): () => void {
   };
 }
 
+export const ROOM_EXPIRED_TOAST_MESSAGE = 'This room expired - starting fresh';
+
 export function presenceNoticeMessage(notice: PresenceNotice): string | null {
+  if (notice.event === 'room-expired') return ROOM_EXPIRED_TOAST_MESSAGE;
   if (notice.event !== 'room-replaced') return null;
   const by =
     typeof notice.by === 'string'

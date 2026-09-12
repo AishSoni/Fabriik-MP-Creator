@@ -32,6 +32,7 @@ export class TemplateDocDO extends YServer {
   #loadedMeta: DocLoopMeta | null = null;
   #rateLimiter = createCommandRateLimiter();
   #maxConnections: number;
+  #prunedAt: number | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -66,14 +67,19 @@ export class TemplateDocDO extends YServer {
       connection.close(ROOM_FULL_CLOSE_CODE, 'room full');
       return;
     }
+    if (this.#prunedAt !== null) {
+      connection.send(encodeControlFrame({ v: 1, type: 'notice', event: 'room-expired' }));
+    }
     return super.onConnect(connection, ctx);
   }
 
   async onLoad(): Promise<Y.Doc | void> {
-    const [snapshot, meta] = await Promise.all([
+    const [snapshot, meta, prunedAt] = await Promise.all([
       this.ctx.storage.get<Uint8Array>(SNAPSHOT_KEY),
       this.ctx.storage.get<string>(META_KEY),
+      this.ctx.storage.get<number>(TOMBSTONE_KEY),
     ]);
+    this.#prunedAt = typeof prunedAt === 'number' ? prunedAt : null;
     if (typeof meta === 'string') {
       try {
         this.#loadedMeta = parseDocLoopMeta(JSON.parse(meta));
@@ -97,6 +103,7 @@ export class TemplateDocDO extends YServer {
     const now = Date.now();
     await this.ctx.storage.put(LAST_ACTIVE_KEY, now);
     await this.ctx.storage.delete(TOMBSTONE_KEY);
+    this.#prunedAt = null;
     await this.ctx.storage.setAlarm(now + ROOM_TTL_MS);
   }
 
@@ -108,6 +115,7 @@ export class TemplateDocDO extends YServer {
       await this.ctx.storage.deleteAlarm();
       await this.ctx.storage.deleteAll();
       await this.ctx.storage.put(TOMBSTONE_KEY, now);
+      this.#prunedAt = now;
       console.warn('[doc] pruned idle room');
       return;
     }
