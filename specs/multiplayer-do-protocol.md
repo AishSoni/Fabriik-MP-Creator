@@ -1,6 +1,6 @@
 # Spec: Multiplayer — Durable Object Protocol & Room Lifecycle
 
-Status: Draft v1 — for review and iteration
+Status: Shipped (implemented in `worker/src/docObject.ts`, `worker/src/index.ts`, and `app/src/collab/provider.ts`).
 Scope: `worker/src/docObject.ts`, `worker/src/index.ts`, command/rollback handling in
 `app/src/collab/provider.ts`
 Companion to: `specs/multiplayer-hld.md`, `specs/multiplayer-dld.md` (§5),

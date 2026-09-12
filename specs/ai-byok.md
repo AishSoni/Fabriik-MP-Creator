@@ -1,6 +1,6 @@
 # Spec: AI BYOK (Bring Your Own Key) — Providers & Key Security
 
-Status: Approved — ready for implementation
+Status: Shipped (implemented in `app/src/engine/ai/` and `app/src/store/aiSettingsStore.ts`).
 Scope: `app/` (Fabriik — lightweight browser-based website editor)
 
 ## 1. Purpose

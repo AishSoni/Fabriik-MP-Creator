@@ -7,10 +7,6 @@
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen)](https://aish-s-fabriik-mp.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 
-<!-- Add a screenshot or short GIF here as soon as one is available. A visual near the top is the highest-impact addition to this README. Example:
-![Fabriik editor](docs/screenshot.png)
--->
-
 > **Try it live:** https://aish-s-fabriik-mp.vercel.app. No account required. Pick a starter page, remix it, then click **Share** to pull a friend into the same room.
 
 **Contents:** [Features](#features) · [Architecture](#architecture) · [Non-goals](#non-goals) · [Quick start](#quick-start) · [Usage](#usage) · [Security model](#security-model--trade-offs) · [Configuration](#configuration) · [Scripts](#scripts) · [Testing & CI](#testing--ci) · [Documentation](#documentation) · [Contributing](#contributing) · [License](#license)
@@ -89,6 +85,8 @@ How the pieces line up:
 5. Malformed or non-mergeable state never enters any replica.
 
 Full design docs are indexed under [Documentation](#documentation).
+
+![Fabriik editor](docs/screenshot.png)
 
 ## Non-goals
 

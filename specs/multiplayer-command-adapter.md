@@ -1,6 +1,6 @@
 # Spec: Multiplayer — Command Adapter (EditCommand → Y.Doc Transactions)
 
-Status: Draft v1 — for review and iteration
+Status: Shipped (implemented in `app/src/collab/commandAdapter.ts`).
 Scope: `app/src/collab/commandAdapter.ts`; bundled identically into `worker/` (runs both
 client-side and inside the DO)
 Companion to: `specs/multiplayer-hld.md`, `specs/multiplayer-dld.md` (§2.2)

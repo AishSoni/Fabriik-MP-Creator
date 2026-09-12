@@ -1,6 +1,6 @@
 # Spec: Multiplayer Collaboration — Detailed Design (DLD)
 
-Status: Draft v1 — for review and iteration
+Status: Shipped (implemented in `app/src/collab/schema.ts`, `app/src/collab/project.ts`, and `app/src/collab/persistence.ts`).
 Companion to: `specs/multiplayer-hld.md`
 
 ## 1. Y.Doc schema

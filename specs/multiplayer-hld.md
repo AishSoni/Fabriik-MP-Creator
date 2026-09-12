@@ -1,6 +1,6 @@
 # Spec: Multiplayer Collaboration — High-Level Design (HLD)
 
-Status: Draft v1 — for review and iteration
+Status: Shipped (implemented in `app/src/collab/` and `worker/src/`).
 Scope: `app/` (Fabriik editor) + new `worker/` package (Cloudflare Worker + Durable Objects)
 
 ## 1. Purpose

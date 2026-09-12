@@ -1,6 +1,6 @@
 # Spec: JSON Template Import/Export & Single-File HTML Export
 
-Status: Approved — ready for implementation
+Status: Shipped (implemented in `app/src/engine/exportTemplate.ts`, `app/src/engine/exportHtml.ts`, and `app/src/components/shell/FileMenu.tsx`).
 Scope: `app/` (Fabriik — lightweight browser-based website editor)
 
 ## 1. Purpose
