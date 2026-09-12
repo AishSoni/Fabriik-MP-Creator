@@ -8,6 +8,7 @@
     "bindings": [{ "name": "doc", "class_name": "TemplateDocDO" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TemplateDocDO"] }],
+  "vars": { "MAX_ROOM_CONNECTIONS": "16" },
   "alias": {
     "@app/*": "../app/src/*",
     "yjs": "./node_modules/yjs",

@@ -1,16 +1,18 @@
-import type { Connection, WSMessage } from 'partyserver';
+import type { Connection, ConnectionContext, WSMessage } from 'partyserver';
 import { YServer } from 'y-partyserver';
 import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
 import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
 import { createCommandRateLimiter } from './rateLimit';
+import { isRoomFull, parseMaxRoomConnections } from './roomLimits';
 import { trimHistory } from './historyTrim';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
 import type { Env } from './env';
 
 export const SNAPSHOT_KEY = 'snapshot';
 export const META_KEY = 'meta';
+export const ROOM_FULL_CLOSE_CODE = 4003;
 
 function toBytes(message: WSMessage): Uint8Array | null {
   if (typeof message === 'string') return null;
@@ -26,9 +28,11 @@ export class TemplateDocDO extends YServer {
   #state: DocLoopState | null = null;
   #loadedMeta: DocLoopMeta | null = null;
   #rateLimiter = createCommandRateLimiter();
+  #maxConnections: number;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    this.#maxConnections = parseMaxRoomConnections(env.MAX_ROOM_CONNECTIONS);
     (this.document as unknown as {
       on(name: 'error', f: (err: unknown) => void): void;
     }).on('error', (err: unknown) => {
@@ -50,6 +54,16 @@ export class TemplateDocDO extends YServer {
       JSON.stringify({ ok: true, transactionOrigin: TRANSACTION_ORIGIN }),
       { headers: { 'content-type': 'application/json' } },
     );
+  }
+
+  override onConnect(connection: Connection, ctx: ConnectionContext): void | Promise<void> {
+    const count = [...this.getConnections()].length;
+    if (isRoomFull(count, this.#maxConnections)) {
+      connection.send(encodeControlFrame({ v: 1, type: 'notice', event: 'room-full' }));
+      connection.close(ROOM_FULL_CLOSE_CODE, 'room full');
+      return;
+    }
+    return super.onConnect(connection, ctx);
   }
 
   async onLoad(): Promise<Y.Doc | void> {
