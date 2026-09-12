@@ -22,6 +22,9 @@ rollback), and the DO lifecycle (startup, processing loop, persistence, hibernat
 | 4 | DO processes commands strictly in receive order; ack/reject carry the client `commandId` | Single-threaded DO = total order per room; correlation without server-generated ids |
 | 5 | Rejection is sender-only and triggers client re-sync | Others never see invalid state; re-sync is simple and always correct — and rejections are rare because the client ran the same validation module |
 | 6 | `serverSeq` on acks and history entries is cosmetic | Display ordering only; Yjs state vectors are the real ordering mechanism |
+| 7 | Per-room admission cap (`MAX_ROOM_CONNECTIONS`, default 16) plus a 256 KB frame cap | Bounds awareness fan-out and per-frame work; rejects are explicit (notice + close code) rather than silent |
+| 8 | Idle rooms are pruned by a storage alarm after 30 days with zero connections | No cron can enumerate DOs; alarms are per-room, survive eviction, and cost nothing while dormant |
+| 9 | Browser origins are allowlisted (`ALLOWED_ORIGINS`); origin-less clients pass | Stops drive-by third-party frontends from embedding a room; Node/e2e clients send no `Origin`, so automation is unaffected. Real auth is still the reserved `?token=` (§11 Q1) |
 
 ## 3. Frame formats
 
@@ -43,11 +46,12 @@ type AckFrame = { v: 1; type: 'ack'; commandId: string; serverSeq: number };
 // DO → client — tag 102 (sender only, never broadcast)
 type RejectFrame = { v: 1; type: 'reject'; commandId: string; errors: CommandError[] };
 
-// DO → client — tag 103 (broadcast)
-type NoticeFrame = {
-  v: 1; type: 'notice'; event: 'room-replaced';
-  reason: 'import' | 'load-template' | 'reset'; by: string;
-};
+// DO → client — tag 103 (room-replaced is broadcast; room-full / room-expired go to the joining socket only)
+type NoticeFrame =
+  | { v: 1; type: 'notice'; event: 'room-replaced';
+      reason: 'import' | 'load-template' | 'reset'; by: string }
+  | { v: 1; type: 'notice'; event: 'room-full' }     // followed by close(4003, 'room full')
+  | { v: 1; type: 'notice'; event: 'room-expired' }; // join landed on a pruned room (§4.5, §8)
 ```
 
 > Note: `CommandError` reuses the existing engine error shape so `lastErrors` toasts
@@ -89,6 +93,14 @@ Client closes → provider removes its awareness state → remote cursors/select
 vanish (~30 s staleness timeout at worst). Zero connections → DO idles and hibernates
 (WebSocket hibernation API keeps sockets logically attached); the Y.Doc is already
 persisted by the save hook (§8).
+
+### 4.5 Admission & limits
+
+| Limit | Config | Behavior |
+|---|---|---|
+| Origin allowlist | `ALLOWED_ORIGINS` (comma-separated origins) | A request whose `Origin` header is present and not allowlisted gets a 403 before routing. Missing `Origin` (Node tests, curl, tooling) is allowed by design |
+| Connection cap | `MAX_ROOM_CONNECTIONS` (default 16) | partyserver accepts the socket before `onConnect` runs, so the room is full when the count **exceeds** the cap. The DO sends a `room-full` notice, closes with code **4003** (`'room full'`), and the client stops auto-reconnect and toasts |
+| Frame size cap | `FRAME_SIZE_LIMIT_BYTES` (256 KB) | Oversized binary frames are dropped with a `console.warn`; the sender stays connected — same drop-don't-close policy as the rate limiter. String messages bypass binary handling |
 
 ## 5. Command processing (DO side)
 
@@ -185,7 +197,8 @@ subtler under interleaved remote updates; adopt only if re-sync churn becomes vi
 |---|---|
 | First request for `/doc/:id` | DO instantiates on demand with an empty Y.Doc; the first client's sync handshake uploads its local doc — solo→shared promotion with zero migration code (HLD D4) |
 | Wake from hibernation | `onStart` loads Y.Doc bytes from DO storage before any frame is served |
-| Save policy | Debounced ~2 s after last mutation + periodic alarm flush; save = provider save hook / `encodeStateAsUpdate` snapshot into DO storage |
+| Save policy | Debounced ~2 s after last mutation; save = `encodeStateAsUpdate` snapshot + meta into DO storage, and each save stamps `lastActiveAt` and pushes the TTL alarm out 30 days |
+| Idle-room TTL | Alarm wakes the DO after 30 idle days; if the room still has zero connections it deletes storage and writes a `prunedAt` tombstone (so the next joiner is told `room-expired`), else it reschedules. Alarms survive eviction and are per-room — no cron required |
 | Hibernation | WebSocket hibernation API (partyserver): connections survive, memory freed, billed per message |
 | Doc growth | Trim `history` Y.Array beyond N entries at save time (DLD §5.4); later: R2 snapshots + compaction |
 
@@ -237,6 +250,13 @@ B ──remove(X)───► DO   validate ✗ (X already moved) → Reject(B)
    history cleared.
 9. Duplicate `commandId` (retry after timeout): applied exactly once.
 10. Hibernation wake: doc reloaded from storage; sync continues without loss.
+11. Connection cap: peer `MAX_ROOM_CONNECTIONS + 1` receives the `room-full` notice and
+    close 4003; existing peers are unaffected.
+12. Oversized frame (> 256 KB) is dropped; sender stays connected and subsequent valid
+    frames still process.
+13. Expired room: after the TTL prune, a joiner gets the `room-expired` notice and a
+    fresh document.
+14. Origin policy: non-allowlisted `Origin` → HTTP 403; absent `Origin` → allowed.
 
 ## 11. Open questions
 
@@ -259,3 +279,9 @@ B ──remove(X)───► DO   validate ✗ (X already moved) → Reject(B)
    applying optimistically (HLD §12.2) — decide during P3 with real latency numbers.
    **Resolved (P4):** only `replace-doc` is non-optimistic; every other command stays
    optimistic with rollback-all on rejection.
+5. Abuse hardening beyond the trust boundary (connection floods, oversized frames,
+   orphaned rooms, third-party frontends).
+   **Resolved:** per-room connection cap + close 4003 (bounded awareness fan-out),
+   256 KB frame cap, 30-day alarm TTL prune with tombstone, and an origin allowlist —
+   see §4.5 and §8. Deliberately deferred: any per-user authorization; the capability
+   URL remains the only access control until `?token=` (Q1).
