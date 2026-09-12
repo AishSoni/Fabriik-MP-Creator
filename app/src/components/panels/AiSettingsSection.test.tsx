@@ -281,7 +281,7 @@ describe('AiSettingsSection', () => {
     await waitFor(() => expect(useAiSettingsStore.getState().vaultState).toBe('unlocked'));
     const payload = await storedEnvelopePayload();
     expect(payload.keys.gemini).toBe(KEY);
-    expect(screen.queryByText('Create a vault passphrase')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('Create a vault passphrase')).toBeNull());
   });
 
   it('remember with a locked vault unlocks first, then saves the key into the vault', async () => {
@@ -308,7 +308,7 @@ describe('AiSettingsSection', () => {
     await waitFor(() => expect(useAiSettingsStore.getState().vaultState).toBe('unlocked'));
     const payload = await storedEnvelopePayload();
     expect(payload.keys.gemini).toBe(KEY);
-    expect(screen.queryByText('Unlock saved keys')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('Unlock saved keys')).toBeNull());
   });
 
   it('shows a dismissible startup unlock prompt when the session is empty and the vault is locked', async () => {
