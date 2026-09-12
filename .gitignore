@@ -8,6 +8,7 @@ node_modules/
 dist/
 *.local
 .DS_Store
+# worker/package-lock.json is tracked via `git add -f` (required for CI npm ci)
 package-lock.json
 .opencode/
 .wrangler/
