@@ -241,8 +241,21 @@ B ──remove(X)───► DO   validate ✗ (X already moved) → Reject(B)
 ## 11. Open questions
 
 1. Auth/token format for rooms (HLD §12.1) — `?token=` is reserved but unused.
+   **Phase 1 decision (accepted risk):** no token check; anyone with the room URL can
+   join. The reserved query parameter keeps a future shared-secret handshake possible
+   without a protocol change.
 2. `commandId` dedupe window vs DO restarts: persist recent ids, or accept the tiny
    duplicate risk across a restart?
+   **Resolved:** the latest 512 ids are persisted with the snapshot, so a wrangler
+   restart re-acks a retried duplicate without re-applying it. An evicted object that
+   restarts with `serverSeq` 0 is accepted while rooms are single-tenant. Save order
+   stays snapshot-first/meta-second: dedupe metadata must never run ahead of the
+   document state it describes.
 3. Rate-limiting policy for pathological command floods per connection.
+   **Resolved:** per-connection token bucket (`worker/src/rateLimit.ts`), burst 100,
+   refill 20/s. Over-limit command frames are dropped with a `console.warn`; the
+   connection is never closed (protocol §3) and the bucket is forgotten on close.
 4. Whether structural commands (`remove`, `reorder`) should default to ack-wait before
    applying optimistically (HLD §12.2) — decide during P3 with real latency numbers.
+   **Resolved (P4):** only `replace-doc` is non-optimistic; every other command stays
+   optimistic with rollback-all on rejection.

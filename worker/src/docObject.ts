@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
 import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
+import { createCommandRateLimiter } from './rateLimit';
 import { trimHistory } from './historyTrim';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
 import type { Env } from './env';
@@ -24,6 +25,7 @@ export class TemplateDocDO extends YServer {
 
   #state: DocLoopState | null = null;
   #loadedMeta: DocLoopMeta | null = null;
+  #rateLimiter = createCommandRateLimiter();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -81,6 +83,10 @@ export class TemplateDocDO extends YServer {
     const bytes = toBytes(message);
     if (bytes && bytes.length > 0 && bytes[0] >= 100) {
       if (bytes[0] === TAG_COMMAND) {
+        if (!this.#rateLimiter.allow(connection.id)) {
+          console.warn('[doc] dropped rate-limited command frame');
+          return;
+        }
         const envelope = decodeControlEnvelope(bytes);
         const decision = decideCommandFrame(envelope?.data ?? null);
         if (decision.action === 'drop') {
@@ -103,5 +109,10 @@ export class TemplateDocDO extends YServer {
       return;
     }
     super.handleMessage(connection, message);
+  }
+
+  override onClose(connection: Connection, code: number, reason: string, wasClean: boolean): void {
+    this.#rateLimiter.forget(connection.id);
+    super.onClose(connection, code, reason, wasClean);
   }
 }
