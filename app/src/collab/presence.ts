@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { ROOM_FULL_CLOSE_CODE } from './frames';
 import { resolveIdentityName } from './room';
 
 /**
@@ -254,6 +255,17 @@ export function presenceNoticeMessage(notice: PresenceNotice): string | null {
       ? cleanText(notice.by).slice(0, MAX_PRESENCE_NAME_LENGTH)
       : '';
   return `Document replaced by ${by || 'Someone'}`;
+}
+
+export const ROOM_FULL_TOAST_MESSAGE = 'Room is full - try again later';
+
+/**
+ * Maps a WebSocket close code to a user-facing toast. The server closes with
+ * ROOM_FULL_CLOSE_CODE when the per-room connection cap is reached; the caller
+ * must also stop the provider from auto-reconnecting (see templateStore).
+ */
+export function roomFullToastMessage(closeCode: number): string | null {
+  return closeCode === ROOM_FULL_CLOSE_CODE ? ROOM_FULL_TOAST_MESSAGE : null;
 }
 
 export interface RectLike {

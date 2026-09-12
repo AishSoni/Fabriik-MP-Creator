@@ -7,6 +7,8 @@ export const TAG_ACK = 101;
 export const TAG_REJECT = 102;
 export const TAG_NOTICE = 103;
 
+export const ROOM_FULL_CLOSE_CODE = 4003;
+
 const commandErrorCodes = [
   'invalid-payload',
   'unknown-element',

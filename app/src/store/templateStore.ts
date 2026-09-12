@@ -38,6 +38,7 @@ import {
   bindPresence,
   presenceNoticeMessage,
   resolveIdentity,
+  roomFullToastMessage,
   type PresenceNotice,
 } from '../collab/presence';
 import { useEditorStore } from './editorStore';
@@ -189,6 +190,7 @@ type YApplyResult =
 
 let roomProvider: TemplateRoomProvider | null = null;
 let unbindPresence: (() => void) | null = null;
+let unbindConnectionClose: (() => void) | null = null;
 
 export function isRoomActive(): boolean {
   return roomProvider !== null;
@@ -239,6 +241,14 @@ export function attachRoomProvider(
       if (message) useEditorStore.getState().setToastMessage(message);
     },
   });
+  const handleConnectionClose = (event: CloseEvent): void => {
+    const message = roomFullToastMessage(event.code);
+    if (!message) return;
+    provider.disconnect();
+    useEditorStore.getState().setToastMessage(message);
+  };
+  provider.on('connection-close', handleConnectionClose);
+  unbindConnectionClose = () => provider.off('connection-close', handleConnectionClose);
   roomProvider = provider;
   return provider;
 }
@@ -247,6 +257,8 @@ export function detachRoomProvider(): void {
   if (!roomProvider) return;
   unbindPresence?.();
   unbindPresence = null;
+  unbindConnectionClose?.();
+  unbindConnectionClose = null;
   roomProvider.destroy();
   roomProvider = null;
 }

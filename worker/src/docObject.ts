@@ -2,7 +2,7 @@ import type { Connection, ConnectionContext, WSMessage } from 'partyserver';
 import { YServer } from 'y-partyserver';
 import * as Y from 'yjs';
 import { TRANSACTION_ORIGIN } from '@app/collab/schema';
-import { TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
+import { ROOM_FULL_CLOSE_CODE, TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
 import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
 import { createCommandRateLimiter } from './rateLimit';
 import { isRoomFull, parseMaxRoomConnections } from './roomLimits';
@@ -12,7 +12,6 @@ import type { Env } from './env';
 
 export const SNAPSHOT_KEY = 'snapshot';
 export const META_KEY = 'meta';
-export const ROOM_FULL_CLOSE_CODE = 4003;
 
 function toBytes(message: WSMessage): Uint8Array | null {
   if (typeof message === 'string') return null;

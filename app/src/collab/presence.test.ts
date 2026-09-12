@@ -15,6 +15,7 @@ import {
   pointerToDocPercent,
   presenceNoticeMessage,
   resolveIdentity,
+  roomFullToastMessage,
   sanitizeCursor,
   sanitizePresenceUser,
   sanitizeSelectedIds,
@@ -24,6 +25,7 @@ import {
   type PresenceAwareness,
   type PresenceNotice,
 } from './presence';
+import { ROOM_FULL_CLOSE_CODE } from './frames';
 
 const GUEST_ID_KEY = 'fabriik-guest-id';
 const GUEST_NAME_KEY = 'fabriik-guest-name';
@@ -477,5 +479,18 @@ describe('presenceNoticeMessage', () => {
     expect(
       presenceNoticeMessage({ event: 'room-replaced', by: 'X'.repeat(50) }),
     ).toBe(`Document replaced by ${'X'.repeat(MAX_PRESENCE_NAME_LENGTH)}`);
+  });
+});
+
+describe('roomFullToastMessage', () => {
+  it('maps the room-full close code to a toast', () => {
+    expect(roomFullToastMessage(ROOM_FULL_CLOSE_CODE)).toBe('Room is full - try again later');
+    expect(roomFullToastMessage(4003)).toBe('Room is full - try again later');
+  });
+
+  it('ignores other close codes', () => {
+    expect(roomFullToastMessage(1000)).toBeNull();
+    expect(roomFullToastMessage(4000)).toBeNull();
+    expect(roomFullToastMessage(1006)).toBeNull();
   });
 });
