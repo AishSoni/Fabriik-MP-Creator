@@ -7,12 +7,15 @@ import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMe
 import { createCommandRateLimiter } from './rateLimit';
 import { exceedsFrameSizeLimit } from './frameLimit';
 import { isRoomFull, parseMaxRoomConnections } from './roomLimits';
+import { ROOM_TTL_MS, shouldPruneRoom } from './roomTtl';
 import { trimHistory } from './historyTrim';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
 import type { Env } from './env';
 
 export const SNAPSHOT_KEY = 'snapshot';
 export const META_KEY = 'meta';
+export const LAST_ACTIVE_KEY = 'lastActiveAt';
+export const TOMBSTONE_KEY = 'prunedAt';
 
 function toBytes(message: WSMessage): Uint8Array | null {
   if (typeof message === 'string') return null;
@@ -91,6 +94,24 @@ export class TemplateDocDO extends YServer {
     if (this.#state) {
       await this.ctx.storage.put(META_KEY, serializeDocLoopMeta(this.#state));
     }
+    const now = Date.now();
+    await this.ctx.storage.put(LAST_ACTIVE_KEY, now);
+    await this.ctx.storage.delete(TOMBSTONE_KEY);
+    await this.ctx.storage.setAlarm(now + ROOM_TTL_MS);
+  }
+
+  override async onAlarm(): Promise<void> {
+    const now = Date.now();
+    const lastActiveAt = await this.ctx.storage.get<number>(LAST_ACTIVE_KEY);
+    const connectionCount = [...this.getConnections()].length;
+    if (shouldPruneRoom({ lastActiveAt, now, connectionCount })) {
+      await this.ctx.storage.deleteAlarm();
+      await this.ctx.storage.deleteAll();
+      await this.ctx.storage.put(TOMBSTONE_KEY, now);
+      console.warn('[doc] pruned idle room');
+      return;
+    }
+    await this.ctx.storage.setAlarm(now + ROOM_TTL_MS);
   }
 
   override handleMessage(connection: Connection, message: WSMessage): void {
