@@ -5,6 +5,7 @@ import { TRANSACTION_ORIGIN } from '@app/collab/schema';
 import { ROOM_FULL_CLOSE_CODE, TAG_COMMAND, decodeControlEnvelope, encodeControlFrame } from '@app/collab/frames';
 import { decideCommandFrame, dedupeFromEntries, noticeForCommand, parseDocLoopMeta, processCommand, serializeDocLoopMeta } from './docLoop';
 import { createCommandRateLimiter } from './rateLimit';
+import { exceedsFrameSizeLimit } from './frameLimit';
 import { isRoomFull, parseMaxRoomConnections } from './roomLimits';
 import { trimHistory } from './historyTrim';
 import type { DocLoopMeta, DocLoopState } from './docLoop';
@@ -94,6 +95,10 @@ export class TemplateDocDO extends YServer {
 
   override handleMessage(connection: Connection, message: WSMessage): void {
     const bytes = toBytes(message);
+    if (bytes && exceedsFrameSizeLimit(bytes)) {
+      console.warn('[doc] dropped oversized frame', bytes.length);
+      return;
+    }
     if (bytes && bytes.length > 0 && bytes[0] >= 100) {
       if (bytes[0] === TAG_COMMAND) {
         if (!this.#rateLimiter.allow(connection.id)) {
