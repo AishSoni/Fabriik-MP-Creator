@@ -510,3 +510,44 @@ it.skipIf(!url)('scenario 11: restoring an unset style value deletes it across p
   a.close();
   b.close();
 });
+
+function connectExpectingClose(
+  room: string,
+): Promise<{ code: number; reason: string; notice: Payload | null }> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`${url}/doc/${room}-${RUN}`);
+    ws.binaryType = 'arraybuffer';
+    let notice: Payload | null = null;
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error('timed out waiting for close'));
+    }, CONNECT_TIMEOUT_MS);
+    ws.addEventListener('message', (event) => {
+      if (typeof event.data === 'string') return;
+      const bytes = new Uint8Array(event.data);
+      if (bytes[0] !== TAG_NOTICE) return;
+      const decoded = decodeControlFrame(bytes);
+      if (decoded) notice = decoded.frame as unknown as Payload;
+    });
+    ws.addEventListener('close', (event) => {
+      clearTimeout(timer);
+      resolve({ code: event.code, reason: event.reason, notice });
+    });
+  });
+}
+
+it.skipIf(!url)('scenario 12: connection cap rejects extra peers with room-full', { timeout: 60_000 }, async () => {
+  const max = Number.parseInt(process.env.SCEN_E2E_MAX_CONNECTIONS ?? '16', 10);
+  const sessions: Session[] = [];
+  try {
+    for (let i = 0; i < max; i += 1) {
+      sessions.push(await connectRoom('scen-cap'));
+    }
+    const rejected = await connectExpectingClose('scen-cap');
+    expect(rejected.notice).toMatchObject({ type: 'notice', event: 'room-full' });
+    expect(rejected.code).toBe(4003);
+    expect(rejected.reason).toBe('room full');
+  } finally {
+    for (const session of sessions) session.close();
+  }
+});
