@@ -480,6 +480,45 @@ describe('YDoc pipeline whole-doc ops', () => {
     expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
   });
 
+  it('undoing a revision-less step drops elements applied out of band', async () => {
+    const ydoc = getTemplateYdoc();
+    const originalName = state().doc.templateName;
+    const candidate = JSON.parse(JSON.stringify(state().doc)) as Record<string, unknown>;
+    candidate.templateName = 'Renamed Before Peer Insert';
+    expect(state().replaceDoc(candidate)).toEqual([]);
+    expect(state().past).toHaveLength(1);
+
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'insert',
+        source: 'canvas',
+        targetIds: [],
+        scope: 'all',
+        parentId: 'cta-section',
+        index: 0,
+        element: {
+          id: 'ghost-note',
+          type: 'text',
+          parentId: null,
+          childIds: [],
+          content: { base: { text: 'Ghost' } },
+          style: { base: {} },
+        },
+      },
+      { origin: 'authoritative', commandId: 'peer-ghost-1', serverSeq: 42 },
+    );
+    await flushMicrotasks();
+    expect(state().doc.elements['ghost-note']).toBeDefined();
+
+    state().undo();
+    await flushMicrotasks();
+
+    expect(state().doc.templateName).toBe(originalName);
+    expect(state().doc.elements['ghost-note']).toBeUndefined();
+    expect(projectDoc(ydoc).elements['ghost-note']).toBeUndefined();
+  });
+
   it('replaceDoc rejects an invalid doc without touching the Y doc', () => {
     const before = state().doc;
     const errors = state().replaceDoc({ nope: true });

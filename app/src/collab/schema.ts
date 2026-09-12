@@ -177,6 +177,9 @@ export function initializeTemplateYDoc(ydoc: Y.Doc, doc: TemplateDoc): void {
     meta.set(ROOT_ID_FIELD, doc.rootId);
 
     const elements = getElementsYMap(ydoc);
+    for (const id of [...elements.keys()]) {
+      if (!Object.hasOwn(doc.elements, id)) elements.delete(id);
+    }
     for (const element of Object.values(doc.elements)) {
       elements.set(element.id, buildElementYMap(element));
     }

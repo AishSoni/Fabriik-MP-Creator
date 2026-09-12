@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { validateTemplateSemantics } from '../engine/validate';
 import type { TemplateDoc, TemplateElement } from '../types/template';
+import type { CollabRevisionEntry } from './commandAdapter';
 import {
   BASE_LAYER,
   ELEMENTS_KEY,
@@ -125,6 +126,31 @@ describe('initializeTemplateYDoc', () => {
     expect(meta.get('rootId')).toBe('page-root');
     expect(getElementsYMap(ydoc).size).toBe(Object.keys(doc().elements).length);
     expect(getHistoryYArray(ydoc).length).toBe(0);
+  });
+
+  it('removes element keys that are absent from the replacement doc', () => {
+    const ydoc = ydocOf();
+    const staleId = 'hero-heading';
+    const replacement = doc();
+    delete replacement.elements[staleId];
+
+    initializeTemplateYDoc(ydoc, replacement);
+
+    const elements = getElementsYMap(ydoc);
+    expect(elements.has(staleId)).toBe(false);
+    expect(elements.size).toBe(Object.keys(replacement.elements).length);
+    expect(projectDoc(ydoc).elements[staleId]).toBeUndefined();
+  });
+
+  it('preserves existing history entries when rebuilding elements', () => {
+    const ydoc = ydocOf();
+    const history = getHistoryYArray(ydoc);
+    history.push([{ elementId: 'hero-heading' } as CollabRevisionEntry]);
+
+    initializeTemplateYDoc(ydoc, doc());
+
+    expect(getHistoryYArray(ydoc).length).toBe(1);
+    expect(getHistoryYArray(ydoc).get(0)?.elementId).toBe('hero-heading');
   });
 
   it('projects back to a deep-equal TemplateDoc (revision normalized)', () => {
