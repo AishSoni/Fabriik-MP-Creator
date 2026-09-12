@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { applyCommand } from '../engine/commit';
-import type { EditCommand, RevisionEntry } from '../types/commands';
+import type { EditCommand } from '../types/commands';
 import type { TemplateDoc, TemplateElement } from '../types/template';
 import {
   HISTORY_KEY,
@@ -32,225 +31,13 @@ const authoritative = (overrides: Partial<ApplyOptions> = {}): ApplyOptions => (
   ...overrides,
 });
 
-const stripEntry = (entry: RevisionEntry | CollabRevisionEntry) => {
-  const { id: _id, commandId: _c, timestamp: _t, ...rest } = entry as RevisionEntry & CollabRevisionEntry;
-  return rest;
-};
-
 const stripDoc = (d: TemplateDoc) => {
   const { revision: _r, ...rest } = d;
   return rest;
 };
 
-interface ParityCase {
-  name: string;
-  command: EditCommand;
-}
-
-const parityCases: ParityCase[] = [
-  {
-    name: 'set-content scope all',
-    command: {
-      kind: 'set-content',
-      source: 'canvas',
-      targetIds: ['hero-heading'],
-      scope: 'all',
-      content: { text: 'Hello collab' },
-    },
-  },
-  {
-    name: 'set-content viewport without prior override',
-    command: {
-      kind: 'set-content',
-      source: 'code',
-      targetIds: ['hero-eyebrow'],
-      scope: 'mobile',
-      content: { text: 'Mobile eyebrow' },
-    },
-  },
-  {
-    name: 'set-content nav with array payload',
-    command: {
-      kind: 'set-content',
-      source: 'code',
-      targetIds: ['top-nav'],
-      scope: 'all',
-      content: {
-        brand: 'Renamed',
-        links: [{ label: 'Docs', href: '#docs' }],
-      },
-    },
-  },
-  {
-    name: 'set-style multi target scope all',
-    command: {
-      kind: 'set-style',
-      source: 'canvas',
-      targetIds: ['hero-heading', 'hero-subtext'],
-      scope: 'all',
-      stylePatch: { color: '#ff0000', fontSize: 64 },
-    },
-  },
-  {
-    name: 'set-style viewport creates override layer',
-    command: {
-      kind: 'set-style',
-      source: 'canvas',
-      targetIds: ['hero-cta'],
-      scope: 'tablet',
-      stylePatch: { paddingX: 8, borderRadius: 4 },
-    },
-  },
-  {
-    name: 'set-style with undefined resets key to null in snapshot',
-    command: {
-      kind: 'set-style',
-      source: 'canvas',
-      targetIds: ['hero-eyebrow'],
-      scope: 'all',
-      stylePatch: { marginBottom: undefined, marginTop: 4 },
-    },
-  },
-  {
-    name: 'reorder within parent',
-    command: {
-      kind: 'reorder',
-      source: 'canvas',
-      targetIds: ['hero-subtext'],
-      scope: 'all',
-      index: 0,
-    },
-  },
-  {
-    name: 'reorder clamps out-of-range index',
-    command: {
-      kind: 'reorder',
-      source: 'canvas',
-      targetIds: ['hero-subtext'],
-      scope: 'all',
-      index: 999,
-    },
-  },
-  {
-    name: 'insert leaf element',
-    command: {
-      kind: 'insert',
-      source: 'canvas',
-      targetIds: [],
-      scope: 'all',
-      parentId: 'hero-section',
-      index: 2,
-      element: {
-        id: 'new-paragraph',
-        type: 'text',
-        parentId: 'hero-section',
-        childIds: [],
-        content: { base: { text: 'Fresh paragraph' } },
-        style: { base: { fontSize: 18 } },
-      },
-    },
-  },
-  {
-    name: 'insert clamps out-of-range index',
-    command: {
-      kind: 'insert',
-      source: 'canvas',
-      targetIds: [],
-      scope: 'all',
-      parentId: 'footer-section',
-      index: 999,
-      element: {
-        id: 'footer-extra',
-        type: 'text',
-        parentId: 'footer-section',
-        childIds: [],
-        content: { base: { text: 'Extra' } },
-        style: { base: {} },
-      },
-    },
-  },
-  {
-    name: 'insert with dangling childIds mid-stream',
-    command: {
-      kind: 'insert',
-      source: 'code',
-      targetIds: [],
-      scope: 'all',
-      parentId: 'features-section',
-      index: 0,
-      element: {
-        id: 'stream-card',
-        type: 'section',
-        parentId: 'features-section',
-        childIds: ['stream-card-title'],
-        content: { base: {} },
-        style: { base: {} },
-      },
-    },
-  },
-  {
-    name: 'remove subtree',
-    command: {
-      kind: 'remove',
-      source: 'canvas',
-      targetIds: ['feature-card-1'],
-      scope: 'all',
-    },
-  },
-  {
-    name: 'remove multiple disjoint targets',
-    command: {
-      kind: 'remove',
-      source: 'canvas',
-      targetIds: ['feature-card-1', 'testimonial-quote'],
-      scope: 'all',
-    },
-  },
-  {
-    name: 'rename template',
-    command: {
-      kind: 'rename',
-      source: 'code',
-      targetIds: [],
-      scope: 'all',
-      templateName: 'Renamed Template',
-    },
-  },
-  {
-    name: 'replace-doc from a normalized import',
-    command: {
-      kind: 'replace-doc',
-      source: 'code',
-      targetIds: [],
-      scope: 'all',
-      reason: 'import',
-      by: 'Aish',
-      doc: (() => {
-        const next = doc();
-        next.templateId = 'tpl-replaced';
-        next.templateName = 'Replaced Template';
-        next.elements['hero-heading'].content.base = { text: 'Replaced heading' };
-        return next;
-      })(),
-    },
-  },
-];
-
-describe('parity oracle vs engine/commit.ts', () => {
-  for (const { name, command } of parityCases) {
-    it(`matches immer engine for: ${name}`, () => {
-      const plain = doc();
-      const committed = applyCommand(plain, command);
-
-      const ydoc = makeYDoc();
-      const result = applyCommandToYDoc(ydoc, command, authoritative());
-
-      expect(stripDoc(projectDoc(ydoc))).toEqual(stripDoc(committed.doc));
-      expect(result.entries.map(stripEntry)).toEqual(committed.revisions.map(stripEntry));
-    });
-  }
-
-  it('adapter and engine agree on labels and kinds', () => {
+describe('adapter entry labels', () => {
+  it('labels AI commands as ai-accepted', () => {
     const ydoc = makeYDoc();
     const result = applyCommandToYDoc(
       ydoc,
@@ -265,6 +52,23 @@ describe('parity oracle vs engine/commit.ts', () => {
     );
     expect(result.entries[0].label).toBe('style updated (ai-accepted)');
     expect(result.entries[0].kind).toBe('ai-accepted');
+  });
+
+  it('labels restore-sourced commands as restore', () => {
+    const ydoc = makeYDoc();
+    const result = applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'set-style',
+        source: 'restore',
+        targetIds: ['hero-heading'],
+        scope: 'all',
+        stylePatch: { color: '#123456' },
+      },
+      authoritative(),
+    );
+    expect(result.entries[0].label).toBe('style updated (restore)');
+    expect(result.entries[0].kind).toBe('restore');
   });
 });
 

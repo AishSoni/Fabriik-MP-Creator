@@ -1,11 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 import { createDefaultTemplate } from '../../template/defaultTemplate';
 import { runDemoEngine, EXAMPLE_INSTRUCTIONS } from './scenarioEngine';
 import { validateCommand } from '../validate';
-import { commitCommand } from '../commit';
 import { resolveTree } from '../resolve';
+import { initializeTemplateYDoc, projectDoc } from '../../collab/schema';
+import { applyCommandToYDoc } from '../../collab/commandAdapter';
+import type { EditCommand } from '../../types/commands';
+import type { TemplateDoc } from '../../types/template';
 
 const doc = () => createDefaultTemplate();
+
+const applyCommand = (current: TemplateDoc, command: EditCommand): TemplateDoc => {
+  const ydoc = new Y.Doc();
+  initializeTemplateYDoc(ydoc, current);
+  applyCommandToYDoc(ydoc, command, { origin: 'authoritative', commandId: 'scenario-test' });
+  const next = projectDoc(ydoc);
+  ydoc.destroy();
+  return next;
+};
 
 describe('runDemoEngine', () => {
   it('is deterministic: same input and state produce identical results', () => {
@@ -65,7 +78,7 @@ describe('runDemoEngine', () => {
     for (const proposal of result.proposals) {
       expect(proposal.command.scope).toBe('mobile');
       if (proposal.status !== 'invalid') {
-        d = commitCommand(d, {}, proposal.command).doc;
+        d = applyCommand(d, proposal.command);
       }
     }
     expect(resolveTree(d, 'desktop').get('hero-heading')?.style.fontSize).toBe(
@@ -87,13 +100,13 @@ describe('runDemoEngine', () => {
 
   it('uses current live values, not fixed replacements', () => {
     let d = doc();
-    d = commitCommand(d, {}, {
+    d = applyCommand(d, {
       kind: 'set-content',
       source: 'canvas',
       targetIds: ['hero-heading'],
       scope: 'all',
       content: { text: 'fresh value from canvas' },
-    }).doc;
+    });
     const result = runDemoEngine(
       { instruction: 'Rewrite the text to be more exciting', selectedIds: ['hero-heading'], scope: 'all' },
       d,

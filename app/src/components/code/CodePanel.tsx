@@ -9,6 +9,9 @@ type CodeMode = 'template' | 'element';
 
 export function CodePanel() {
   const doc = useTemplateStore((s) => s.doc);
+  const editCount = useTemplateStore((s) =>
+    Object.values(s.history).reduce((total, entries) => total + entries.length, 0),
+  );
   const replaceDoc = useTemplateStore((s) => s.replaceDoc);
   const lastErrors = useTemplateStore((s) => s.lastErrors);
   const selectedIds = useEditorStore((s) => s.selectedIds);
@@ -86,7 +89,7 @@ export function CodePanel() {
           </button>
         </div>
         <span className={`hidden text-[11px] font-medium tabular-nums sm:inline-flex ${darkMode ? 'text-muted' : 'text-muted-dark'}`}>
-          rev {doc.revision} · {Object.keys(doc.elements).length} nodes
+          {editCount} edits · {Object.keys(doc.elements).length} nodes
         </span>
         <button
           type="button"

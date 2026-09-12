@@ -1,15 +1,36 @@
+import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useTemplateStore } from './store/templateStore';
+import {
+  getTemplateYdoc,
+  resetYdocPipeline,
+  useTemplateStore,
+  whenTemplatePersistenceReady,
+} from './store/templateStore';
 import { useEditorStore } from './store/editorStore';
 import { useReviewStore } from './store/reviewStore';
 import { runDemoEngine } from './engine/ai/scenarioEngine';
 import { resolveTree } from './engine/resolve';
+import { DEFAULT_YDOC_DB_NAME } from './collab/persistence';
 import type { EditCommand } from './types/commands';
 
 const template = () => useTemplateStore.getState();
+const legacyKey = 'fabriik-template-v1';
 
-beforeEach(() => {
+const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+const deleteDb = async (name: string): Promise<void> => {
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(name);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+};
+
+beforeEach(async () => {
   localStorage.clear();
+  resetYdocPipeline();
+  await deleteDb(DEFAULT_YDOC_DB_NAME);
   useTemplateStore.getState().loadTemplate('tpl-landing-v1');
   useEditorStore.getState().clearSelection();
   useReviewStore.getState().setPendingResult(null);
@@ -57,10 +78,13 @@ describe('end-to-end editor journey', () => {
     template().restore(restoreEntry);
     expect(template().doc.elements['feature-1-title'].style.base.fontWeight).toBe(700);
     expect((template().doc.elements['hero-heading'].content.base as { text: string }).text).toBe('Hand-edited headline');
-    expect(template().doc.revision).toBeGreaterThan(historyAfterAccept.length);
+
+    const historyAfterRestore = Object.values(template().history).flat();
+    expect(historyAfterRestore.length).toBeGreaterThan(historyAfterAccept.length);
+    expect(historyAfterRestore.some((r) => r.source === 'restore')).toBe(true);
   });
 
-  it('persisted state survives a simulated refresh and reset restores the original template', () => {
+  it('persisted state survives a simulated refresh and reset restores the original template', async () => {
     template().dispatch({
       kind: 'set-style',
       source: 'canvas',
@@ -69,40 +93,34 @@ describe('end-to-end editor journey', () => {
       stylePatch: { backgroundColor: '#ff0055' },
     });
 
-    const persisted = JSON.parse(localStorage.getItem('fabriik-template-v1')!);
-    expect(persisted.state.doc.elements['cta-button'].style.overrides.tablet.backgroundColor).toBe('#ff0055');
-    expect(persisted.state.history['cta-button']).toHaveLength(1);
+    await whenTemplatePersistenceReady();
+    await flush();
+
+    resetYdocPipeline();
+    getTemplateYdoc();
+    await whenTemplatePersistenceReady();
+    await flush();
+
+    expect(resolveTree(template().doc, 'tablet').get('cta-button')?.style.backgroundColor).toBe('#ff0055');
+    expect(Object.values(template().history).flat()).toHaveLength(1);
 
     template().resetDoc();
     expect(resolveTree(template().doc, 'tablet').get('cta-button')?.style.backgroundColor).toBe('#4f46e5');
     expect(Object.keys(template().history)).toHaveLength(0);
   });
 
-  it('falls back to the default template with an "invalid json template" error when persisted doc fails validation', async () => {
-    template().dispatch({
-      kind: 'set-style',
-      source: 'canvas',
-      targetIds: ['cta-button'],
-      scope: 'all',
-      stylePatch: { backgroundColor: '#ff0055' },
-    });
-    const raw = JSON.parse(localStorage.getItem('fabriik-template-v1')!);
-    raw.state.doc = { templateId: 'corrupt', templateName: 'corrupt', revision: 1, rootId: 'page-root', elements: {}, bogus: true };
-    localStorage.setItem('fabriik-template-v1', JSON.stringify(raw));
+  it('ignores an unparsable legacy payload, keeps the seed, and removes the key', async () => {
+    resetYdocPipeline();
+    await deleteDb(DEFAULT_YDOC_DB_NAME);
+    localStorage.setItem(legacyKey, 'not-json-at-all');
 
-    await useTemplateStore.persist.rehydrate();
+    getTemplateYdoc();
+    await whenTemplatePersistenceReady();
+    await flush();
 
-    expect(template().doc.elements['masthead-heading']).toBeDefined();
-    expect(template().doc.revision).toBe(0);
-    expect(template().history).toEqual({});
-    expect(template().activeTemplateId).toBe('tpl-editorial-v1');
-    expect(template().lastErrors).toHaveLength(1);
-    expect(template().lastErrors[0]?.code).toBe('invalid-payload');
-    expect(template().lastErrors[0]?.message).toContain('invalid json template');
+    expect(template().doc.templateId).toBe('tpl-landing-v1');
+    expect(template().doc.elements['hero-heading']).toBeDefined();
+    expect(template().lastErrors).toEqual([]);
+    expect(localStorage.getItem(legacyKey)).toBeNull();
   });
 });
-
-
-
-
-

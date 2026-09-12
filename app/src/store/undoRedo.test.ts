@@ -229,7 +229,7 @@ describe('global undo/redo', () => {
     expect(state().future).toHaveLength(0);
   });
 
-  it('persists past/future alongside doc and history', () => {
+  it('keeps undo stacks in memory and writes no legacy localStorage envelope', () => {
     dispatch({
       kind: 'set-content',
       source: 'canvas',
@@ -237,12 +237,9 @@ describe('global undo/redo', () => {
       scope: 'all',
       content: { text: 'Persist me' },
     });
-    const raw = localStorage.getItem('fabriik-template-v1');
-    expect(raw).not.toBeNull();
-    const persisted = JSON.parse(raw!);
-    expect(persisted.version).toBe(4);
-    expect(persisted.state.past).toHaveLength(1);
-    expect(persisted.state.past[0].revisions).toHaveLength(1);
-    expect(persisted.state.future).toHaveLength(0);
+    expect(localStorage.getItem('fabriik-template-v1')).toBeNull();
+    expect(state().past).toHaveLength(1);
+    expect(state().past[0].revisions).toHaveLength(1);
+    expect(state().future).toHaveLength(0);
   });
 });

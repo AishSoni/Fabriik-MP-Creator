@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
-import { applyCommand } from '../engine/commit';
-import { restoreRevision } from '../engine/restore';
 import { validateCommand, templateDocSchema } from '../engine/validate';
-import type { EditCommand, InsertCommand, RevisionEntry, SetStyleCommand } from '../types/commands';
+import type { EditCommand, InsertCommand, SetStyleCommand } from '../types/commands';
 import type { TemplateDoc } from '../types/template';
 import { initializeTemplateYDoc, projectDoc } from './schema';
 import { applyCommandToYDoc } from './commandAdapter';
-import type { ApplyOptions } from './commandAdapter';
+import type { ApplyOptions, CollabRevisionEntry } from './commandAdapter';
 import { commandsFromRevision } from './commands';
 
 const doc = (): TemplateDoc => createDefaultTemplate();
@@ -32,42 +30,43 @@ const stripRevision = (d: TemplateDoc) => {
   return rest;
 };
 
-const applyAll = (commands: EditCommand[]): { after: TemplateDoc; entry: RevisionEntry } => {
-  let current = doc();
-  let entry: RevisionEntry | null = null;
+interface Arrangement {
+  before: TemplateDoc;
+  after: TemplateDoc;
+  entry: CollabRevisionEntry;
+}
+
+const applyAll = (commands: EditCommand[]): Arrangement => {
+  const ydoc = makeYDoc(doc());
+  let before = projectDoc(ydoc);
+  let entry: CollabRevisionEntry | null = null;
   for (const command of commands) {
-    const result = applyCommand(current, command);
-    current = result.doc;
-    entry = result.revisions[result.revisions.length - 1] ?? entry;
+    before = projectDoc(ydoc);
+    const result = applyCommandToYDoc(ydoc, command, authoritative(`arrange-${command.kind}`));
+    entry = result.entries[result.entries.length - 1] ?? entry;
   }
   if (!entry) throw new Error('arrangement produced no revision entry');
-  return { after: current, entry };
+  return { before, after: projectDoc(ydoc), entry };
 };
 
-const expectRoundTrip = (after: TemplateDoc, entry: RevisionEntry): EditCommand[] => {
+const expectRoundTrip = ({ before, after, entry }: Arrangement): EditCommand[] => {
   const commands = commandsFromRevision(after, entry);
   expect(commands.length).toBeGreaterThan(0);
 
-  let scratch = after;
-  for (const command of commands) {
-    expect(validateCommand(scratch, command)).toEqual([]);
-    scratch = applyCommand(scratch, command).doc;
-  }
-
   const ydoc = makeYDoc(after);
   commands.forEach((command, i) => {
+    expect(validateCommand(projectDoc(ydoc), command)).toEqual([]);
     applyCommandToYDoc(ydoc, command, authoritative(`undo-${i}`));
   });
 
   const projected = projectDoc(ydoc);
-  const oracle = restoreRevision(after, entry).doc;
-  expect(stripRevision(projected)).toEqual(stripRevision(oracle));
+  expect(stripRevision(projected)).toEqual(stripRevision(before));
   return commands;
 };
 
 describe('commandsFromRevision', () => {
   it('inverts base set-content back to the prior content', () => {
-    const { after, entry } = applyAll([
+    const arrangement = applyAll([
       {
         kind: 'set-content',
         source: 'canvas',
@@ -76,35 +75,36 @@ describe('commandsFromRevision', () => {
         content: { text: 'Hello' },
       },
     ]);
-    const commands = expectRoundTrip(after, entry);
+    const commands = expectRoundTrip(arrangement);
     expect(commands).toHaveLength(1);
     expect(commands[0]).toMatchObject({
       kind: 'set-content',
       source: 'restore',
       targetIds: ['hero-heading'],
       scope: 'all',
-      content: entry.before.content,
+      content: arrangement.entry.before.content,
     });
   });
 
   it('inverts a second viewport override back to the first', () => {
-    const { after, entry } = applyAll([
-      {
-        kind: 'set-content',
-        source: 'canvas',
-        targetIds: ['hero-eyebrow'],
-        scope: 'mobile',
-        content: { text: 'First mobile' },
-      },
-      {
-        kind: 'set-content',
-        source: 'canvas',
-        targetIds: ['hero-eyebrow'],
-        scope: 'mobile',
-        content: { text: 'Second mobile' },
-      },
-    ]);
-    const commands = expectRoundTrip(after, entry);
+    const commands = expectRoundTrip(
+      applyAll([
+        {
+          kind: 'set-content',
+          source: 'canvas',
+          targetIds: ['hero-eyebrow'],
+          scope: 'mobile',
+          content: { text: 'First mobile' },
+        },
+        {
+          kind: 'set-content',
+          source: 'canvas',
+          targetIds: ['hero-eyebrow'],
+          scope: 'mobile',
+          content: { text: 'Second mobile' },
+        },
+      ]),
+    );
     expect(commands[0]).toMatchObject({
       kind: 'set-content',
       scope: 'mobile',
@@ -113,7 +113,7 @@ describe('commandsFromRevision', () => {
   });
 
   it('returns no commands for a first viewport override (override delete is not expressible)', () => {
-    const { after, entry } = applyAll([
+    const arrangement = applyAll([
       {
         kind: 'set-content',
         source: 'canvas',
@@ -122,11 +122,11 @@ describe('commandsFromRevision', () => {
         content: { text: 'Only mobile' },
       },
     ]);
-    expect(commandsFromRevision(after, entry)).toEqual([]);
+    expect(commandsFromRevision(arrangement.after, arrangement.entry)).toEqual([]);
   });
 
   it('maps null style values to null deletions when inverting set-style', () => {
-    const { after, entry } = applyAll([
+    const arrangement = applyAll([
       {
         kind: 'set-style',
         source: 'canvas',
@@ -142,8 +142,8 @@ describe('commandsFromRevision', () => {
         stylePatch: { fontSize: 20, color: '#111111' },
       },
     ]);
-    expect(entry.before.style).toEqual({ fontSize: null, color: '#111111' });
-    const commands = expectRoundTrip(after, entry);
+    expect(arrangement.entry.before.style).toEqual({ fontSize: null, color: '#111111' });
+    const commands = expectRoundTrip(arrangement);
     expect(commands).toHaveLength(1);
     const patch = (commands[0] as SetStyleCommand).stylePatch;
     expect(patch.color).toBe('#111111');
@@ -181,23 +181,24 @@ describe('commandsFromRevision', () => {
   });
 
   it('inverts set-style viewport overrides back to the prior value', () => {
-    const { after, entry } = applyAll([
-      {
-        kind: 'set-style',
-        source: 'canvas',
-        targetIds: ['hero-cta'],
-        scope: 'tablet',
-        stylePatch: { paddingX: 8 },
-      },
-      {
-        kind: 'set-style',
-        source: 'canvas',
-        targetIds: ['hero-cta'],
-        scope: 'tablet',
-        stylePatch: { paddingX: 24 },
-      },
-    ]);
-    const commands = expectRoundTrip(after, entry);
+    const commands = expectRoundTrip(
+      applyAll([
+        {
+          kind: 'set-style',
+          source: 'canvas',
+          targetIds: ['hero-cta'],
+          scope: 'tablet',
+          stylePatch: { paddingX: 8 },
+        },
+        {
+          kind: 'set-style',
+          source: 'canvas',
+          targetIds: ['hero-cta'],
+          scope: 'tablet',
+          stylePatch: { paddingX: 24 },
+        },
+      ]),
+    );
     expect(commands[0]).toMatchObject({
       kind: 'set-style',
       scope: 'tablet',
@@ -206,7 +207,7 @@ describe('commandsFromRevision', () => {
   });
 
   it('inverts reorder back to the previous index', () => {
-    const { after, entry } = applyAll([
+    const arrangement = applyAll([
       {
         kind: 'reorder',
         source: 'canvas',
@@ -215,16 +216,83 @@ describe('commandsFromRevision', () => {
         index: 0,
       },
     ]);
-    const commands = expectRoundTrip(after, entry);
+    const commands = expectRoundTrip(arrangement);
     expect(commands[0]).toMatchObject({
       kind: 'reorder',
       targetIds: ['hero-subtext'],
-      index: entry.structural?.previousIndex,
+      index: arrangement.entry.structural?.previousIndex,
     });
   });
 
   it('inverts insert by removing the inserted element', () => {
-    const { after, entry } = applyAll([
+    const commands = expectRoundTrip(
+      applyAll([
+        {
+          kind: 'insert',
+          source: 'canvas',
+          targetIds: [],
+          scope: 'all',
+          parentId: 'hero-section',
+          index: 2,
+          element: {
+            id: 'new-paragraph',
+            type: 'text',
+            parentId: 'hero-section',
+            childIds: [],
+            content: { base: { text: 'Fresh' } },
+            style: { base: {} },
+          },
+        },
+      ]),
+    );
+    expect(commands[0]).toMatchObject({ kind: 'remove', targetIds: ['new-paragraph'] });
+  });
+
+  it('inverts remove of a leaf by re-inserting it at the captured index', () => {
+    const arrangement = applyAll([
+      {
+        kind: 'remove',
+        source: 'canvas',
+        targetIds: ['hero-cta'],
+        scope: 'all',
+      },
+    ]);
+    const commands = expectRoundTrip(arrangement);
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toMatchObject({
+      kind: 'insert',
+      parentId: 'hero-section',
+      index: arrangement.entry.structural?.index,
+    });
+    expect((commands[0] as InsertCommand).element.id).toBe('hero-cta');
+    expect((commands[0] as InsertCommand).element.childIds).toEqual([]);
+  });
+
+  it('inverts remove of a subtree into parent-first inserts', () => {
+    const commands = expectRoundTrip(
+      applyAll([
+        {
+          kind: 'remove',
+          source: 'canvas',
+          targetIds: ['feature-card-1'],
+          scope: 'all',
+        },
+      ]),
+    );
+    expect(commands.map((c) => (c.kind === 'insert' ? c.element.id : ''))).toEqual([
+      'feature-card-1',
+      'feature-1-title',
+      'feature-1-text',
+    ]);
+    for (const command of commands) {
+      expect((command as InsertCommand).element.childIds).toEqual([]);
+    }
+  });
+
+  it('returns no commands when the inverted element no longer exists', () => {
+    const ydoc = makeYDoc(doc());
+    const inserted = applyCommandToYDoc(
+      ydoc,
       {
         kind: 'insert',
         source: 'canvas',
@@ -241,103 +309,57 @@ describe('commandsFromRevision', () => {
           style: { base: {} },
         },
       },
-    ]);
-    const commands = expectRoundTrip(after, entry);
-    expect(commands[0]).toMatchObject({ kind: 'remove', targetIds: ['new-paragraph'] });
-  });
-
-  it('inverts remove of a leaf by re-inserting it at the captured index', () => {
-    const { after, entry } = applyAll([
+      authoritative('cmd-insert'),
+    );
+    applyCommandToYDoc(
+      ydoc,
       {
         kind: 'remove',
         source: 'canvas',
-        targetIds: ['hero-cta'],
+        targetIds: ['new-paragraph'],
         scope: 'all',
       },
-    ]);
-    const commands = expectRoundTrip(after, entry);
-    expect(commands).toHaveLength(1);
-    expect(commands[0]).toMatchObject({
-      kind: 'insert',
-      parentId: 'hero-section',
-      index: entry.structural?.index,
-    });
-    expect((commands[0] as InsertCommand).element.id).toBe('hero-cta');
-    expect((commands[0] as InsertCommand).element.childIds).toEqual([]);
+      authoritative('cmd-remove'),
+    );
+    expect(commandsFromRevision(projectDoc(ydoc), inserted.entries[0])).toEqual([]);
   });
 
-  it('inverts remove of a subtree into parent-first inserts', () => {
-    const { after, entry } = applyAll([
+  it('returns no commands when the removed root was already re-added', () => {
+    const ydoc = makeYDoc(doc());
+    const applied = applyCommandToYDoc(
+      ydoc,
       {
         kind: 'remove',
         source: 'canvas',
         targetIds: ['feature-card-1'],
         scope: 'all',
       },
-    ]);
-    const commands = expectRoundTrip(after, entry);
-    expect(commands.map((c) => (c.kind === 'insert' ? c.element.id : ''))).toEqual([
-      'feature-card-1',
-      'feature-1-title',
-      'feature-1-text',
-    ]);
-    for (const command of commands) {
-      expect((command as InsertCommand).element.childIds).toEqual([]);
-    }
-  });
-
-  it('returns no commands when the inverted element no longer exists', () => {
-    const applied = applyCommand(doc(), {
-      kind: 'insert',
-      source: 'canvas',
-      targetIds: [],
-      scope: 'all',
-      parentId: 'hero-section',
-      index: 2,
-      element: {
-        id: 'new-paragraph',
-        type: 'text',
-        parentId: 'hero-section',
-        childIds: [],
-        content: { base: { text: 'Fresh' } },
-        style: { base: {} },
-      },
-    });
-    const gone = applyCommand(applied.doc, {
-      kind: 'remove',
-      source: 'canvas',
-      targetIds: ['new-paragraph'],
-      scope: 'all',
-    }).doc;
-    expect(commandsFromRevision(gone, applied.revisions[0])).toEqual([]);
-  });
-
-  it('returns no commands when the removed root was already re-added', () => {
-    const applied = applyCommand(doc(), {
-      kind: 'remove',
-      source: 'canvas',
-      targetIds: ['feature-card-1'],
-      scope: 'all',
-    });
-    const entry = applied.revisions[0];
+      authoritative('cmd-remove'),
+    );
+    const entry = applied.entries[0];
     const root = entry.structural?.removedSubtree?.[0];
     if (!root) throw new Error('expected captured subtree');
-    const reAdded = applyCommand(applied.doc, {
-      kind: 'insert',
-      source: 'canvas',
-      targetIds: [],
-      scope: 'all',
-      parentId: 'features-section',
-      index: 1,
-      element: root,
-    }).doc;
-    expect(commandsFromRevision(reAdded, entry)).toEqual([]);
+    applyCommandToYDoc(
+      ydoc,
+      {
+        kind: 'insert',
+        source: 'canvas',
+        targetIds: [],
+        scope: 'all',
+        parentId: 'features-section',
+        index: 1,
+        element: root,
+      },
+      authoritative('cmd-re-add'),
+    );
+    expect(commandsFromRevision(projectDoc(ydoc), entry)).toEqual([]);
   });
 });
 
 describe('commandsFromRevision on Y adapter entries', () => {
-  it('inverts an authoritative adapter entry and matches the immer oracle on the same ydoc', () => {
+  it('inverts an authoritative adapter entry', () => {
     const ydoc = makeYDoc(doc());
+    const before = projectDoc(ydoc);
     const result = applyCommandToYDoc(
       ydoc,
       {
@@ -364,7 +386,6 @@ describe('commandsFromRevision on Y adapter entries', () => {
     });
 
     const projected = projectDoc(ydoc);
-    const oracle = restoreRevision(after, { ...entry }).doc;
-    expect(stripRevision(projected)).toEqual(stripRevision(oracle));
+    expect(stripRevision(projected)).toEqual(stripRevision(before));
   });
 });

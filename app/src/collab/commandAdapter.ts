@@ -63,6 +63,7 @@ function nullifyStyle(record: Record<string, StyleLayerValue>): StyleSnapshot {
 }
 
 function kindOf(command: EditCommand): RevisionKind {
+  if (command.source === 'restore') return 'restore';
   return command.source === 'ai'
     ? 'ai-accepted'
     : command.kind === 'set-content' || command.kind === 'set-style'

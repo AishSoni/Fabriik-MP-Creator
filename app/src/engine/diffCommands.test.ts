@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 import { createDefaultTemplate } from '../template/defaultTemplate';
 import { diffDocs } from './diffCommands';
-import { commitCommand } from './commit';
 import { validateCommand } from './validate';
+import { initializeTemplateYDoc, projectDoc } from '../collab/schema';
+import { applyCommandToYDoc } from '../collab/commandAdapter';
 import type { TemplateDoc } from '../types/template';
 
 const clone = (doc: TemplateDoc): TemplateDoc => JSON.parse(JSON.stringify(doc));
@@ -19,15 +21,16 @@ describe('diffDocs', () => {
     const { commands, errors } = diffDocs(oldDoc, newDoc, { source: 'code' });
     expect(errors).toEqual([]);
 
-    let current = oldDoc;
-    for (const command of commands) {
-      expect(validateCommand(current, command)).toEqual([]);
-      const result = commitCommand(current, {}, command);
-      current = result.doc;
-    }
+    const ydoc = new Y.Doc();
+    initializeTemplateYDoc(ydoc, oldDoc);
+    commands.forEach((command, i) => {
+      expect(validateCommand(projectDoc(ydoc), command)).toEqual([]);
+      applyCommandToYDoc(ydoc, command, { origin: 'authoritative', commandId: `diff-${i}` });
+    });
 
-    expect(JSON.stringify({ ...current, revision: 0 })).toEqual(JSON.stringify({ ...newDoc, revision: 0 }));
-    expect(current.revision).toBe(oldDoc.revision + commands.length);
+    expect(JSON.stringify({ ...projectDoc(ydoc), revision: 0 })).toEqual(
+      JSON.stringify({ ...newDoc, revision: 0 }),
+    );
   });
 
   it('rejects changes to immutable fields', () => {

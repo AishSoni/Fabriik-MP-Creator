@@ -4,7 +4,6 @@ import {
   resetYdocPipeline,
   useTemplateStore,
 } from './templateStore';
-import { setYdocPipeline } from '../collab/flag';
 import { applyCommandToYDoc } from '../collab/commandAdapter';
 import type { CollabRevisionEntry } from '../collab/commandAdapter';
 import { getHistoryYArray, projectDoc } from '../collab/schema';
@@ -35,9 +34,7 @@ const textOf = (id: string): string =>
 beforeEach(() => {
   localStorage.clear();
   resetYdocPipeline();
-  setYdocPipeline(false);
   state().loadTemplate('tpl-landing-v1');
-  setYdocPipeline(true);
 });
 
 describe('YDoc pipeline dispatch', () => {
@@ -338,29 +335,6 @@ describe('YDoc pipeline projection subscription', () => {
     expect(projectDoc(getTemplateYdoc())).toEqual(state().doc);
     expect(totalYEntries()).toBe(0);
     expect(totalGrouped()).toBe(0);
-  });
-});
-
-describe('flag OFF keeps the legacy pipeline', () => {
-  it('dispatches through immer with revision increments and untouched Y history', () => {
-    setYdocPipeline(false);
-    const ydoc = getTemplateYdoc();
-
-    const errors = dispatch({
-      kind: 'set-content',
-      source: 'canvas',
-      targetIds: ['hero-heading'],
-      scope: 'all',
-      content: { text: 'Legacy edit' },
-    });
-    expect(errors).toEqual([]);
-    expect(textOf('hero-heading')).toBe('Legacy edit');
-    expect(state().doc.revision).toBe(1);
-    expect(projectDoc(ydoc).elements['hero-heading'].content.base).toEqual({
-      text: 'Main Hero Message to Sell Yourself!',
-    });
-    expect(getHistoryYArray(ydoc).length).toBe(0);
-    expect(state().past).toHaveLength(1);
   });
 });
 

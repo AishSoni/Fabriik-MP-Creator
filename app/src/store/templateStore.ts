@@ -1,17 +1,12 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import * as Y from 'yjs';
 import type {
   EditCommand,
-  HistoryLog,
   ReplaceDocCommand,
   ReplaceDocReason,
-  RevisionEntry,
 } from '../types/commands';
 import type { ElementId, TemplateDoc } from '../types/template';
 import { defaultContentFor } from '../types/template';
-import { commitCommand, appendRevisions } from '../engine/commit';
-import { restoreRevision, invertRevisionGroup } from '../engine/restore';
 import {
   validateCommand,
   templateDocSchema,
@@ -22,7 +17,6 @@ import {
 import { diffDocs } from '../engine/diffCommands';
 import { createEditorialTemplate } from '../template/editorialTemplate';
 import { getTemplateById } from '../template';
-import { isYdocPipeline } from '../collab/flag';
 import { createTemplateProjector, type TemplateProjector } from '../collab/project';
 import {
   TEMPLATE_NAME_FIELD,
@@ -49,15 +43,12 @@ import {
 import { useEditorStore } from './editorStore';
 
 /**
- * History entries exist in two producer shapes: the legacy immer pipeline
- * (RevisionEntry, no sequence marker) and the Yjs pipeline
- * (CollabRevisionEntry = RevisionEntry with an optional serverSeq key).
- * After dropping the retired `baseRevision` field the two types unified;
- * the `serverSeq` key's presence separates the shapes at runtime, and stale
- * persisted blobs carrying `baseRevision` are ignored by the guards.
+ * History entries produced by the Yjs pipeline. After dropping the retired
+ * `baseRevision` field the legacy `RevisionEntry` and `CollabRevisionEntry`
+ * shapes unified into a single type.
  */
 export type AnyRevisionEntry = CollabRevisionEntry;
-export type AnyHistoryLog = Record<ElementId, AnyRevisionEntry[]>;
+export type AnyHistoryLog = Record<ElementId, AnyRevisionEntry[]>;;
 
 /**
  * One atomic undo step. `doc` is the document before the step (fallback for
@@ -101,14 +92,6 @@ function pushSnapshot(
   return [...past, snapshot].slice(-MAX_UNDO_STEPS);
 }
 
-const isYdocEntry = (entry: AnyRevisionEntry): boolean => 'serverSeq' in entry;
-
-/** Narrow a mixed history log for the legacy immer pipeline (identity on legacy logs). */
-const legacyLog = (log: AnyHistoryLog): HistoryLog =>
-  Object.fromEntries(
-    Object.entries(log).map(([id, list]) => [id, list.filter((entry) => !isYdocEntry(entry))]),
-  );
-
 function historyFromYdoc(ydoc: Y.Doc): AnyHistoryLog {
   const log: AnyHistoryLog = {};
   for (const entry of getHistoryYArray(ydoc).toArray()) {
@@ -137,7 +120,7 @@ function applyTemplateName(name: string): void {
     });
     return;
   }
-  if (isYdocPipeline()) setTemplateNameOnYdoc(name);
+  setTemplateNameOnYdoc(name);
 }
 
 /** A whole-doc replacement command forwarded to the room authority. */
@@ -159,14 +142,12 @@ let persistenceReady: Promise<void> = Promise.resolve();
 function ensureProjector(seedDoc: TemplateDoc): TemplateProjector {
   if (projector) return projector;
   const created = createTemplateProjector();
-  if (isYdocPipeline() || isRoomActive()) {
-    const bound = bindTemplatePersistence(created.ydoc, DEFAULT_YDOC_DB_NAME, {
-      seedDoc: () => useTemplateStore.getState().doc,
-      migrateLegacy: true,
-    });
-    persistenceReady = bound.ready;
-    void bound.ready.catch(() => {});
-  }
+  const bound = bindTemplatePersistence(created.ydoc, DEFAULT_YDOC_DB_NAME, {
+    seedDoc: () => useTemplateStore.getState().doc,
+    migrateLegacy: true,
+  });
+  persistenceReady = bound.ready;
+  void bound.ready.catch(() => {});
   seedTemplateYdoc(created.ydoc, seedDoc);
   created.subscribe((doc) => {
     const previous = useTemplateStore.getState();
@@ -313,9 +294,7 @@ function applyToYdoc(commands: EditCommand[]): YApplyResult {
   return { ok: true, before, entries };
 }
 
-export const useTemplateStore = create<TemplateState>()(
-  persist(
-    (set, get) => ({
+export const useTemplateStore = create<TemplateState>()((set, get) => ({
       doc: createEditorialTemplate(),
       history: initialHistory,
       past: [],
@@ -324,33 +303,16 @@ export const useTemplateStore = create<TemplateState>()(
       activeTemplateId: FALLBACK_TEMPLATE_ID,
 
       dispatch: (command) => {
-        if (isYdocPipeline() || isRoomActive()) {
-          const result = applyToYdoc([command]);
-          if (!result.ok) {
-            set({ lastErrors: result.errors });
-            return result.errors;
-          }
-          const ydoc = getTemplateYdoc();
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
-            future: [],
-            lastErrors: [],
-          });
-          return [];
+        const result = applyToYdoc([command]);
+        if (!result.ok) {
+          set({ lastErrors: result.errors });
+          return result.errors;
         }
-        const { doc, history, past } = get();
-        const errors = validateCommand(doc, command);
-        if (errors.length > 0) {
-          set({ lastErrors: errors });
-          return errors;
-        }
-        const result = commitCommand(doc, legacyLog(history), command);
+        const ydoc = getTemplateYdoc();
         set({
-          doc: result.doc,
-          history: result.history,
-          past: pushSnapshot(past, { doc, revisions: result.revisions }),
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
+          past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
           future: [],
           lastErrors: [],
         });
@@ -359,42 +321,16 @@ export const useTemplateStore = create<TemplateState>()(
 
       dispatchMany: (commands) => {
         if (commands.length === 0) return [];
-        if (isYdocPipeline() || isRoomActive()) {
-          const result = applyToYdoc(commands);
-          if (!result.ok) {
-            set({ lastErrors: result.errors });
-            return result.errors;
-          }
-          const ydoc = getTemplateYdoc();
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
-            future: [],
-            lastErrors: [],
-          });
-          return [];
+        const result = applyToYdoc(commands);
+        if (!result.ok) {
+          set({ lastErrors: result.errors });
+          return result.errors;
         }
-        const { doc, history, past } = get();
-        const snapshotDoc = doc;
-        const allRevisions: RevisionEntry[] = [];
-        let currentDoc = doc;
-        let currentHistory: HistoryLog = legacyLog(history);
-        for (const rawCommand of commands) {
-          const errors = validateCommand(currentDoc, rawCommand);
-          if (errors.length > 0) {
-            set({ lastErrors: errors });
-            return errors;
-          }
-          const result = commitCommand(currentDoc, currentHistory, rawCommand);
-          currentDoc = result.doc;
-          currentHistory = result.history;
-          allRevisions.push(...result.revisions);
-        }
+        const ydoc = getTemplateYdoc();
         set({
-          doc: currentDoc,
-          history: currentHistory,
-          past: pushSnapshot(past, { doc: snapshotDoc, revisions: allRevisions }),
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
+          past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
           future: [],
           lastErrors: [],
         });
@@ -402,38 +338,8 @@ export const useTemplateStore = create<TemplateState>()(
       },
 
       restore: (entry) => {
-        if (isYdocPipeline() || isRoomActive()) {
-          const inverse = commandsFromRevision(projectDoc(getTemplateYdoc()), entry);
-          if (inverse.length === 0) {
-            set({
-              lastErrors: [
-                {
-                  code: 'invalid-target',
-                  message: `cannot restore revision ${entry.id}: original location no longer exists`,
-                },
-              ],
-            });
-            return;
-          }
-          const result = applyToYdoc(inverse);
-          if (!result.ok) {
-            set({ lastErrors: result.errors });
-            return;
-          }
-          const ydoc = getTemplateYdoc();
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
-            future: [],
-            lastErrors: [],
-          });
-          return;
-        }
-        if (isYdocEntry(entry)) return;
-        const { doc, history, past } = get();
-        const result = restoreRevision(doc, entry);
-        if (!result.revision) {
+        const inverse = commandsFromRevision(projectDoc(getTemplateYdoc()), entry);
+        if (inverse.length === 0) {
           set({
             lastErrors: [
               {
@@ -444,17 +350,23 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
+        const result = applyToYdoc(inverse);
+        if (!result.ok) {
+          set({ lastErrors: result.errors });
+          return;
+        }
+        const ydoc = getTemplateYdoc();
         set({
-          doc: result.doc,
-          history: appendRevisions(legacyLog(history), [result.revision]),
-          past: pushSnapshot(past, { doc, revisions: [result.revision] }),
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
+          past: pushSnapshot(get().past, { doc: result.before, revisions: result.entries }),
           future: [],
           lastErrors: [],
         });
       },
 
       undo: () => {
-        const { doc, history, past, future } = get();
+        const { past, future } = get();
         if (past.length === 0) return;
         const step = past[past.length - 1];
         const remaining = past.slice(0, -1);
@@ -466,64 +378,41 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        if (isYdocPipeline() || isRoomActive()) {
-          const ydoc = getTemplateYdoc();
-          const current = projectDoc(ydoc);
-          if (step.revisions.length === 0) {
-            // Revision-less snapshot step (e.g. template rename): rebuild the
-            // Y doc from the snapshot in one transaction; history is preserved.
-            initializeTemplateYDoc(ydoc, step.doc);
-            set({
-              doc: projectDoc(ydoc),
-              history: historyFromYdoc(ydoc),
-              past: remaining,
-              future: [{ doc: current, revisions: [] }, ...future].slice(-MAX_UNDO_STEPS),
-              lastErrors: [],
-            });
-            return;
-          }
-          const inverse: EditCommand[] = [];
-          for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
-            inverse.push(...commandsFromRevision(current, step.revisions[i]));
-          }
-          const result = applyToYdoc(inverse);
-          if (!result.ok) {
-            set({ lastErrors: result.errors });
-            return;
-          }
+        const ydoc = getTemplateYdoc();
+        const current = projectDoc(ydoc);
+        if (step.revisions.length === 0) {
+          // Revision-less snapshot step (e.g. template rename): rebuild the
+          // Y doc from the snapshot in one transaction; history is preserved.
+          initializeTemplateYDoc(ydoc, step.doc);
           set({
             doc: projectDoc(ydoc),
             history: historyFromYdoc(ydoc),
             past: remaining,
-            future: [{ doc: result.before, revisions: result.entries }, ...future].slice(-MAX_UNDO_STEPS),
+            future: [{ doc: current, revisions: [] }, ...future].slice(-MAX_UNDO_STEPS),
             lastErrors: [],
           });
           return;
         }
-        if (step.revisions.length === 0) {
-          // Revision-less step (e.g. template rename): fall back to the
-          // snapshot without touching the append-only history.
-          set({
-            doc: { ...step.doc, revision: doc.revision + 1 },
-            past: remaining,
-            future: [{ doc, revisions: [] }, ...future].slice(-MAX_UNDO_STEPS),
-            lastErrors: [],
-          });
+        const inverse: EditCommand[] = [];
+        for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
+          inverse.push(...commandsFromRevision(current, step.revisions[i]));
+        }
+        const result = applyToYdoc(inverse);
+        if (!result.ok) {
+          set({ lastErrors: result.errors });
           return;
         }
-        const legacyRevisions = step.revisions.filter((entry) => !isYdocEntry(entry));
-        const result = invertRevisionGroup(doc, legacyRevisions);
         set({
-          doc: result.doc,
-          history: appendRevisions(legacyLog(history), result.revisions),
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
           past: remaining,
-          future: [{ doc, revisions: result.revisions }, ...future].slice(-MAX_UNDO_STEPS),
+          future: [{ doc: result.before, revisions: result.entries }, ...future].slice(-MAX_UNDO_STEPS),
           lastErrors: [],
         });
       },
 
       redo: () => {
-        const { doc, history, past, future } = get();
+        const { past, future } = get();
         if (future.length === 0) return;
         const [step, ...rest] = future;
         if (isRoomActive()) {
@@ -534,53 +423,32 @@ export const useTemplateStore = create<TemplateState>()(
           });
           return;
         }
-        if (isYdocPipeline() || isRoomActive()) {
-          const ydoc = getTemplateYdoc();
-          const current = projectDoc(ydoc);
-          if (step.revisions.length === 0) {
-            initializeTemplateYDoc(ydoc, step.doc);
-            set({
-              doc: projectDoc(ydoc),
-              history: historyFromYdoc(ydoc),
-              past: pushSnapshot(past, { doc: current, revisions: [] }),
-              future: rest,
-              lastErrors: [],
-            });
-            return;
-          }
-          const inverse: EditCommand[] = [];
-          for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
-            inverse.push(...commandsFromRevision(current, step.revisions[i]));
-          }
-          const result = applyToYdoc(inverse);
-          if (!result.ok) {
-            set({ lastErrors: result.errors });
-            return;
-          }
+        const ydoc = getTemplateYdoc();
+        const current = projectDoc(ydoc);
+        if (step.revisions.length === 0) {
+          initializeTemplateYDoc(ydoc, step.doc);
           set({
             doc: projectDoc(ydoc),
             history: historyFromYdoc(ydoc),
-            past: pushSnapshot(past, { doc: result.before, revisions: result.entries }),
+            past: pushSnapshot(past, { doc: current, revisions: [] }),
             future: rest,
             lastErrors: [],
           });
           return;
         }
-        if (step.revisions.length === 0) {
-          set({
-            doc: { ...step.doc, revision: doc.revision + 1 },
-            past: pushSnapshot(past, { doc, revisions: [] }),
-            future: rest,
-            lastErrors: [],
-          });
+        const inverse: EditCommand[] = [];
+        for (let i = step.revisions.length - 1; i >= 0; i -= 1) {
+          inverse.push(...commandsFromRevision(current, step.revisions[i]));
+        }
+        const result = applyToYdoc(inverse);
+        if (!result.ok) {
+          set({ lastErrors: result.errors });
           return;
         }
-        const legacyRevisions = step.revisions.filter((entry) => !isYdocEntry(entry));
-        const result = invertRevisionGroup(doc, legacyRevisions);
         set({
-          doc: result.doc,
-          history: appendRevisions(legacyLog(history), result.revisions),
-          past: pushSnapshot(past, { doc, revisions: result.revisions }),
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
+          past: pushSnapshot(past, { doc: result.before, revisions: result.entries }),
           future: rest,
           lastErrors: [],
         });
@@ -684,22 +552,11 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: [] });
           return null;
         }
-        if (isYdocPipeline()) {
-          const ydoc = getTemplateYdoc();
-          replaceYDoc(ydoc, normalized);
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: [],
-            future: [],
-            activeTemplateId: normalized.templateId,
-            lastErrors: [],
-          });
-          return null;
-        }
+        const ydoc = getTemplateYdoc();
+        replaceYDoc(ydoc, normalized);
         set({
-          doc: normalized,
-          history: {},
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
           past: [],
           future: [],
           activeTemplateId: normalized.templateId,
@@ -731,22 +588,11 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: [] });
           return null;
         }
-        if (isYdocPipeline()) {
-          const ydoc = getTemplateYdoc();
-          replaceYDoc(ydoc, definition.create());
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: [],
-            future: [],
-            activeTemplateId: definition.id,
-            lastErrors: [],
-          });
-          return null;
-        }
+        const ydoc = getTemplateYdoc();
+        replaceYDoc(ydoc, definition.create());
         set({
-          doc: definition.create(),
-          history: {},
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
           past: [],
           future: [],
           activeTemplateId: definition.id,
@@ -768,80 +614,15 @@ export const useTemplateStore = create<TemplateState>()(
           set({ lastErrors: [] });
           return;
         }
-        if (isYdocPipeline()) {
-          const ydoc = getTemplateYdoc();
-          replaceYDoc(ydoc, fresh);
-          set({
-            doc: projectDoc(ydoc),
-            history: historyFromYdoc(ydoc),
-            past: [],
-            future: [],
-            lastErrors: [],
-          });
-          return;
-        }
+        const ydoc = getTemplateYdoc();
+        replaceYDoc(ydoc, fresh);
         set({
-          doc: fresh,
-          history: {},
+          doc: projectDoc(ydoc),
+          history: historyFromYdoc(ydoc),
           past: [],
           future: [],
           lastErrors: [],
         });
       },
-    }),
-    {
-      name: 'fabriik-template-v1',
-      version: 4,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) =>
-        isYdocPipeline()
-          ? {}
-          : {
-              doc: state.doc,
-              history: state.history,
-              past: state.past,
-              future: state.future,
-              activeTemplateId: state.activeTemplateId,
-            },
-      migrate: (persisted, version) => {
-        const data = persisted as {
-          doc?: TemplateDoc;
-          activeTemplateId?: string;
-          past?: UndoStep[];
-          future?: UndoStep[];
-        } & Record<string, unknown>;
-        if ((version ?? 1) < 2 && !data.activeTemplateId) {
-          data.activeTemplateId = data.doc?.templateId ?? FALLBACK_TEMPLATE_ID;
-        }
-        if ((version ?? 1) < 4) {
-          // Undo stack shape changed (append-only revision groups); drop stale stacks.
-          data.past = [];
-          data.future = [];
-        }
-        return data as typeof persisted;
-      },
-      merge: (persisted, current) => {
-        const data = (persisted ?? {}) as { doc?: unknown };
-        if (data.doc !== undefined && !templateDocSchema.safeParse(data.doc).success) {
-          return {
-            ...current,
-            doc: createEditorialTemplate(),
-            history: initialHistory,
-            past: [],
-            future: [],
-            activeTemplateId: FALLBACK_TEMPLATE_ID,
-            lastErrors: [
-              {
-                code: 'invalid-payload' as const,
-                message:
-                  'invalid json template: persisted state failed validation and was reset to the default template',
-              },
-            ],
-          };
-        }
-        return { ...current, ...(persisted as Record<string, unknown>) };
-      },
-    },
-  ),
-);
+}));
 

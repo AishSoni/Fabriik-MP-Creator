@@ -17,7 +17,6 @@ import {
   useTemplateStore,
   whenTemplatePersistenceReady,
 } from '../store/templateStore';
-import { setYdocPipeline } from './flag';
 import type { TemplateDoc } from '../types/template';
 
 const state = () => useTemplateStore.getState();
@@ -166,12 +165,10 @@ describe('bindTemplatePersistence', () => {
 describe('template store persistence wiring', () => {
   beforeEach(async () => {
     resetYdocPipeline();
-    setYdocPipeline(false);
     await deleteDb(DEFAULT_YDOC_DB_NAME);
   });
 
-  it('persists Y-path dispatches and rehydrates them into a fresh projector', async () => {
-    setYdocPipeline(true);
+  it('persists dispatches and rehydrates them into a fresh projector', async () => {
     state().loadTemplate('tpl-landing-v1');
     state().dispatch({
       kind: 'set-content',
@@ -185,7 +182,6 @@ describe('template store persistence wiring', () => {
     await flush();
 
     resetYdocPipeline();
-    setYdocPipeline(true);
     state().loadTemplate('tpl-editorial-v1');
     getTemplateYdoc();
     await whenTemplatePersistenceReady();
