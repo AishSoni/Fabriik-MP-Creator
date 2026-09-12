@@ -47,11 +47,11 @@ export function LayersPanel() {
       <div className={`shrink-0 flex items-center justify-between border-b px-3.5 py-3 ${darkMode ? 'border-surface-dark-muted' : 'border-stone'}`}>
         <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${darkMode ? 'text-muted-dark' : 'text-muted'}`}>Layers</span>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${darkMode ? 'bg-surface/10 text-muted-dark' : 'bg-ink text-white'}`}>
-          {root.childIds.length} sections
+          {root ? `${root.childIds.length} sections` : 'Syncing…'}
         </span>
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-2 text-[13px]">
-        {root.childIds.map((sectionId) => (
+        {(root?.childIds ?? []).map((sectionId) => (
           <LayerBranch key={sectionId} id={sectionId} depth={0} selectedIds={selectedIds} onSelect={selectOnly} onToggle={toggleSelect} onMove={move} onRemove={removeElement} />
         ))}
       </ul>
