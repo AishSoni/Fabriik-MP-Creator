@@ -137,11 +137,12 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
       <span className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${isSelected ? (darkMode ? 'bg-black/10 text-ink' : 'bg-surface/15 text-white') : darkMode ? 'bg-surface/5 text-muted' : 'bg-surface-muted text-muted-dark'}`}>
         {element.type}
       </span>
+      <div className="-ml-1 flex max-w-0 shrink-0 translate-x-2 items-center gap-1 overflow-hidden opacity-0 pointer-events-none transition-all duration-200 ease-out group-hover:ml-0 group-hover:max-w-[84px] group-hover:translate-x-0 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:ml-0 group-focus-within:max-w-[84px] group-focus-within:translate-x-0 group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
       <button
         type="button"
         aria-label={`Move ${label} up`}
         onClick={() => onMove(id, -1)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
+        className={`inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-xs transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
       >
         ↑
       </button>
@@ -149,7 +150,7 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
         type="button"
         aria-label={`Move ${label} down`}
         onClick={() => onMove(id, 1)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
+        className={`inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-xs transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-surface/10 hover:text-white' : 'bg-surface text-muted hover:bg-ink hover:text-white border border-stone'}`}
       >
         ↓
       </button>
@@ -157,10 +158,11 @@ function LayerRow({ id, depth, selectedIds, onSelect, onToggle, onMove, onRemove
         type="button"
         aria-label={`Delete ${label}`}
         onClick={() => onRemove(id)}
-        className={`invisible inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs group-hover:visible transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-[#E85D4A] hover:text-white' : 'bg-surface text-muted-dark hover:bg-[#E85D4A] hover:text-white border border-stone'}`}
+        className={`inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-xs transition-colors ${darkMode ? 'bg-surface/5 text-muted-dark hover:bg-[#E85D4A] hover:text-white' : 'bg-surface text-muted-dark hover:bg-[#E85D4A] hover:text-white border border-stone'}`}
       >
         ✕
       </button>
+      </div>
     </div>
   );
 }
