@@ -15,5 +15,6 @@
     "lib0": "./node_modules/lib0",
     "zod": "./node_modules/zod"
   },
+  "workers_dev": true,
   "observability": { "enabled": true }
 }

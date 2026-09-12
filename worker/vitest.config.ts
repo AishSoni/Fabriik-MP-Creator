@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import { loadEnv } from 'vite';
 import { fileURLToPath } from 'node:url';
+
+for (const [key, value] of Object.entries(loadEnv('test', process.cwd(), ''))) {
+  process.env[key] ??= value;
+}
 
 export default defineConfig({
   resolve: {

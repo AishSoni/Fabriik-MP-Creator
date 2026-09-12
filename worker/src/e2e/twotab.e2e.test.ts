@@ -8,7 +8,26 @@ import { createDefaultTemplate } from '@app/template/defaultTemplate';
 declare const process: { env: Record<string, string | undefined> };
 
 const url = process.env.SMOKE_E2E_URL;
+const host = new URL(url ?? 'ws://127.0.0.1:8787').host;
 const RUN = Date.now().toString(36);
+
+async function hostReachable(target: string): Promise<boolean> {
+  const { connect } = await import('node:net');
+  const idx = target.lastIndexOf(':');
+  const hostname = idx > -1 ? target.slice(0, idx) : target;
+  const port = idx > -1 ? Number(target.slice(idx + 1)) : 443;
+  return new Promise((resolve) => {
+    const socket = connect({ host: hostname, port, timeout: 1500 }, () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => resolve(false));
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
 
 const styleColor = (hex: string): unknown => ({
   kind: 'set-style',
@@ -55,18 +74,22 @@ function waitEvent(
   });
 }
 
-it.skipIf(!url)('two-provider smoke: creator + joiner converge, invalid rolls back', { timeout: 45_000 }, async () => {
+it('two-provider smoke: creator + joiner converge, invalid rolls back', { timeout: 45_000 }, async (t) => {
+  if (!url && !(await hostReachable(host))) {
+    t.skip();
+    return;
+  }
   const room = `smoke-${RUN}`;
   const creatorDoc = new Y.Doc();
   initializeTemplateYDoc(creatorDoc, createDefaultTemplate());
-  const creator = new TemplateRoomProvider('127.0.0.1:8787', room, creatorDoc, {
+  const creator = new TemplateRoomProvider(host, room, creatorDoc, {
     connect: true,
     uploadLocal: true,
   });
   await awaitSynced(creator);
 
   const joinerDoc = new Y.Doc();
-  const joiner = new TemplateRoomProvider('127.0.0.1:8787', room, joinerDoc, {
+  const joiner = new TemplateRoomProvider(host, room, joinerDoc, {
     connect: true,
   });
   await awaitSynced(joiner);
