@@ -15,7 +15,10 @@ function makeDoc(): Y.Doc {
   return doc;
 }
 
-function makeProvider(doc: Y.Doc, options: { uploadLocal?: boolean } = {}): TemplateRoomProvider {
+function makeProvider(
+  doc: Y.Doc,
+  options: { uploadLocal?: boolean; party?: string } = {},
+): TemplateRoomProvider {
   return new TemplateRoomProvider('127.0.0.1:8787', 'test-room', doc, {
     connect: false,
     ...options,
@@ -83,6 +86,16 @@ const replaceCommand = (): EditCommand => ({
 });
 
 describe('TemplateRoomProvider', () => {
+  it("defaults to the worker's 'doc' party when none is supplied", () => {
+    const provider = makeProvider(makeDoc());
+    expect(provider.url).toBe('ws://127.0.0.1:8787/parties/doc/test-room');
+  });
+
+  it('honors an explicit party override', () => {
+    const provider = makeProvider(makeDoc(), { party: 'other' });
+    expect(provider.url).toBe('ws://127.0.0.1:8787/parties/other/test-room');
+  });
+
   it('dispatch applies optimistically and queues while offline', () => {
     const doc = makeDoc();
     const provider = makeProvider(doc);

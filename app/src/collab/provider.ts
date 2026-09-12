@@ -73,8 +73,8 @@ export class TemplateRoomProvider extends YPartyserverProvider {
     doc: Y.Doc,
     options: TemplateRoomProviderOptions = {},
   ) {
-    const { connect = true, uploadLocal = false, ...base } = options;
-    super(host, room, doc, { ...base, disableBc: true, connect: false });
+    const { connect = true, uploadLocal = false, party = 'doc', ...base } = options;
+    super(host, room, doc, { ...base, party, disableBc: true, connect: false });
     this.#autoConnect = connect;
     this.#uploadLocal = uploadLocal;
     this.undoManager = new Y.UndoManager(doc, {

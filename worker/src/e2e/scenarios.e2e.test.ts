@@ -307,7 +307,7 @@ it.skipIf(!url)('scenario 4+7: provider dispatch onto removed element rejects, r
   expect(projectDoc(a.doc).elements['hero-eyebrow']).toBeUndefined();
 
   const providerDoc = new Y.Doc();
-  const bProvider = new TemplateRoomProvider('127.0.0.1:8787', `scen-reject-${RUN}`, providerDoc, { connect: true, party: 'doc' });
+  const bProvider = new TemplateRoomProvider('127.0.0.1:8787', `scen-reject-${RUN}`, providerDoc, { connect: true });
   let rejected = false;
   const emits: string[] = [];
   bProvider.on('room-reject', () => emits.push('reject'));

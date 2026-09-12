@@ -62,14 +62,12 @@ it.skipIf(!url)('two-provider smoke: creator + joiner converge, invalid rolls ba
   const creator = new TemplateRoomProvider('127.0.0.1:8787', room, creatorDoc, {
     connect: true,
     uploadLocal: true,
-    party: 'doc',
   });
   await awaitSynced(creator);
 
   const joinerDoc = new Y.Doc();
   const joiner = new TemplateRoomProvider('127.0.0.1:8787', room, joinerDoc, {
     connect: true,
-    party: 'doc',
   });
   await awaitSynced(joiner);
   expect(JSON.stringify(projectDoc(joinerDoc).elements['hero-heading']?.type)).toContain('heading');
