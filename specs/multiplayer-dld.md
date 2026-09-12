@@ -275,8 +275,7 @@ device frame.
 - Keep `engine/` 100% React-free — it now also ships to the Worker.
 - The command adapter must produce **identical** Y.Doc mutations client-side and
   DO-side; divergence causes phantom rollbacks. Property-order-independent by design
-  (Y.Map keys), but write order within a transaction should still mirror
-  `engine/commit.ts` for history-snapshot parity.
+  (Y.Map keys); history snapshots are captured by the adapter itself.
 - Awareness updates are *not* persisted and *not* validated — treat as untrusted UI
   hints; sanitize before rendering (name length, color format).
 - Throttle cursor sends hard (≤30/s) — awareness traffic is the main bandwidth cost of

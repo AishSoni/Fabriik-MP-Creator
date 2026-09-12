@@ -182,7 +182,7 @@ function replaceYDoc(ydoc: Y.Doc, newDoc: TemplateDoc, opts): ApplyResult
 Peers receive it as ordinary Yjs deletions/insertions — one atomic swap, no special
 client code beyond the `notice` toast (DO protocol spec §4.3).
 
-## 8. Parity table with engine/commit.ts
+## 8. Parity table with engine/commit.ts (historical)
 
 | Behavior today | Adapter equivalent |
 |---|---|
@@ -193,8 +193,10 @@ client code beyond the `notice` toast (DO protocol spec §4.3).
 | `dispatchMany` sequential re-stamping | Deleted — commands apply independently (DLD §3.2) |
 | `restore` of an unset style key (`before` snapshot `null`) | Inverse patch carries `null`; adapter deletes the style key (JSON frames would drop `undefined`) — §5.2 |
 
-During migration keep `engine/commit.ts` alive behind a feature flag for the legacy
-store; delete once P3 exit criteria (HLD §10) are met.
+Migration is **complete** (Phase B): the feature flag, `engine/commit.ts`/
+`engine/restore.ts`, and the parity oracle were deleted together once the P3 exit
+criteria (HLD §10) were met. The adapter is now the sole apply path on both the client
+and the DO.
 
 ## 9. Invariants (assert in dev; sweep in tests)
 
@@ -212,9 +214,10 @@ on `observeDeep` (debounced; report-only in Phase 1, repair pass later if needed
 
 Pure unit tests (in-memory Y.Docs, no network):
 
-1. **Parity oracle** — for each kind: apply to a Y.Doc → `projectDoc()` equals the
-   result of applying the same command via legacy `engine/commit.ts` to the same
-   starting doc. (Keeps the migration honest.)
+1. **Parity oracle — retired** (Phase B) with `engine/commit.ts`. The adapter is now
+   the sole apply path, so cross-engine comparison was replaced by apply/restore
+   round-trip suites (`commandAdapter.test.ts`, `commands.test.ts`, `schema.test.ts`)
+   that assert projections, snapshots, and inverse commands directly.
 2. **Atomicity** — deep observers fire exactly once per command.
 3. **History gating** — entries appended only when `origin: 'authoritative'`.
 4. **Convergence** — two docs apply the same command set in different orders →

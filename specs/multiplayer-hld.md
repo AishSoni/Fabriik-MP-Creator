@@ -100,7 +100,7 @@ Roles:
 
 | Module | Change class |
 |---|---|
-| `engine/commit.ts`, `engine/restore.ts` | Repurposed: logic moves behind the command adapter; run in DO (authoritative) and client (optimistic) |
+| `engine/commit.ts`, `engine/restore.ts` | Retired (Phase B): their behavior lives in the command adapter, which runs client-side (optimistic) and in the DO (authoritative) |
 | `engine/validate.ts` | Unchanged code, new deployment target (shared client + DO); becomes the trust boundary |
 | `store/templateStore.ts` | Rewritten as a **projection/view cache** of the Y.Doc; revision machinery deleted |
 | `store/editorStore.ts` | Unchanged (per-user UI state); selection gains an awareness broadcast hook |
