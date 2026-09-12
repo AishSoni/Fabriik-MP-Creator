@@ -40,7 +40,7 @@ export const rejectFrameSchema = z.strictObject({
   errors: z.array(commandErrorSchema),
 });
 
-export const noticeFrameSchema = z.strictObject({
+export const roomReplacedNoticeSchema = z.strictObject({
   v: z.literal(1),
   type: z.literal('notice'),
   event: z.literal('room-replaced'),
@@ -48,10 +48,23 @@ export const noticeFrameSchema = z.strictObject({
   by: z.string().min(1),
 });
 
+export const roomFullNoticeSchema = z.strictObject({
+  v: z.literal(1),
+  type: z.literal('notice'),
+  event: z.literal('room-full'),
+});
+
+export const noticeFrameSchema = z.discriminatedUnion('event', [
+  roomReplacedNoticeSchema,
+  roomFullNoticeSchema,
+]);
+
 export type CommandFrame = z.infer<typeof commandFrameSchema>;
 export type AckFrame = z.infer<typeof ackFrameSchema>;
 export type RejectFrame = z.infer<typeof rejectFrameSchema>;
 export type NoticeFrame = z.infer<typeof noticeFrameSchema>;
+export type RoomReplacedNotice = z.infer<typeof roomReplacedNoticeSchema>;
+export type RoomFullNotice = z.infer<typeof roomFullNoticeSchema>;
 
 export type ControlFramePayload =
   | CommandFrame

@@ -105,8 +105,11 @@ export class TemplateRoomProvider extends YPartyserverProvider {
     this.messageHandlers[TAG_NOTICE] = ((_encoder, decoder, provider) => {
       const parsed = noticeFrameSchema.safeParse(readJsonTail(decoder));
       if (!parsed.success) return;
+      const notice = parsed.data;
       (provider as TemplateRoomProvider).emit('room-notice', [
-        { event: parsed.data.event, reason: parsed.data.reason, by: parsed.data.by },
+        notice.event === 'room-replaced'
+          ? { event: notice.event, reason: notice.reason, by: notice.by }
+          : { event: notice.event },
       ]);
     }) as ControlHandler;
 

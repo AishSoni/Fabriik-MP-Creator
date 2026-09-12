@@ -45,6 +45,12 @@ const noticeFrame: NoticeFrame = {
   by: 'client-a',
 };
 
+const roomFullFrame: NoticeFrame = {
+  v: 1,
+  type: 'notice',
+  event: 'room-full',
+};
+
 describe('control frames', () => {
   it('uses consecutive tags 100-103', () => {
     expect([TAG_COMMAND, TAG_ACK, TAG_REJECT, TAG_NOTICE]).toEqual([100, 101, 102, 103]);
@@ -78,6 +84,12 @@ describe('control frames', () => {
     const bytes = encodeControlFrame(noticeFrame);
     expect(bytes[0]).toBe(TAG_NOTICE);
     expect(decodeControlFrame(bytes)).toEqual({ tag: TAG_NOTICE, frame: noticeFrame });
+  });
+
+  it('round-trips a room-full notice frame', () => {
+    const bytes = encodeControlFrame(roomFullFrame);
+    expect(bytes[0]).toBe(TAG_NOTICE);
+    expect(decodeControlFrame(bytes)).toEqual({ tag: TAG_NOTICE, frame: roomFullFrame });
   });
 
   it('maps payload types to tags without transport', () => {
@@ -147,5 +159,11 @@ describe('control frames', () => {
 
     const noticeJson = new Uint8Array([TAG_NOTICE, ...new TextEncoder().encode(JSON.stringify({ ...noticeFrame, reason: 'other' }))]);
     expect(decodeControlFrame(noticeJson)).toBeNull();
+
+    const roomFullExtra = new Uint8Array([TAG_NOTICE, ...new TextEncoder().encode(JSON.stringify({ ...roomFullFrame, reason: 'import' }))]);
+    expect(decodeControlFrame(roomFullExtra)).toBeNull();
+
+    const roomFullIncomplete = new Uint8Array([TAG_NOTICE, ...new TextEncoder().encode(JSON.stringify({ v: 1, event: 'room-full' }))]);
+    expect(decodeControlFrame(roomFullIncomplete)).toBeNull();
   });
 });
