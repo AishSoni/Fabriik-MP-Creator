@@ -23,6 +23,7 @@ import {
 import type { Scope, Viewport } from '../../types/viewport';
 import { cn } from '../../lib/cn';
 import { viewportPillVariants } from '../../lib/variants';
+import { trackEvent } from '../../analytics/track';
 
 const VIEWPORT_LABELS: { id: Viewport; label: string; width: number }[] = [
   { id: 'desktop', label: 'Desktop', width: 1440 },
@@ -77,6 +78,7 @@ export function TopBar() {
     attachRoomProvider(getCollabHost(), room, { role: 'create' });
     writeRoomToUrl(room);
     setRoomActive(true);
+    trackEvent('share_created');
     void navigator.clipboard
       ?.writeText(shareUrlFor(room))
       ?.catch(() => {});

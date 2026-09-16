@@ -65,7 +65,7 @@ describe('Vercel CSP headers (spec ai-byok §7, §11)', () => {
   it('locks scripts and defaults to self', () => {
     const d = directives(csp());
     expect(d['default-src']).toContain("'self'");
-    expect(d['script-src']).toEqual(["'self'"]);
+    expect(d['script-src']).toEqual(["'self'", 'https://cloud.umami.is']);
     expect(d['object-src']).toEqual(["'none'"]);
     expect(d['base-uri']).toEqual(["'self'"]);
     expect(d['form-action']).toEqual(["'none'"]);
@@ -96,6 +96,19 @@ describe('Vercel CSP headers (spec ai-byok §7, §11)', () => {
     }
   });
 
+  it('allowlists the Umami Cloud tracker and event endpoints', () => {
+    const d = directives(csp());
+    expect(d['script-src']).toContain('https://cloud.umami.is');
+    const connect = d['connect-src'] ?? [];
+    for (const origin of [
+      'https://gateway.umami.is',
+      'https://eu.umami.is',
+      'https://api-gateway-eu.umami.dev',
+      'https://api-gateway.umami.dev',
+    ]) {
+      expect(connect, `connect-src must include ${origin}`).toContain(origin);
+    }
+  });
   it('connect-src parity: names the endpoint constants declared in provider modules', () => {
     const d = directives(csp());
     const geminiOrigin = new URL(GEMINI_ENDPOINT).origin;

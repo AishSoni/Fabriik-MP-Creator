@@ -6,7 +6,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://openrouter.ai https://api.anthropic.com http://localhost:11434 http://localhost:1234; object-src 'none'; base-uri 'self'; form-action 'none'"
+          "value": "default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://openrouter.ai https://api.anthropic.com http://localhost:11434 http://localhost:1234 https://gateway.umami.is https://eu.umami.is https://api-gateway-eu.umami.dev https://api-gateway.umami.dev; object-src 'none'; base-uri 'self'; form-action 'none'"
         },
         {
           "key": "Referrer-Policy",
