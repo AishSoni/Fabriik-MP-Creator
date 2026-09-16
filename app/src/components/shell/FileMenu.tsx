@@ -5,6 +5,7 @@ import { exportTemplateJson, parseTemplateJson } from '../../engine/exportTempla
 import { exportHtml } from '../../engine/exportHtml';
 import { downloadFile, slugifyFileName } from '../../lib/download';
 import { Dropdown } from './Dropdown';
+import { Logo } from './Logo';
 import { cn } from '../../lib/cn';
 
 export const IMPORT_SAVE_FIRST_MESSAGE =
@@ -95,11 +96,11 @@ export function FileMenu() {
           >
             <span
               className={cn(
-                'inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold tracking-tight',
-                darkMode ? 'bg-paper text-ink' : 'bg-ink text-white',
+                'inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full',
+                darkMode ? 'text-paper' : 'text-ink',
               )}
             >
-              F
+              <Logo size={28} />
             </span>
             <span className="tracking-tight" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em' }}>
               Fabriik
