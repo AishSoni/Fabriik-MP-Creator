@@ -9,8 +9,10 @@ import { HistoryPanel } from '../panels/HistoryPanel';
 import { AiPanel } from '../panels/AiPanel';
 import { ErrorToasts } from './ErrorToasts';
 import { Toast } from './Toast';
+import { MobileExperienceNotice } from './MobileExperienceNotice';
 import { CompareView } from '../compare/CompareView';
 import { cn } from '../../lib/cn';
+import { isMobileScreenWidth, useIsMobileScreen } from '../../lib/useIsMobileScreen';
 import { editorTabVariants } from '../../lib/variants';
 import { useUndoRedoKeys } from '../../lib/useUndoRedoKeys';
 
@@ -22,7 +24,10 @@ const TABS: { id: RightPanelTab; label: string }[] = [
 ];
 
 export function EditorShell() {
-  const [layersOpen, setLayersOpen] = useState(true);
+  const isMobileScreen = useIsMobileScreen();
+  const [layersOpen, setLayersOpen] = useState(() => !isMobileScreenWidth());
+  const [rightOpen, setRightOpen] = useState(() => !isMobileScreenWidth());
+  const [mobileNudgeDismissed, setMobileNudgeDismissed] = useState(false);
   const rightPanelTab = useEditorStore((s) => s.rightPanelTab);
   const setRightPanelTab = useEditorStore((s) => s.setRightPanelTab);
   const selectionKey = useEditorStore((s) => s.selectedIds.join('|'));
@@ -57,72 +62,77 @@ export function EditorShell() {
             <CodePanel />
           </div>
         </main>
-        <aside
-          className={cn(
-            'flex w-[348px] shrink-0 flex-col overflow-hidden border-l min-h-0',
-            darkMode ? 'border-surface-dark-muted bg-surface-dark' : 'border-stone bg-surface',
-          )}
-          style={{ boxShadow: darkMode ? 'none' : 'var(--shadow-panel)' }}
-        >
-          <div
-            role="tablist"
-            aria-label="Editor panels"
+        {rightOpen && (
+          <aside
+            aria-label="Editor side panel"
             className={cn(
-              'flex shrink-0 items-center gap-1 border-b p-1.5',
-              darkMode ? 'border-surface-dark-muted bg-surface-dark-raised' : 'border-stone bg-surface-muted',
+              'flex w-[348px] shrink-0 flex-col overflow-hidden border-l min-h-0',
+              darkMode ? 'border-surface-dark-muted bg-surface-dark' : 'border-stone bg-surface',
             )}
+            style={{ boxShadow: darkMode ? 'none' : 'var(--shadow-panel)' }}
           >
-            {TABS.map(({ id, label }) => {
-              const active = rightPanelTab === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setRightPanelTab(id)}
-                  className={cn('flex-1', editorTabVariants({ active, dark: darkMode }))}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          <div
-            role="tabpanel"
-            className={cn(
-              'min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain',
-              darkMode ? 'bg-surface-dark' : 'bg-surface',
-            )}
-          >
-            {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
-            {rightPanelTab === 'ai' && <AiPanel />}
-            {rightPanelTab === 'history' && <HistoryPanel />}
-            {rightPanelTab === 'code' && (
-              <div className="p-5">
-                <div
-                  className={cn(
-                    'rounded-[14px] border px-4 py-3 text-sm leading-relaxed',
-                    darkMode
-                      ? 'border-surface-dark-muted bg-surface-dark-raised text-muted-dark'
-                      : 'border-stone bg-paper text-muted',
-                  )}
-                >
-                  <p className="font-medium text-[13px] tracking-wide" style={{ fontFamily: 'var(--font-sans)' }}>
-                    Code surface active
-                  </p>
-                  <p className="mt-1 text-[12.5px] leading-5 opacity-80">
-                    The JSON editor is open below the canvas. Select a single element to scope the editor to it, or edit the whole template.
-                  </p>
+            <div
+              role="tablist"
+              aria-label="Editor panels"
+              className={cn(
+                'flex shrink-0 items-center gap-1 border-b p-1.5',
+                darkMode ? 'border-surface-dark-muted bg-surface-dark-raised' : 'border-stone bg-surface-muted',
+              )}
+            >
+              {TABS.map(({ id, label }) => {
+                const active = rightPanelTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setRightPanelTab(id)}
+                    className={cn('flex-1', editorTabVariants({ active, dark: darkMode }))}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              role="tabpanel"
+              className={cn(
+                'min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain',
+                darkMode ? 'bg-surface-dark' : 'bg-surface',
+              )}
+            >
+              {rightPanelTab === 'properties' && <PropertiesPanel key={selectionKey} />}
+              {rightPanelTab === 'ai' && <AiPanel />}
+              {rightPanelTab === 'history' && <HistoryPanel />}
+              {rightPanelTab === 'code' && (
+                <div className="p-5">
+                  <div
+                    className={cn(
+                      'rounded-[14px] border px-4 py-3 text-sm leading-relaxed',
+                      darkMode
+                        ? 'border-surface-dark-muted bg-surface-dark-raised text-muted-dark'
+                        : 'border-stone bg-paper text-muted',
+                    )}
+                  >
+                    <p className="font-medium text-[13px] tracking-wide" style={{ fontFamily: 'var(--font-sans)' }}>
+                      Code surface active
+                    </p>
+                    <p className="mt-1 text-[12.5px] leading-5 opacity-80">
+                      The JSON editor is open below the canvas. Select a single element to scope the editor to it, or edit the whole template.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </aside>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
       <button
         type="button"
         onClick={() => setLayersOpen((v) => !v)}
+        aria-pressed={layersOpen}
+        aria-label={layersOpen ? 'Hide layers panel' : 'Show layers panel'}
         className={cn(
           'absolute bottom-4 left-4 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-floating transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]',
           darkMode ? 'bg-paper text-ink hover:bg-surface' : 'bg-ink text-white hover:bg-ink-soft',
@@ -138,6 +148,29 @@ export function EditorShell() {
         </span>
         {layersOpen ? 'Hide layers' : 'Show layers'}
       </button>
+      <button
+        type="button"
+        onClick={() => setRightOpen((v) => !v)}
+        aria-pressed={rightOpen}
+        aria-label={rightOpen ? 'Hide side panel' : 'Show side panel'}
+        className={cn(
+          'absolute bottom-4 right-4 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-floating transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]',
+          darkMode ? 'bg-paper text-ink hover:bg-surface' : 'bg-ink text-white hover:bg-ink-soft',
+        )}
+      >
+        <span
+          className={cn(
+            'inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] leading-none',
+            darkMode ? 'bg-black/10' : 'bg-white/15',
+          )}
+        >
+          {rightOpen ? '−' : '+'}
+        </span>
+        {rightOpen ? 'Hide panel' : 'Show panel'}
+      </button>
+      {isMobileScreen && !mobileNudgeDismissed && (
+        <MobileExperienceNotice onContinue={() => setMobileNudgeDismissed(true)} />
+      )}
       <CompareView />
       <Toast />
     </div>
